@@ -1,15 +1,23 @@
 const { sql, getPool } = require('../config/db');
 const coreVoucherService = require('./coreVoucherService');
 const { generateTransNum } = require('../utils/transNum');
+const guessGuard = require('../utils/guessGuard');
 
 const { VOUCHER_STATUS } = coreVoucherService;
 
 /**
  * Buoc 1: Quet ma -> doi chieu voi Core API xem voucher da tieu hay chua.
  * KHONG lam thay doi trang thai voucher, chi doc + ghi log.
+ *
+ * Giao dien chi cho phep quet (khong cho go tay), nhung vi ai co token deu goi thang
+ * duoc API nay nen van can chan brute-force/do ma o phia server: khoa tam thoi neu
+ * 1 nguoi dung co qua nhieu lan kiem tra ma KHONG TON TAI lien tiep (guessGuard).
  */
 async function checkVoucher({ voucherCode, user, scanMethod }) {
+  guessGuard.assertNotLocked(user.userId);
+
   const result = await coreVoucherService.checkVoucher(voucherCode);
+  guessGuard.recordResult(user.userId, result.status === VOUCHER_STATUS.UNUSED || result.status === VOUCHER_STATUS.USED);
 
   await logScan({
     user,
@@ -55,8 +63,12 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
  * roi luu ban ghi vao VOUCHER_SYNC de doi soat hang ngay.
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
+  guessGuard.assertNotLocked(user.userId);
+
   // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc
   const precheck = await coreVoucherService.checkVoucher(voucherCode);
+  guessGuard.recordResult(user.userId, precheck.status === VOUCHER_STATUS.UNUSED || precheck.status === VOUCHER_STATUS.USED);
+
   if (precheck.status !== VOUCHER_STATUS.UNUSED) {
     await logScan({
       user,

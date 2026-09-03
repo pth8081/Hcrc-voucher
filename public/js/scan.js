@@ -9,7 +9,6 @@ document.getElementById('logoutLink').addEventListener('click', (e) => {
 });
 
 const voucherInput = document.getElementById('voucherInput');
-const checkBtn = document.getElementById('checkBtn');
 const cameraBtn = document.getElementById('cameraBtn');
 const qrReaderEl = document.getElementById('qr-reader');
 const resultCard = document.getElementById('resultCard');
@@ -17,8 +16,17 @@ const statusBadge = document.getElementById('statusBadge');
 const resultInfo = document.getElementById('resultInfo');
 const resultActions = document.getElementById('resultActions');
 const recentBody = document.getElementById('recentBody');
+const manualBlockedHint = document.getElementById('manualBlockedHint');
 
-let lastScanMethod = 'MANUAL';
+// Chi chap nhan du lieu quet (may quet HID hoac camera), khong cho phep go tay/dan/keo-tha.
+// May quet HID gia lap ban phim that nen khong the chan bang thuoc tinh readonly - thay vao do
+// phat hien qua TOC DO go phim: may quet dua ky tu ve gan nhu tuc thi (vai ms/ky tu), trong khi
+// nguoi go tay nhanh nhat cung mat toi thieu vai chuc ms/ky tu.
+const SCAN_MIN_LENGTH = 4;
+const SCAN_MAX_MS_PER_CHAR = 40;
+let keyTimestamps = [];
+
+let lastScanMethod = 'HID_SCANNER';
 let html5QrCode = null;
 let cameraRunning = false;
 let recentRows = [];
@@ -28,29 +36,74 @@ focusInput();
 voucherInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    lastScanMethod = 'HID_SCANNER';
-    runCheck();
+    handleScanSubmit();
+    return;
+  }
+  if (e.key.length === 1) {
+    keyTimestamps.push(Date.now());
   }
 });
 
-checkBtn.addEventListener('click', () => {
-  lastScanMethod = 'MANUAL';
-  runCheck();
+voucherInput.addEventListener('paste', (e) => {
+  e.preventDefault();
+  rejectManualEntry();
+});
+
+voucherInput.addEventListener('drop', (e) => {
+  e.preventDefault();
+  rejectManualEntry();
 });
 
 cameraBtn.addEventListener('click', toggleCamera);
 
 function focusInput() {
   voucherInput.value = '';
+  keyTimestamps = [];
   voucherInput.focus();
 }
 
-async function runCheck() {
-  const voucherCode = voucherInput.value.trim();
-  if (!voucherCode) return;
+function handleScanSubmit() {
+  const value = voucherInput.value.trim();
+  const timestamps = keyTimestamps;
+  keyTimestamps = [];
+  if (!value) return;
 
+  if (!looksLikeGenuineScan(value, timestamps)) {
+    rejectManualEntry();
+    return;
+  }
+
+  hideManualBlockedHint();
+  lastScanMethod = 'HID_SCANNER';
+  runCheck(value);
+}
+
+/** Doan tin hieu quet that (nhanh, deu) khac voi go tay (cham, khong deu). */
+function looksLikeGenuineScan(value, timestamps) {
+  if (value.length < SCAN_MIN_LENGTH) return false;
+  if (timestamps.length < value.length) return false; // co ky tu khong qua keydown (vd dan)
+  if (timestamps.length <= 1) return true;
+  const elapsed = timestamps[timestamps.length - 1] - timestamps[0];
+  const maxAllowed = (timestamps.length - 1) * SCAN_MAX_MS_PER_CHAR;
+  return elapsed <= maxAllowed;
+}
+
+function rejectManualEntry() {
+  focusInput();
+  manualBlockedHint.classList.remove('hidden');
+  showToast('Khong cho phep nhap tay ma voucher, vui long dung may quet hoac camera');
+  clearTimeout(rejectManualEntry._timer);
+  rejectManualEntry._timer = setTimeout(() => manualBlockedHint.classList.add('hidden'), 4000);
+}
+
+function hideManualBlockedHint() {
+  manualBlockedHint.classList.add('hidden');
+}
+
+async function runCheck(voucherCode) {
   try {
-    checkBtn.disabled = true;
+    voucherInput.disabled = true;
+    cameraBtn.disabled = true;
     const data = await apiFetch('/vouchers/check', {
       method: 'POST',
       body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod }),
@@ -60,7 +113,8 @@ async function runCheck() {
     showToast(err.message);
     focusInput();
   } finally {
-    checkBtn.disabled = false;
+    voucherInput.disabled = false;
+    cameraBtn.disabled = false;
   }
 }
 
@@ -168,10 +222,9 @@ function toggleCamera() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: 220 },
       (decodedText) => {
-        voucherInput.value = decodedText;
         lastScanMethod = 'CAMERA';
         stopCamera();
-        runCheck();
+        runCheck(decodedText.trim());
       },
       () => {}
     )

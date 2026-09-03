@@ -21,11 +21,23 @@
   <div class="container">
     <div class="card">
       <h2>Quet ma voucher</h2>
-      <label>Ma voucher (may scan HID se tu dien vao day, hoac go tay roi bam Enter)</label>
-      <input id="voucherInput" class="scan-input" placeholder="Quet hoac nhap ma voucher..." autocomplete="off" />
-      <div style="display:flex; gap:10px;">
-        <button id="checkBtn" class="btn-primary" style="flex:1;">Kiem tra</button>
-        <button id="cameraBtn" class="btn-secondary" style="flex:1;">Quet bang camera</button>
+      <p class="hint" style="margin-top:-4px;">
+        Chi chap nhan ma duoc <strong>quet</strong> bang may quet ma vach/QR hoac camera.
+        Khong cho phep go tay de tranh nhap sai hoac do gian lan.
+      </p>
+      <label>Dua may quet vao day va bam quet (o nay tu dong nhan tin hieu tu may quet)</label>
+      <input
+        id="voucherInput"
+        class="scan-input"
+        placeholder="San sang nhan tin hieu quet..."
+        autocomplete="off"
+        inputmode="none"
+      />
+      <div id="manualBlockedHint" class="warn-inline hidden">
+        Khong nhan dien duoc thao tac quet. Vui long dung may quet hoac camera, khong go tay.
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button id="cameraBtn" class="btn-primary" style="flex:1;">Quet bang camera</button>
       </div>
       <div id="qr-reader" class="hidden" style="margin-top:16px;"></div>
     </div>

@@ -73,6 +73,16 @@ button {
 .btn-danger { background: var(--danger); color: #fff; }
 .btn-block { width: 100%; }
 
+.warn-inline {
+  background: #fdecea;
+  color: var(--danger);
+  border: 1px solid #f5c6c1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
 .scan-input {
   font-size: 20px;
   text-align: center;
