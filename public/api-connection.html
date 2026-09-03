@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ket noi Core API - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .section-title { font-size: 14px; font-weight: 700; color: var(--primary); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; }
+  .maprow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .maprow input { margin-bottom: 0; }
+  textarea.code { width: 100%; min-height: 90px; font-family: monospace; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  pre.result { background: #10241a; color: #cdeedd; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; max-height: 260px; }
+  .conn-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .conn-row:last-child { border-bottom:none; }
+  .badge-active { background:#e2f5ea; color:var(--primary); font-size:12px; padding:2px 8px; border-radius:999px; font-weight:700; margin-left:8px; }
+  .warn-box { background:#fdecea; border:1px solid #f5c6c1; color:var(--danger); padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">HCRC Voucher Redemption</div>
+    <div>
+      <a href="/index.html">Quet voucher</a>
+      <a href="/units.html">Don vi thu hoi</a>
+      <a href="/report.html">Bao cao doi soat</a>
+      <a href="#" id="logoutLink">Dang xuat</a>
+    </div>
+  </div>
+
+  <div class="container" style="max-width:960px;">
+    <div class="card">
+      <h2>Cac ket noi Core Voucher API</h2>
+      <p class="hint">Chi 1 ket noi duoc "Kich hoat" tai 1 thoi diem - la ket noi ma toan bo app (man hinh quet voucher) dang su dung.</p>
+      <div id="connList"><p style="color:#999;">Dang tai...</p></div>
+      <button id="newBtn" class="btn-secondary" style="margin-top:10px;">+ Tao ket noi moi</button>
+    </div>
+
+    <div class="card">
+      <h2 id="formTitle">Tao ket noi moi</h2>
+      <label>Ten ket noi *</label>
+      <input id="f_name" placeholder="VD: Core Voucher - Production" />
+
+      <div class="grid2">
+        <div>
+          <label>Base URL *</label>
+          <input id="f_baseUrl" placeholder="https://core-voucher.example.com" />
+        </div>
+        <div>
+          <label>Timeout (ms)</label>
+          <input id="f_timeoutMs" type="number" value="8000" />
+        </div>
+      </div>
+
+      <div class="section-title">Xac thuc</div>
+      <label>Kieu xac thuc</label>
+      <select id="f_authType">
+        <option value="NONE">Khong xac thuc</option>
+        <option value="BEARER">Bearer Token</option>
+        <option value="API_KEY_HEADER">API Key (header rieng)</option>
+        <option value="BASIC">Basic Auth (username/password)</option>
+      </select>
+
+      <div id="authFields_BEARER" class="authFields hidden">
+        <label>Bearer Token</label>
+        <input id="f_authToken_bearer" type="password" placeholder="Nhap token (de trong = giu nguyen gia tri da luu)" />
+      </div>
+      <div id="authFields_API_KEY_HEADER" class="authFields hidden">
+        <label>Ten header</label>
+        <input id="f_apiKeyHeaderName" placeholder="VD: X-API-Key" />
+        <label>Gia tri API Key</label>
+        <input id="f_authToken_apikey" type="password" placeholder="Nhap API key (de trong = giu nguyen gia tri da luu)" />
+      </div>
+      <div id="authFields_BASIC" class="authFields hidden">
+        <label>Username</label>
+        <input id="f_basicUsername" />
+        <label>Password</label>
+        <input id="f_basicPassword" type="password" placeholder="Nhap password (de trong = giu nguyen gia tri da luu)" />
+      </div>
+
+      <div class="section-title">Endpoint kiem tra voucher (Check)</div>
+      <div class="grid2">
+        <div>
+          <label>Method</label>
+          <select id="f_checkMethod"><option>GET</option><option>POST</option></select>
+        </div>
+        <div>
+          <label>Vi tri ma voucher</label>
+          <select id="f_checkParamMode">
+            <option value="PATH">Trong duong dan (path) - dung {code}</option>
+            <option value="QUERY">Query string</option>
+            <option value="BODY">Body JSON (khi method = POST)</option>
+          </select>
+        </div>
+      </div>
+      <label>Path *</label>
+      <input id="f_checkPath" placeholder="/api/vouchers/{code}/status" />
+      <p class="hint">Dung {code} trong path neu chon "Trong duong dan". VD: /api/vouchers/{code}/status</p>
+      <div id="checkParamNameWrap" class="hidden">
+        <label>Ten tham so (query/body)</label>
+        <input id="f_checkParamName" placeholder="VD: voucherCode" />
+      </div>
+
+      <label>Anh xa du lieu tra ve (duong dan field trong JSON response)</label>
+      <div class="grid2">
+        <div><label>status *</label><input id="f_check_statusPath" placeholder="status" /></div>
+        <div><label>found (tuy chon)</label><input id="f_check_foundPath" placeholder="found" /></div>
+        <div><label>so serial</label><input id="f_check_serialPath" placeholder="serial" /></div>
+        <div><label>menh gia</label><input id="f_check_valueAmtPath" placeholder="valueAmt" /></div>
+        <div><label>ngay cap</label><input id="f_check_issueDatePath" placeholder="issueDate" /></div>
+        <div><label>han su dung</label><input id="f_check_expiryDatePath" placeholder="expiryDate" /></div>
+      </div>
+      <label>Thong bao loi (tuy chon)</label>
+      <input id="f_check_messagePath" placeholder="message" />
+
+      <label>Anh xa gia tri trang thai (gia tri Core API tra ve -&gt; trang thai chuan cua app)</label>
+      <p class="hint">VD: neu Core API tra ve "0" nghia la chua tieu, them dong: 0 -&gt; UNUSED</p>
+      <div id="checkStatusMapRows"></div>
+      <button type="button" class="btn-secondary" id="addCheckMapRow">+ Them dong anh xa</button>
+
+      <div class="section-title">Endpoint thu hoi voucher (Redeem)</div>
+      <div class="grid2">
+        <div>
+          <label>Method</label>
+          <select id="f_redeemMethod"><option>POST</option><option>GET</option><option>PUT</option></select>
+        </div>
+        <div>
+          <label>Vi tri ma voucher (khi khong dung body template)</label>
+          <select id="f_redeemParamMode">
+            <option value="BODY">Body JSON</option>
+            <option value="PATH">Trong duong dan (path) - dung {code}</option>
+            <option value="QUERY">Query string</option>
+          </select>
+        </div>
+      </div>
+      <label>Path *</label>
+      <input id="f_redeemPath" placeholder="/api/vouchers/{code}/redeem" />
+      <div id="redeemParamNameWrap" class="hidden">
+        <label>Ten tham so (query)</label>
+        <input id="f_redeemParamName" placeholder="VD: voucherCode" />
+      </div>
+
+      <label>Body template (JSON, tuy chon) - dung khi Method la POST/PUT</label>
+      <textarea id="f_redeemBodyTemplate" class="code" placeholder='{"voucherCode":"{code}","redeemedBy":"{username}","locationsGroup":"{locationsGroup}","locationsDetail":"{locationsDetail}","transNum":"{transNum}"}'></textarea>
+      <p class="hint">Placeholder ho tro: {code} {username} {locationsGroup} {locationsDetail} {transNum}</p>
+
+      <label>Anh xa du lieu tra ve</label>
+      <div class="grid2">
+        <div><label>success (bool) *</label><input id="f_redeem_successPath" placeholder="success" /></div>
+        <div><label>status</label><input id="f_redeem_statusPath" placeholder="status" /></div>
+        <div><label>ma giao dich (transRef)</label><input id="f_redeem_transRefPath" placeholder="transRef" /></div>
+        <div><label>thoi diem tieu (redeemedAt)</label><input id="f_redeem_redeemedAtPath" placeholder="redeemedAt" /></div>
+      </div>
+      <label>Thong bao loi (tuy chon)</label>
+      <input id="f_redeem_messagePath" placeholder="message" />
+
+      <label>Anh xa gia tri trang thai</label>
+      <div id="redeemStatusMapRows"></div>
+      <button type="button" class="btn-secondary" id="addRedeemMapRow">+ Them dong anh xa</button>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button id="saveBtn" class="btn-primary">Luu ket noi</button>
+        <button id="saveActivateBtn" class="btn-secondary">Luu &amp; Kich hoat</button>
+        <button id="resetBtn" class="btn-secondary" type="button">Lam moi form</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Test truc tiep voucher that</h2>
+      <p class="hint">Dung du lieu dang nhap tren form (chua can luu) hoac ket noi da chon o tren de goi thu Core API ngay, xem ket qua tra ve co dung nhu ky vong khong.</p>
+      <label>Ma voucher dung de test</label>
+      <input id="testVoucherCode" placeholder="Nhap hoac quet ma voucher that de test" />
+      <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <button id="testCheckBtn" class="btn-primary">Test kiem tra (an toan - chi doc)</button>
+      </div>
+
+      <div class="warn-box">
+        Test thu hoi se GOI THAT sang Core API va co the LAM VOUCHER BI TIEU that su, khong the hoan tac. Chi test voi voucher noi bo/khong quan trong.
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
+        <input type="checkbox" id="confirmRedeemCheck" style="width:auto; margin:0;" />
+        Toi hieu thao tac nay se tieu voucher that tren he thong Core
+      </label>
+      <button id="testRedeemBtn" class="btn-danger" style="margin-top:10px;" disabled>Test thu hoi (CANH BAO)</button>
+
+      <div id="testResultWrap" class="hidden" style="margin-top:16px;">
+        <h3>Ket qua test</h3>
+        <div id="testMeta" class="hint" style="margin-bottom:8px;"></div>
+        <div id="testNormalized"></div>
+        <p style="font-size:13px; font-weight:600; margin-bottom:4px;">Response tho tu Core API:</p>
+        <pre class="result" id="testRaw"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/api-connection.js"></script>
+</body>
+</html>

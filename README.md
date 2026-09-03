@@ -40,6 +40,9 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
 - `RedemptionUnits` (001): thong tin nghiep vu chi tiet cua **don vi thu hoi** — ma doi tac, ten, nguoi lien he, dia chi, MST, tai khoan ngan hang, han muc/ngay... Lien ket 1-1 voi `Locations_Detail` qua `LocationDetailId`, khong dung cham bang cu.
 - `VoucherScanLogs` (002): log toan bo luot quet/kiem tra (ca CHECK va REDEEM), phuc vu doi soat va dieu tra khi co tranh chap.
 - Cac index ho tro (003) tren `VOUCHER_SYNC` de truy van bao cao nhanh hon.
+- `ApiConnections` + `ApiConnectionTestLogs` (004): luu cau hinh ket noi Core Voucher API do
+  admin tu khai bao qua UI (secret duoc ma hoa) va log lich su cac lan bam nut "Test" tren
+  man hinh cau hinh.
 
 Chay migration:
 
@@ -60,11 +63,39 @@ npm run dev             # chay server dev (auto-reload)
 
 Mo trinh duyet: `http://localhost:3000` (may scan may vach cam vao PC/tablet, con dien thoai dung camera).
 
-## 4. Tich hop voi Core Voucher API (QUAN TRONG — can chinh theo API that)
+## 4. Cau hinh ket noi Core Voucher API qua giao dien Admin (khuyen nghi)
 
-File duy nhat can sua khi tich hop voi Core API cua ban: **`src/services/coreVoucherService.js`**.
+Thay vi sua code, admin co the tu cau hinh + test ket noi Core API ngay tren web tai
+**menu "Ket noi API"** (`/api-connection.html`, yeu cau tai khoan admin — `Users.status = 1`).
 
-Hien tai code gia dinh hop dong nhu sau — hay sua lai cho khop:
+Man hinh cho phep khai bao truc quan, khong can biet lap trinh:
+
+1. **Base URL + xac thuc**: Bearer token / API key theo header rieng / Basic Auth. Secret duoc
+   **ma hoa AES-256-GCM** truoc khi luu vao DB (bang `ApiConnections`), khong bao gio tra ve
+   plaintext cho trinh duyet sau khi luu (chi hien "da luu, de trong de giu nguyen").
+2. **Endpoint kiem tra (Check)**: chon method GET/POST, khai bao ma voucher nam o dau
+   (path `{code}` / query string / body JSON), va **anh xa duong dan field** trong response
+   JSON tra ve (vi du `status`, `valueAmt`, `issueDate`...) sang cac truong chuan cua app.
+   Ho tro them **bang anh xa gia tri trang thai** (vi du Core API tra `"0"` -> app hieu la
+   `UNUSED`) vi moi he thong dat ten trang thai khac nhau.
+3. **Endpoint thu hoi (Redeem)**: tuong tu, cho phep soan body JSON template voi cac placeholder
+   `{code} {username} {locationsGroup} {locationsDetail} {transNum}`.
+4. **Test ngay khi cau hinh**: nhap 1 ma voucher that, bam **"Test kiem tra"** de goi thang
+   sang Core API bang dung cau hinh dang go tren form (chua can bam Luu) va xem ket qua
+   chuan hoa + response tho ngay lap tuc — phat hien loi mapping truoc khi kich hoat cho
+   toan bo doi tac su dung. Co rieng nut **"Test thu hoi"** (co canh bao + checkbox xac nhan
+   bat buoc) vi thao tac nay se **tieu that** voucher tren he thong Core, khong the hoan tac.
+5. Co the tao nhieu ket noi (vi du Test/Production) nhung chi 1 ket noi duoc **"Kich hoat"**
+   tai 1 thoi diem — do la ket noi ma toan bo man hinh quet voucher dang su dung
+   (`src/services/coreVoucherService.js` tu doc ket noi dang active tu DB).
+
+Neu **chua** cau hinh/kich hoat ket noi nao tren UI, app se **fallback** dung cau hinh tinh
+trong `.env` (`CORE_API_*`) voi hop dong JSON co dinh mo ta o muc 4b ben duoi — giup app van
+chay duoc trong luc admin dang thiet lap ket noi qua UI.
+
+### 4b. Hop dong fallback qua .env (chi ap dung khi chua co ket noi nao tren UI)
+
+File lien quan: `src/services/coreVoucherService.js` (ham `*LegacyEnv`).
 
 **Kiem tra voucher** — `POST {CORE_API_BASE_URL}{CORE_API_CHECK_PATH}`
 ```json
@@ -116,6 +147,11 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
 | GET | `/api/reports/daily?date=YYYY-MM-DD` | Bao cao doi soat theo ngay |
+| GET | `/api/api-connections` | Danh sach ket noi Core API (can quyen admin, secret duoc mask) |
+| GET/POST/PUT/DELETE | `/api/api-connections[/:id]` | CRUD ket noi Core API (can quyen admin) |
+| POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
+| POST | `/api/api-connections/test-check` | Test kiem tra voucher that voi cau hinh dang nhap tren form/da luu |
+| POST | `/api/api-connections/test-redeem` | Test thu hoi voucher that (bat buoc `confirmRedeem: true`) |
 
 Vi du `POST /api/vouchers/check`:
 ```json
@@ -149,6 +185,8 @@ Tra ve khi da tieu:
 - `index.html`: man hinh quet chinh — 1 o input nhan du lieu tu may scan HID (tu dong focus, Enter = kiem tra) va nut "Quet bang camera" (dung thu vien `html5-qrcode` qua CDN) cho dien thoai/tablet khong co may scan roi.
 - `units.html`: quan ly thong tin don vi thu hoi voucher (them/xem).
 - `report.html`: bao cao doi soat theo ngay, theo tung dia diem.
+- `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
+  bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
 
 Luong quet tren UI:
 1. Quet/nhap ma -> goi `/vouchers/check`.
@@ -158,7 +196,11 @@ Luong quet tren UI:
 
 ## 7. Bao mat & van hanh de xuat
 
-- Doi mat khau demo, dat `JWT_SECRET` ngau nhien du dai truoc khi deploy.
+- Doi mat khau demo, dat `JWT_SECRET` va `ENCRYPTION_KEY` ngau nhien du dai truoc khi deploy.
+  `ENCRYPTION_KEY` dung de ma hoa token/API key/password cua ket noi Core API luu trong bang
+  `ApiConnections` — **khong duoc doi hoac lam mat key nay** sau khi da co du lieu that, neu
+  khong se khong giai ma lai duoc cac secret da luu (phai nhap lai tu dau).
+- Chi tai khoan admin (`Users.status = 1`) moi vao duoc man hinh "Ket noi API" va "Don vi thu hoi".
 - Nen dat app sau HTTPS (may scan/camera tren dien thoai yeu cau HTTPS de truy cap camera, tru localhost).
 - Xem xet gioi han `DailyLimitAmount` trong `RedemptionUnits` va canh bao khi don vi vuot han muc thu hoi/ngay.
 - Dinh ky (cron) doi chieu `VOUCHER_SYNC.Sync = 'N'` voi Core system de dam bao khong co giao dich nao bi "mo treo" khi mang loi luc goi redeem.
