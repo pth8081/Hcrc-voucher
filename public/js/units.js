@@ -1,10 +1,5 @@
 requireAuth();
-
-document.getElementById('logoutLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  clearSession();
-  window.location.href = '/login.html';
-});
+renderTopbar('units');
 
 const unitsBody = document.getElementById('unitsBody');
 const locationSelect = document.getElementById('locationDetailId');

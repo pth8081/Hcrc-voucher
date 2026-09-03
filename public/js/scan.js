@@ -1,12 +1,5 @@
 requireAuth();
-
-const user = getUser();
-document.getElementById('whoami').textContent = user ? `${user.fullName || user.username}` : '';
-document.getElementById('logoutLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  clearSession();
-  window.location.href = '/login.html';
-});
+renderTopbar('scan');
 
 const voucherInput = document.getElementById('voucherInput');
 const cameraBtn = document.getElementById('cameraBtn');
@@ -132,7 +125,7 @@ function renderResult(voucherCode, data) {
       <div class="info-row"><span class="k">Han su dung</span><span class="v">${fmtDate(data.expiryDate)}</span></div>
     `;
     const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'btn-primary';
+    confirmBtn.className = 'btn-success';
     confirmBtn.textContent = 'Xac nhan thu hoi';
     confirmBtn.addEventListener('click', () => confirmRedeem(voucherCode));
 

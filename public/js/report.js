@@ -1,10 +1,5 @@
 requireAuth();
-
-document.getElementById('logoutLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  clearSession();
-  window.location.href = '/login.html';
-});
+renderTopbar('report');
 
 const reportDate = document.getElementById('reportDate');
 const summaryBody = document.getElementById('summaryBody');

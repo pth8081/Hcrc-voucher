@@ -1,10 +1,5 @@
 requireAuth();
-
-document.getElementById('logoutLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  clearSession();
-  window.location.href = '/login.html';
-});
+renderTopbar('connection');
 
 let currentId = null; // null = dang tao ket noi moi
 let defaults = null;

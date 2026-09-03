@@ -4,28 +4,30 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Quet voucher - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">HCRC Voucher Redemption</div>
-    <div>
-      <span id="whoami"></span>
-      <a href="/report.html">Bao cao doi soat</a>
-      <a href="/units.html">Don vi thu hoi</a>
-      <a href="/api-connection.html">Ket noi API</a>
-      <a href="#" id="logoutLink">Dang xuat</a>
-    </div>
-  </div>
+  <div id="topbar"></div>
 
   <div class="container">
     <div class="card">
-      <h2>Quet ma voucher</h2>
-      <p class="hint" style="margin-top:-4px;">
-        Chi chap nhan ma duoc <strong>quet</strong> bang may quet ma vach/QR hoac camera.
-        Khong cho phep go tay de tranh nhap sai hoac do gian lan.
-      </p>
-      <label>Dua may quet vao day va bam quet (o nay tu dong nhan tin hieu tu may quet)</label>
+      <div class="scan-hero">
+        <span class="scan-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 8V5a2 2 0 0 1 2-2h3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3M7 12h10"/>
+          </svg>
+        </span>
+        <h2>San sang quet voucher</h2>
+        <p class="hint">
+          Chi chap nhan ma duoc <strong>quet</strong> bang may quet ma vach/QR hoac camera —
+          khong cho phep go tay de tranh nhap sai hoac gian lan.
+        </p>
+      </div>
+
+      <label>Dua may quet vao day va bam quet</label>
       <input
         id="voucherInput"
         class="scan-input"
@@ -36,7 +38,7 @@
       <div id="manualBlockedHint" class="warn-inline hidden">
         Khong nhan dien duoc thao tac quet. Vui long dung may quet hoac camera, khong go tay.
       </div>
-      <div style="display:flex; gap:10px; margin-top:10px;">
+      <div style="display:flex; gap:10px; margin-top:14px;">
         <button id="cameraBtn" class="btn-primary" style="flex:1;">Quet bang camera</button>
       </div>
       <div id="qr-reader" class="hidden" style="margin-top:16px;"></div>
@@ -62,6 +64,7 @@
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
   <script src="/js/scan.js"></script>
 </body>
 </html>
