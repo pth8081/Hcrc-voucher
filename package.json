@@ -1,0 +1,25 @@
+{
+  "name": "hcrc-voucher-redemption",
+  "version": "1.0.0",
+  "description": "Ung dung thu hoi voucher danh cho don vi doi tac (khong dung POS) - quet ma, doi chieu qua Core Voucher API, luu VOUCHER_SYNC de doi soat hang ngay.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node scripts/migrate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mssql": "^11.0.1",
+    "pino": "^9.4.0",
+    "pino-http": "^10.3.0"
+  }
+}

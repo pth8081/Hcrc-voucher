@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quet voucher - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">HCRC Voucher Redemption</div>
+    <div>
+      <span id="whoami"></span>
+      <a href="/report.html">Bao cao doi soat</a>
+      <a href="/units.html">Don vi thu hoi</a>
+      <a href="#" id="logoutLink">Dang xuat</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Quet ma voucher</h2>
+      <label>Ma voucher (may scan HID se tu dien vao day, hoac go tay roi bam Enter)</label>
+      <input id="voucherInput" class="scan-input" placeholder="Quet hoac nhap ma voucher..." autocomplete="off" />
+      <div style="display:flex; gap:10px;">
+        <button id="checkBtn" class="btn-primary" style="flex:1;">Kiem tra</button>
+        <button id="cameraBtn" class="btn-secondary" style="flex:1;">Quet bang camera</button>
+      </div>
+      <div id="qr-reader" class="hidden" style="margin-top:16px;"></div>
+    </div>
+
+    <div id="resultCard" class="card hidden">
+      <h3>Ket qua kiem tra</h3>
+      <div id="statusBadge"></div>
+      <div id="resultInfo" style="margin-top:12px;"></div>
+      <div id="resultActions" style="margin-top:16px; display:flex; gap:10px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Cac giao dich thu hoi gan day (phien nay)</h3>
+      <table>
+        <thead>
+          <tr><th>Gio</th><th>Ma voucher</th><th>Menh gia</th><th>TRANS_NUM</th></tr>
+        </thead>
+        <tbody id="recentBody"><tr><td colspan="4" style="color:#999;">Chua co giao dich</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/scan.js"></script>
+</body>
+</html>

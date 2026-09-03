@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dang nhap - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container" style="max-width:400px; margin-top: 80px;">
+    <div class="card">
+      <h2>Dang nhap thu hoi voucher</h2>
+      <form id="loginForm">
+        <label>Ten dang nhap</label>
+        <input id="username" required autocomplete="username" />
+        <label>Mat khau</label>
+        <input id="password" type="password" required autocomplete="current-password" />
+        <button class="btn-primary btn-block" type="submit">Dang nhap</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        const data = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password }),
+        });
+        setSession(data.token, data.user);
+        window.location.href = '/index.html';
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+  </script>
+</body>
+</html>
