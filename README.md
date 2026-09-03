@@ -97,11 +97,8 @@ chay duoc trong luc admin dang thiet lap ket noi qua UI.
 
 File lien quan: `src/services/coreVoucherService.js` (ham `*LegacyEnv`).
 
-**Kiem tra voucher** — `POST {CORE_API_BASE_URL}{CORE_API_CHECK_PATH}`
+**Kiem tra voucher** — `GET {CORE_API_BASE_URL}{CORE_API_CHECK_PATH}?voucherCode=ABC123456789`
 ```json
-// request
-{ "voucherCode": "ABC123456789" }
-
 // response mong doi (200)
 {
   "found": true,

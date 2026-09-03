@@ -61,7 +61,8 @@ function mapCoreStatus(rawStatus) {
 async function checkVoucherLegacyEnv(voucherCode) {
   const { client, config } = buildCoreApiClient();
   try {
-    const { data, status } = await client.post(config.checkPath, { voucherCode });
+    // GET + query string: kiem tra la thao tac doc, khong lam thay doi trang thai voucher
+    const { data, status } = await client.get(config.checkPath, { params: { voucherCode } });
     if (!data || data.found === false) {
       return { httpStatus: status, found: false, status: VOUCHER_STATUS.NOT_FOUND, message: 'Khong tim thay voucher' };
     }
