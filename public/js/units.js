@@ -23,7 +23,7 @@ async function loadUnits() {
   try {
     const data = await apiFetch('/redemption-units');
     if (!data.length) {
-      unitsBody.innerHTML = '<tr><td colspan="5" style="color:#999;">Chua co don vi nao</td></tr>';
+      unitsBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chua co don vi nao</td></tr>';
       return;
     }
     unitsBody.innerHTML = data

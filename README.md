@@ -28,7 +28,8 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
 - App **khong tu quan ly** trang thai "da tieu / chua tieu" cua voucher — do la trach nhiem cua Core Voucher API (nguon su that duy nhat, single source of truth), tranh 2 he thong lech nhau.
 - Moi lan quet, app goi `checkVoucher()` sang Core API truoc, roi moi cho phep nguoi dung bam "Xac nhan thu hoi" (goi `redeemVoucher()`).
 - Khi thu hoi thanh cong, app ghi 1 dong vao bang `VOUCHER_SYNC` (bang co san trong schema cua ban) de dung lai cho bao cao doi soat/dong bo hien tai — khong tao bang moi song song lam phan manh du lieu.
-- Moi lan quet (ca thanh cong lan that bai) duoc ghi vao bang moi `VoucherScanLogs` de phuc vu tra soat, chong gian lan, debug khieu nai tu doi tac.
+- **Neu Core API mat ket noi dung luc goi bao thu hoi** (sau khi da xac nhan UNUSED it giay truoc do): app **van cho thu hoi thanh cong tai cho** (khong lam gian doan giao dich voi khach hang), ghi vao `VOUCHER_SYNC` voi `Sync='N'` nhu 1 "hang doi cho dong bo", roi 1 job chay dinh ky se tu dong gui lai — xem muc 4c.
+- Moi lan quet (ca thanh cong lan that bai) duoc ghi vao bang moi `VoucherScanLogs` (**log thao tac nguoi dung**) de phuc vu tra soat, chong gian lan, debug khieu nai tu doi tac. Moi lan job dong bo chay (thanh cong/that bai) duoc ghi vao bang co san `Voucher_Exelogs` (**log he thong**), dung dung y goc cua bang nay trong schema ban gui.
 
 ## 2. Cac bang du lieu
 
@@ -43,6 +44,8 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
 - `ApiConnections` + `ApiConnectionTestLogs` (004): luu cau hinh ket noi Core Voucher API do
   admin tu khai bao qua UI (secret duoc ma hoa) va log lich su cac lan bam nut "Test" tren
   man hinh cau hinh.
+- `Voucher_Exelogs` (005, chi tao neu **CHUA** co san — moi truong that cua ban da co bang nay):
+  dung lai dung muc dich goc de ghi log he thong cua job dong bo lai voucher loi — xem muc 4c.
 
 Chay migration:
 
@@ -129,6 +132,34 @@ Neu Core API that co field name/cau truc khac, chi can sua 2 ham `normalizeCheck
 
 App co goi lai `checkVoucher()` mot lan nua ngay truoc khi thuc su redeem (chong truong hop 2 nguoi quet cung 1 voucher gan nhu dong thoi); ngoai ra viec dam bao **khong the tieu trung 1 voucher 2 lan** van phai do Core API xu ly (vi du bang unique constraint / optimistic lock ben do), vi day la nguon du lieu goc.
 
+### 4c. Hang doi dong bo khi Core API loi ket noi luc thu hoi
+
+Phan biet **2 loai that bai khac nhau** khi goi POST bao Core thu hoi (`src/services/voucherService.js`):
+
+| Loai that bai | Xu ly |
+|---|---|
+| Core **phan hoi ro rang** la khong the tieu (vd voucher vua bi nguoi khac tieu, het han) | **Tu choi** thu hoi ngay, khong luu gi ca — day la loi nghiep vu that. |
+| **Khong ket noi duoc** Core (mat mang, Core dang bao tri, timeout...) | **Van cho thu hoi thanh cong tai cho** (vi da xac nhan UNUSED it giay truoc), luu vao `VOUCHER_SYNC` voi `Sync='N'` — coi nhu dua vao "hang doi cho dong bo". |
+
+Job **`src/services/syncRetryService.js`** chay dinh ky (cau hinh qua `.env`, khong can sua code):
+
+```
+SYNC_RETRY_ENABLED=true             # bat/tat job
+SYNC_RETRY_INTERVAL_MINUTES=5       # chu ky chay
+SYNC_RETRY_BATCH_SIZE=20            # so ban ghi toi da/lot
+SYNC_RETRY_MAX_ATTEMPTS=20          # so lan thu lai toi da/1 ban ghi truoc khi tam bo qua
+```
+
+Moi lot chay: doc cac dong `VOUCHER_SYNC.Sync = 'N'`, goi lai request thu hoi cho tung dong.
+Thanh cong (hoac Core tra ve voucher **da o trang thai USED** — rat co the chinh la do request
+lan truoc cua chung ta da toi noi nhung bi mat ket noi truoc khi nhan duoc phan hoi) thi coi nhu
+**da dong bo**, set `Sync='Y'` — ban ghi **bien mat khoi hang doi**. That bai thi giu `Sync='N'`
+de thu lai lan sau, tru khi vuot qua `SYNC_RETRY_MAX_ATTEMPTS` thi tam bo qua (van giu `Sync='N'`
+de con nguoi ra soat thu cong qua bao cao — khong bao gio am tham xoa/mat du lieu).
+
+Moi lan thu (thanh cong hay that bai) deu duoc ghi vao `Voucher_Exelogs` — xem duoc lich su day
+du bang cach truy van `pro_name = 'VoucherRedeemSync'`.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token>`.
@@ -186,13 +217,32 @@ Tra ve khi da tieu:
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
 
 Luong quet tren UI:
-1. Quet/nhap ma -> goi `/vouchers/check`.
+1. Quet ma (may quet HID hoac camera — **khong the go tay**, xem muc 7) -> goi `/vouchers/check`.
 2. Neu **chua tieu**: hien menh gia/han dung/ngay cap + nut "Xac nhan thu hoi".
-3. Bam xac nhan -> goi `/vouchers/redeem` -> luu vao `VOUCHER_SYNC`, hien thong bao thanh cong, tu dong focus lai o quet cho ma tiep theo.
+3. Bam xac nhan -> goi `/vouchers/redeem` -> luu vao `VOUCHER_SYNC`, hien thong bao thanh cong
+   (hoac "dang cho dong bo" neu Core tam thoi mat ket noi — xem muc 4c), bang giao dich gan day
+   hien cot "Dong bo" (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
 4. Neu **da tieu**: hien canh bao do, chi con nut "Quet ma khac" — khong cho thu hoi.
 
-## 7. Bao mat & van hanh de xuat
+## 7. Bao mat
 
+- **CSP nghiem ngat, khong `unsafe-inline`/`unsafe-eval`** (`src/app.js`, qua `helmet`): toan bo
+  CSS/JS nam trong file rieng (khong con the `<style>`/`<script>` inline hay thuoc tinh
+  `style="..."` trong bat ky trang nao), script-src/style-src/font-src chi allowlist dung cac
+  host thuc su can (Google Fonts, `unpkg.com` cho thu vien quet QR). Helmet cung tu bat kem cac
+  header bao mat khac (`X-Content-Type-Options`, `X-Frame-Options: DENY`,
+  `Referrer-Policy`, HSTS...).
+- **Chong XSS**: moi du lieu dong hien thi ra trang (ke ca response tu Core API — nguon du lieu
+  ben ngoai, rui ro cao nhat) deu di qua `escapeHtml()` truoc khi ghep vao `innerHTML`, hoac dung
+  `.textContent` (khong parse HTML) cho cac khoi hien thi JSON tho — xem `public/js/*.js`.
+- **Chong SQL injection**: toan bo truy van MSSQL dung tham so hoa qua `.input()` cua `mssql`
+  (khong bao gio noi chuoi gia tri nguoi dung truc tiep vao van ban SQL) — ap dung nhat quan cho
+  moi service trong `src/services/`.
+- **Chong go tay/do ma voucher**: giao dien quet chi nhan tin hieu tu may quet that (phat hien
+  qua toc do go phim) hoac camera, chan paste/keo-tha — xem `public/js/scan.js`. Phia server co
+  them `guessGuard` (`src/utils/guessGuard.js`) tam khoa tai khoan sau nhieu lan kiem tra ra ma
+  khong ton tai lien tiep, vi gioi han o giao dien co the bi vuot qua neu goi thang API bang token
+  hop le.
 - Doi mat khau demo, dat `JWT_SECRET` va `ENCRYPTION_KEY` ngau nhien du dai truoc khi deploy.
   `ENCRYPTION_KEY` dung de ma hoa token/API key/password cua ket noi Core API luu trong bang
   `ApiConnections` — **khong duoc doi hoac lam mat key nay** sau khi da co du lieu that, neu
@@ -200,4 +250,3 @@ Luong quet tren UI:
 - Chi tai khoan admin (`Users.status = 1`) moi vao duoc man hinh "Ket noi API" va "Don vi thu hoi".
 - Nen dat app sau HTTPS (may scan/camera tren dien thoai yeu cau HTTPS de truy cap camera, tru localhost).
 - Xem xet gioi han `DailyLimitAmount` trong `RedemptionUnits` va canh bao khi don vi vuot han muc thu hoi/ngay.
-- Dinh ky (cron) doi chieu `VOUCHER_SYNC.Sync = 'N'` voi Core system de dam bao khong co giao dich nao bi "mo treo" khi mang loi luc goi redeem.

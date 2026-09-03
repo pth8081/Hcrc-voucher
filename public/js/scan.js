@@ -166,8 +166,11 @@ async function confirmRedeem(voucherCode) {
     });
 
     if (data.success) {
-      showToast(`Thu hoi thanh cong: ${voucherCode}`);
-      addRecentRow({ time: new Date(), voucherCode, valueAmt: data.valueAmt, transNum: data.transNum });
+      const msg = data.pendingSync
+        ? `Da thu hoi: ${voucherCode} (dang cho dong bo voi he thong trung tam)`
+        : `Thu hoi thanh cong: ${voucherCode}`;
+      showToast(msg);
+      addRecentRow({ time: new Date(), voucherCode, valueAmt: data.valueAmt, transNum: data.transNum, pendingSync: data.pendingSync });
       resetResult();
     } else {
       showToast(data.message || 'Thu hoi that bai');
@@ -198,6 +201,7 @@ function addRecentRow(row) {
         <td>${escapeHtml(r.voucherCode)}</td>
         <td>${fmtMoney(r.valueAmt)}</td>
         <td>${escapeHtml(r.transNum || '-')}</td>
+        <td>${r.pendingSync ? '<span class="status-badge status-other">CHO DONG BO</span>' : '<span class="status-badge status-unused">DA DONG BO</span>'}</td>
       </tr>`
     )
     .join('');

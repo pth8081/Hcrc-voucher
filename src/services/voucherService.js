@@ -1,7 +1,9 @@
 const { sql, getPool } = require('../config/db');
 const coreVoucherService = require('./coreVoucherService');
+const systemLogService = require('./systemLogService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
+const { SYNC_PROC_NAME } = require('../utils/syncConstants');
 
 const { VOUCHER_STATUS } = coreVoucherService;
 
@@ -61,11 +63,21 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
 /**
  * Buoc 2: Nguoi dung xac nhan thu hoi -> goi Core API danh dau da tieu,
  * roi luu ban ghi vao VOUCHER_SYNC de doi soat hang ngay.
+ *
+ * Phan biet 2 loai that bai khi goi Core API danh dau tieu:
+ * - Core PHAN HOI ro rang la khong cho tieu (vd voucher vua bi nguoi khac tieu truoc,
+ *   het han...) -> TU CHOI thu hoi, khong luu gi ca. Day la loi nghiep vu that.
+ * - KHONG GOI DUOC Core (mat mang, Core dang bao tri, timeout...) -> VAN cho thu hoi
+ *   tai cho (vi da xac nhan UNUSED it giay truoc do), luu vao VOUCHER_SYNC voi Sync='N'
+ *   de coi nhu "hang doi cho dong bo", job tu dong (syncRetryService) se gui lai sau.
+ *   Day la loi ha tang, khong nen lam gian doan giao dich thuc te voi khach hang.
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
   guessGuard.assertNotLocked(user.userId);
 
-  // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc
+  // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
+  // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),
+  // nen loi ket noi o day van chan giao dich nhu cu, KHONG dua vao hang doi.
   const precheck = await coreVoucherService.checkVoucher(voucherCode);
   guessGuard.recordResult(user.userId, precheck.status === VOUCHER_STATUS.UNUSED || precheck.status === VOUCHER_STATUS.USED);
 
@@ -87,14 +99,24 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
   }
 
   const transNum = generateTransNum();
-  const redeemResult = await coreVoucherService.redeemVoucher(voucherCode, {
-    username: user.username,
-    locationsGroup: user.locationsGroup,
-    locationsDetail: user.locationsDetail,
-    transNum,
-  });
+  let redeemResult;
+  let pendingSync = false;
+  let syncErrorMessage = null;
 
-  if (!redeemResult.success) {
+  try {
+    redeemResult = await coreVoucherService.redeemVoucher(voucherCode, {
+      username: user.username,
+      locationsGroup: user.locationsGroup,
+      locationsDetail: user.locationsDetail,
+      transNum,
+    });
+  } catch (err) {
+    pendingSync = true;
+    syncErrorMessage = err.message;
+    redeemResult = { success: true, status: 'REDEEMED', transRef: null, redeemedAt: new Date().toISOString() };
+  }
+
+  if (!pendingSync && !redeemResult.success) {
     await logScan({
       user,
       voucherCode,
@@ -117,6 +139,18 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     voucherCode,
     voucherSerial: precheck.voucherSerial,
     valueAmt: precheck.valueAmt,
+    synced: !pendingSync,
+  });
+
+  await systemLogService.logExecution({
+    proName: SYNC_PROC_NAME,
+    pKey: transNum,
+    uniqueIdGroup: voucherCode,
+    status: pendingSync ? 'PENDING' : 'SUCCESS',
+    message: pendingSync
+      ? `Khong ket noi duoc Core API luc thu hoi, da dua vao hang doi dong bo: ${syncErrorMessage}`
+      : 'Da bao Core API thu hoi thanh cong (dong bo ngay)',
+    syncRecord: pendingSync ? 0 : 1,
   });
 
   await logScan({
@@ -124,22 +158,25 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     voucherCode,
     scanMethod,
     action: 'REDEEM',
-    resultStatus: 'REDEEMED',
+    resultStatus: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
     valueAmt: precheck.valueAmt,
     clientIp,
-    message: redeemResult.message,
+    message: pendingSync
+      ? 'Da thu hoi tai cho, dang cho dong bo lai voi he thong trung tam'
+      : redeemResult.message,
   });
 
   return {
     success: true,
-    status: 'REDEEMED',
+    status: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
+    pendingSync,
     transNum,
     valueAmt: precheck.valueAmt,
     redeemedAt: redeemResult.redeemedAt,
   };
 }
 
-async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, valueAmt }) {
+async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {
   const pool = await getPool();
   await pool
     .request()
@@ -153,6 +190,7 @@ async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, v
     .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
     .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
     .input('valueAmt', sql.Numeric(9), valueAmt || 0)
+    .input('sync', sql.NVarChar(2), synced ? 'Y' : 'N')
     .query(`
       INSERT INTO dbo.VOUCHER_SYNC
         (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
@@ -161,7 +199,7 @@ async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, v
       VALUES
         (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
          @status, @computerName, @locationsGroup, @locationsDetail, @valueAmt,
-         GETDATE(), 'N', 'N')
+         GETDATE(), @sync, @sync)
     `);
 }
 

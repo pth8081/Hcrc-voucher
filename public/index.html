@@ -38,26 +38,26 @@
       <div id="manualBlockedHint" class="warn-inline hidden">
         Khong nhan dien duoc thao tac quet. Vui long dung may quet hoac camera, khong go tay.
       </div>
-      <div style="display:flex; gap:10px; margin-top:14px;">
-        <button id="cameraBtn" class="btn-primary" style="flex:1;">Quet bang camera</button>
+      <div class="flex gap-10 mt-14">
+        <button id="cameraBtn" class="btn-primary flex-1">Quet bang camera</button>
       </div>
-      <div id="qr-reader" class="hidden" style="margin-top:16px;"></div>
+      <div id="qr-reader" class="hidden mt-16"></div>
     </div>
 
     <div id="resultCard" class="card hidden">
       <h3>Ket qua kiem tra</h3>
       <div id="statusBadge"></div>
-      <div id="resultInfo" style="margin-top:12px;"></div>
-      <div id="resultActions" style="margin-top:16px; display:flex; gap:10px;"></div>
+      <div id="resultInfo" class="mt-12"></div>
+      <div id="resultActions" class="flex gap-10 mt-16"></div>
     </div>
 
     <div class="card">
       <h3>Cac giao dich thu hoi gan day (phien nay)</h3>
       <table>
         <thead>
-          <tr><th>Gio</th><th>Ma voucher</th><th>Menh gia</th><th>TRANS_NUM</th></tr>
+          <tr><th>Gio</th><th>Ma voucher</th><th>Menh gia</th><th>TRANS_NUM</th><th>Dong bo</th></tr>
         </thead>
-        <tbody id="recentBody"><tr><td colspan="4" style="color:#999;">Chua co giao dich</td></tr></tbody>
+        <tbody id="recentBody"><tr><td colspan="5" class="text-muted">Chua co giao dich</td></tr></tbody>
       </table>
     </div>
   </div>

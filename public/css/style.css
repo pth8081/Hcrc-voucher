@@ -282,3 +282,33 @@ tbody tr:hover { background: var(--ink-100); }
 .login-brand .brand-tagline { margin-top: 4px; font-size: 13px; color: var(--muted); }
 .login-title { font-size: 15px; font-weight: 700; color: var(--ink-900); margin: 0 0 20px; text-align: center; }
 .login-footer { margin-top: 26px; text-align: center; font-size: 11.5px; color: #a7adb3; line-height: 1.5; }
+
+/* ===== Utility classes =====
+   Thay the cho style="..." inline (bat buoc de bat CSP khong co unsafe-inline). */
+.container-wide { max-width: 960px; }
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-14 { gap: 14px; }
+.mt-2 { margin-top: 2px; }
+.mt-4 { margin-top: 4px; }
+.mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-10 { margin-top: 10px; }
+.mt-12 { margin-top: 12px; }
+.mt-14 { margin-top: 14px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-10 { margin-bottom: 10px; }
+.fw-normal { font-weight: 400; }
+.fw-600 { font-weight: 600; }
+.fs-13 { font-size: 13px; }
+.text-muted { color: var(--muted); }
+.w-auto { width: auto; }
+.m-0 { margin: 0; }
+.checkbox-input { width: auto; margin: 0; }

@@ -21,7 +21,7 @@ async function loadReport() {
 
 function renderSummary(rows) {
   if (!rows.length) {
-    summaryBody.innerHTML = '<tr><td colspan="3" style="color:#999;">Khong co giao dich trong ngay</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Khong co giao dich trong ngay</td></tr>';
     return;
   }
   summaryBody.innerHTML = rows
@@ -38,7 +38,7 @@ function renderSummary(rows) {
 
 function renderDetails(rows) {
   if (!rows.length) {
-    detailBody.innerHTML = '<tr><td colspan="6" style="color:#999;">Khong co giao dich trong ngay</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co giao dich trong ngay</td></tr>';
     return;
   }
   detailBody.innerHTML = rows

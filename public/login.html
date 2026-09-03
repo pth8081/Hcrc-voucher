@@ -31,7 +31,7 @@
         <input id="username" required autocomplete="username" placeholder="vd: nhanvien1" />
         <label>Mat khau</label>
         <input id="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
-        <button class="btn-primary btn-block" type="submit" style="margin-top:6px;">Dang nhap</button>
+        <button class="btn-primary btn-block mt-6" type="submit">Dang nhap</button>
       </form>
 
       <p class="login-footer">
@@ -42,22 +42,6 @@
   </div>
 
   <script src="/js/api.js"></script>
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      try {
-        const data = await apiFetch('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({ username, password }),
-        });
-        setSession(data.token, data.user);
-        window.location.href = '/index.html';
-      } catch (err) {
-        showToast(err.message);
-      }
-    });
-  </script>
+  <script src="/js/login.js"></script>
 </body>
 </html>

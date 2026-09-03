@@ -8,29 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
-<style>
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-  .section-title { font-size: 12.5px; font-weight: 700; color: var(--primary-dark); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 8px; border-bottom: 1px solid var(--ink-100); }
-  .hint { font-size: 12.5px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; }
-  .maprow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .maprow input { margin-bottom: 0; }
-  textarea.code { width: 100%; min-height: 90px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; border: 1px solid var(--ink-300); border-radius: var(--radius-md); padding: 12px; }
-  pre.result { background: var(--ink-900); color: #d7ead0; padding: 14px; border-radius: var(--radius-md); overflow: auto; font-size: 12px; max-height: 260px; }
-  .conn-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--ink-100); }
-  .conn-row:last-child { border-bottom:none; }
-  .badge-active { background: var(--green-light); color: var(--green-dark); font-size:11.5px; padding:3px 10px; border-radius:999px; font-weight:700; margin-left:8px; }
-  .warn-box { background: var(--danger-light); border:1px solid #f6c9c9; color:var(--danger); padding:11px 14px; border-radius: var(--radius-md); font-size:13px; margin-bottom:12px; }
-</style>
+<link rel="stylesheet" href="/css/api-connection.css" />
 </head>
 <body>
   <div id="topbar"></div>
 
-  <div class="container" style="max-width:960px;">
+  <div class="container container-wide">
     <div class="card">
       <h2>Cac ket noi Core Voucher API</h2>
       <p class="hint">Chi 1 ket noi duoc "Kich hoat" tai 1 thoi diem - la ket noi ma toan bo app (man hinh quet voucher) dang su dung.</p>
-      <div id="connList"><p style="color:#999;">Dang tai...</p></div>
-      <button id="newBtn" class="btn-secondary" style="margin-top:10px;">+ Tao ket noi moi</button>
+      <div id="connList"><p class="text-muted">Dang tai...</p></div>
+      <button id="newBtn" class="btn-secondary mt-10">+ Tao ket noi moi</button>
     </div>
 
     <div class="card">
@@ -155,7 +143,7 @@
       <div id="redeemStatusMapRows"></div>
       <button type="button" class="btn-secondary" id="addRedeemMapRow">+ Them dong anh xa</button>
 
-      <div style="display:flex; gap:10px; margin-top:20px;">
+      <div class="flex gap-10 mt-20">
         <button id="saveBtn" class="btn-primary">Luu ket noi</button>
         <button id="saveActivateBtn" class="btn-secondary">Luu &amp; Kich hoat</button>
         <button id="resetBtn" class="btn-secondary" type="button">Lam moi form</button>
@@ -167,24 +155,24 @@
       <p class="hint">Dung du lieu dang nhap tren form (chua can luu) hoac ket noi da chon o tren de goi thu Core API ngay, xem ket qua tra ve co dung nhu ky vong khong.</p>
       <label>Ma voucher dung de test</label>
       <input id="testVoucherCode" placeholder="Nhap hoac quet ma voucher that de test" />
-      <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <div class="flex gap-10 mb-10">
         <button id="testCheckBtn" class="btn-primary">Test kiem tra (an toan - chi doc)</button>
       </div>
 
       <div class="warn-box">
         Test thu hoi se GOI THAT sang Core API va co the LAM VOUCHER BI TIEU that su, khong the hoan tac. Chi test voi voucher noi bo/khong quan trong.
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
-        <input type="checkbox" id="confirmRedeemCheck" style="width:auto; margin:0;" />
+      <label class="flex items-center gap-8 fw-normal">
+        <input type="checkbox" id="confirmRedeemCheck" class="checkbox-input" />
         Toi hieu thao tac nay se tieu voucher that tren he thong Core
       </label>
-      <button id="testRedeemBtn" class="btn-danger" style="margin-top:10px;" disabled>Test thu hoi (CANH BAO)</button>
+      <button id="testRedeemBtn" class="btn-danger mt-10" disabled>Test thu hoi (CANH BAO)</button>
 
-      <div id="testResultWrap" class="hidden" style="margin-top:16px;">
+      <div id="testResultWrap" class="hidden mt-16">
         <h3>Ket qua test</h3>
-        <div id="testMeta" class="hint" style="margin-bottom:8px;"></div>
+        <div id="testMeta" class="hint mb-8"></div>
         <div id="testNormalized"></div>
-        <p style="font-size:13px; font-weight:600; margin-bottom:4px;">Response tho tu Core API:</p>
+        <p class="fs-13 fw-600 mb-4">Response tho tu Core API:</p>
         <pre class="result" id="testRaw"></pre>
       </div>
     </div>

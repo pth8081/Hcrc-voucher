@@ -2,6 +2,7 @@ require('dotenv').config();
 const createApp = require('./app');
 const logger = require('./utils/logger');
 const { getPool } = require('./config/db');
+const { startSyncScheduler } = require('./utils/syncScheduler');
 
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +14,8 @@ async function start() {
     logger.error({ err }, 'Khong the ket noi MSSQL khi khoi dong');
     process.exit(1);
   }
+
+  startSyncScheduler();
 
   const app = createApp();
   app.listen(PORT, () => {

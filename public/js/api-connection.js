@@ -39,7 +39,7 @@ async function loadList() {
     const list = await apiFetch('/api-connections');
     const wrap = el('connList');
     if (!list.length) {
-      wrap.innerHTML = '<p style="color:#999;">Chua co ket noi nao, tao moi ben duoi.</p>';
+      wrap.innerHTML = '<p class="text-muted">Chua co ket noi nao, tao moi ben duoi.</p>';
       return;
     }
     wrap.innerHTML = list
@@ -48,9 +48,9 @@ async function loadList() {
         <div class="conn-row">
           <div>
             <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">DANG KICH HOAT</span>' : ''}
-            <div class="hint" style="margin:2px 0 0;">${escapeHtml(c.baseUrl)}</div>
+            <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div class="flex gap-8">
             <button class="btn-secondary" data-edit="${c.id}">Sua</button>
             ${!c.isActive ? `<button class="btn-secondary" data-activate="${c.id}">Kich hoat</button>` : ''}
             <button class="btn-danger" data-remove="${c.id}">Xoa</button>
