@@ -13,3 +13,24 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     showToast(err.message);
   }
 });
+
+const webauthnBtn = document.getElementById('webauthnLoginBtn');
+if (typeof webauthnSupported === 'function' && webauthnSupported()) {
+  webauthnBtn.classList.remove('hidden');
+}
+
+webauthnBtn.addEventListener('click', async () => {
+  webauthnBtn.disabled = true;
+  try {
+    const data = await loginWithPasskey();
+    setSession(data.token, data.user);
+    window.location.href = '/index.html';
+  } catch (err) {
+    if (err.name !== 'NotAllowedError') {
+      // NotAllowedError = nguoi dung tu huy hop thoai van tay/Face ID, khong can bao loi.
+      showToast(err.message);
+    }
+  } finally {
+    webauthnBtn.disabled = false;
+  }
+});

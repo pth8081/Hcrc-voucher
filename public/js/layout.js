@@ -58,7 +58,11 @@ function renderTopbar(activeKey) {
           <div class="user-avatar">${initials(displayName)}</div>
           <div class="user-meta">
             <span class="user-name">${escapeHtmlLayout(displayName)}</span>
-            <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
+            <span>
+              <a href="#" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
+              &middot;
+              <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
+            </span>
           </div>
         </div>
       </div>
@@ -70,6 +74,22 @@ function renderTopbar(activeKey) {
     clearSession();
     window.location.href = '/login.html';
   });
+
+  const registerLink = document.getElementById('webauthnRegisterLink');
+  if (typeof webauthnSupported === 'function' && webauthnSupported()) {
+    registerLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const deviceLabel = window.prompt('Dat ten cho thiet bi nay (vd: Tablet quay 1):', '') || null;
+      try {
+        await registerPasskey(deviceLabel);
+        showToast('Da dang ky van tay/Face ID cho thiet bi nay');
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+  } else {
+    registerLink.style.display = 'none';
+  }
 }
 
 function escapeHtmlLayout(str) {

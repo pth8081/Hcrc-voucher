@@ -30,6 +30,8 @@ function createApp() {
           baseUri: ["'self'"],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],
+          manifestSrc: ["'self'"],
+          workerSrc: ["'self'"],
           upgradeInsecureRequests: [],
         },
       },

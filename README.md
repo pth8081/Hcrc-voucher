@@ -46,6 +46,9 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
   man hinh cau hinh.
 - `Voucher_Exelogs` (005, chi tao neu **CHUA** co san — moi truong that cua ban da co bang nay):
   dung lai dung muc dich goc de ghi log he thong cua job dong bo lai voucher loi — xem muc 4c.
+- `WebAuthnCredentials` (006): luu **khoa cong khai** cua tung passkey (van tay/Face ID) da dang
+  ky cho tung tai khoan — khong luu du lieu sinh trac hoc that (van tay/khuon mat khong bao gio
+  roi khoi thiet bi cua nguoi dung) — xem muc 9.
 
 Chay migration:
 
@@ -65,6 +68,19 @@ npm run dev             # chay server dev (auto-reload)
 ```
 
 Mo trinh duyet: `http://localhost:3000` (may scan may vach cam vao PC/tablet, con dien thoai dung camera).
+
+App co the **cai dat nhu 1 ung dung (PWA)** va ho tro **dang nhap bang van tay/Face ID** — xem
+muc 9. Voi dang nhap van tay/Face ID, can khai bao them 3 bien trong `.env`:
+
+```
+WEBAUTHN_RP_NAME=HCRC Voucher Redemption
+WEBAUTHN_RP_ID=localhost           # doi thanh domain that khi deploy, vd: voucher.hcrc.vn
+WEBAUTHN_ORIGIN=http://localhost:3000   # doi thanh https://voucher.hcrc.vn khi deploy
+```
+
+`WEBAUTHN_RP_ID` phai la domain (khong co scheme/cong), va `WEBAUTHN_ORIGIN` phai la URL day du
+(co `https://`) dung khop voi domain nguoi dung truy cap — sai 1 trong 2 gia tri nay se lam
+trinh duyet tu choi hop thoai van tay/Face ID.
 
 ## 4. Cau hinh ket noi Core Voucher API qua giao dien Admin (khuyen nghi)
 
@@ -180,6 +196,12 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
 | POST | `/api/api-connections/test-check` | Test kiem tra voucher that voi cau hinh dang nhap tren form/da luu |
 | POST | `/api/api-connections/test-redeem` | Test thu hoi voucher that (bat buoc `confirmRedeem: true`) |
+| POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
+| POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
+| POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
+| POST | `/api/auth/webauthn/register-verify` | Xac minh + luu passkey moi vao `WebAuthnCredentials` |
+| GET | `/api/auth/webauthn/devices` | Danh sach passkey da dang ky cua tai khoan dang dang nhap |
+| DELETE | `/api/auth/webauthn/devices/:id` | Xoa 1 passkey (vi du mat thiet bi) |
 
 Vi du `POST /api/vouchers/check`:
 ```json
@@ -248,6 +270,12 @@ Luong quet tren UI:
   them `guessGuard` (`src/utils/guessGuard.js`) tam khoa tai khoan sau nhieu lan kiem tra ra ma
   khong ton tai lien tiep, vi gioi han o giao dien co the bi vuot qua neu goi thang API bang token
   hop le.
+- **Chong do/vet mat khau dang nhap**: `loginGuard` (`src/utils/loginGuard.js`) khoa tam **theo
+  ten dang nhap** (khong theo IP, vi thiet bi tai quay thuong dung chung cho nhieu nhan vien) sau
+  **5 lan sai mat khau trong 10 phut**, khoa **15 phut**; dang nhap dung mat khau trong luc dang
+  bi khoa van bi tu choi (khong "mo khoa som" bang mat khau dung, tranh do sai lien tuc de tim
+  cua so ho). Ap dung cho ca dang nhap mat khau lan dang nhap van tay/Face ID that bai lien tiep
+  (xem muc 9).
 - Doi mat khau demo, dat `JWT_SECRET` va `ENCRYPTION_KEY` ngau nhien du dai truoc khi deploy.
   `ENCRYPTION_KEY` dung de ma hoa token/API key/password cua ket noi Core API luu trong bang
   `ApiConnections` — **khong duoc doi hoac lam mat key nay** sau khi da co du lieu that, neu
@@ -255,3 +283,44 @@ Luong quet tren UI:
 - Chi tai khoan admin (`Users.status = 1`) moi vao duoc man hinh "Ket noi API" va "Don vi thu hoi".
 - Nen dat app sau HTTPS (may scan/camera tren dien thoai yeu cau HTTPS de truy cap camera, tru localhost).
 - Xem xet gioi han `DailyLimitAmount` trong `RedemptionUnits` va canh bao khi don vi vuot han muc thu hoi/ngay.
+
+## 9. PWA + Dang nhap bang van tay/Face ID (WebAuthn)
+
+### 9a. Cai dat nhu ung dung (PWA)
+
+App co the duoc **cai dat vao man hinh chinh** (Android/desktop Chrome hien nut "Cai dat", iOS
+dung "Them vao man hinh chinh" trong Safari) va **mo lai gan nhu tuc thi** ngay ca khi mang cham,
+nho:
+- `public/manifest.webmanifest`: ten, icon (`public/icons/`), mau thuong hieu, che do `standalone`.
+- `public/sw.js` (Service Worker, dang ky boi `public/js/pwa.js`): **chi cache "vo" ung dung**
+  (cac file HTML/CSS/JS tinh) theo chien luoc cache-truoc-lam-moi-sau — **khong bao gio cache hay
+  cho phep chay ngoai mang bat ky request nao toi `/api/`** (kiem tra/thu hoi voucher luon phai
+  di mang that toi Core), tranh mo lai tinh trang tieu voucher trung (double-spend) khi mat mang.
+  Doi `CACHE_NAME` (vd `v2` -> `v3`) trong `sw.js` moi khi doi danh sach file tinh can cache, de
+  trinh duyet nguoi dung tu dong lay ban moi.
+
+### 9b. Dang nhap bang van tay/Face ID
+
+Dung chuan **WebAuthn/passkey** cua trinh duyet (`@simplewebauthn/server` phia server,
+`@simplewebauthn/browser` tu luu tru trong `public/js/vendor/` — khong tai tu CDN ngoai o buoc
+dang nhap de tranh phu thuoc mang ngoai tai diem trong yeu nhat). Day la co che **duy nhat dung
+duoc trong 1 PWA** (khac voi app native co the goi thang API van tay/Face ID cua he dieu hanh) —
+trinh duyet se tu mo hop thoai van tay/Face ID/PIN cua thiet bi, ung dung **khong bao gio thay
+hay luu du lieu sinh trac hoc that**, chi luu **khoa cong khai** cua tung thiet bi trong
+`WebAuthnCredentials`.
+
+- **Thiet bi dung chung tai quay**: dang ky dung **passkey co the phat hien duoc**
+  (`residentKey: 'required'`, chi cho `authenticatorAttachment: 'platform'`) va **khong gioi han
+  truoc 1 tai khoan cu the** khi dang nhap. Nho vay, khi nhieu nhan vien cung dang ky van
+  tay/Face ID tren cung 1 tablet/PC tai quay, trinh duyet/he dieu hanh se **tu hien bang chon tai
+  khoan** (giong "Doi tai khoan khac" trong app VPDT) truoc khi xac minh sinh trac — khong can tu
+  xay giao dien chon tai khoan rieng.
+- **Dang ky passkey**: sau khi da dang nhap bang mat khau it nhat 1 lan, bam **"Cai van
+  tay/Face ID"** o goc tren ung dung (`public/js/layout.js`), dat ten cho thiet bi (vd "Tablet
+  quay 1") de sau nay de nhan biet/xoa khi mat thiet bi.
+- **Dang nhap**: tren `login.html`, neu trinh duyet ho tro WebAuthn se hien them nut **"Dang nhap
+  bang van tay / Face ID"** — bam vao, chon tai khoan cua minh trong bang chon cua he dieu hanh,
+  xac minh van tay/Face ID/PIN la vao thang, khong can go mat khau.
+- Dang nhap van tay/Face ID that bai (khong tim thay passkey hop le, chu ky sai...) cung tinh vao
+  bo dem cua `loginGuard` (muc 8) nhu dang nhap mat khau sai, tranh bi loi dung de do doan.
+- Quan ly thiet bi da dang ky (xoa khi mat thiet bi) qua `GET/DELETE /api/auth/webauthn/devices`.

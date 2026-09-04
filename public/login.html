@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
 </head>
 <body>
   <div class="login-shell">
@@ -34,6 +41,10 @@
         <button class="btn-primary btn-block mt-6" type="submit">Dang nhap</button>
       </form>
 
+      <button id="webauthnLoginBtn" class="btn-secondary btn-block mt-10 hidden" type="button">
+        Dang nhap bang van tay / Face ID
+      </button>
+
       <p class="login-footer">
         © 2026 Cong ty TNHH Xuat - Nhap khau &amp; Ban le hang tieu dung Ha Noi (HCRC)<br />
         Ung dung noi bo danh cho don vi doi tac thu hoi voucher
@@ -42,6 +53,9 @@
   </div>
 
   <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

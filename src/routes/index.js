@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 router.use('/auth', require('./auth.routes'));
+router.use('/auth/webauthn', require('./webauthn.routes'));
 router.use('/locations', require('./location.routes'));
 router.use('/redemption-units', require('./redemptionUnit.routes'));
 router.use('/api-connections', require('./apiConnection.routes'));

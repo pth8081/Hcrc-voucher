@@ -1,8 +1,28 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sql, getPool } = require('../config/db');
+const loginGuard = require('../utils/loginGuard');
 
 async function login(username, password) {
+  loginGuard.assertNotLocked(username);
+
+  const user = await findUserByUsername(username);
+  if (!user) {
+    loginGuard.recordResult(username, false);
+    throw unauthorized();
+  }
+
+  const passwordOk = await comparePassword(password, user.Password);
+  if (!passwordOk) {
+    loginGuard.recordResult(username, false);
+    throw unauthorized();
+  }
+
+  loginGuard.recordResult(username, true);
+  return issueSession(user);
+}
+
+async function findUserByUsername(username) {
   const pool = await getPool();
   const result = await pool
     .request()
@@ -12,23 +32,24 @@ async function login(username, password) {
       FROM dbo.Users
       WHERE Username = @username
     `);
+  return result.recordset[0] || null;
+}
 
-  const user = result.recordset[0];
-  if (!user) {
-    const err = new Error('Sai ten dang nhap hoac mat khau');
-    err.statusCode = 401;
-    err.publicMessage = err.message;
-    throw err;
-  }
+async function findUserById(userId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .query(`
+      SELECT UserID, Username, FullName, Locations_Group, Locations_Detail, status
+      FROM dbo.Users
+      WHERE UserID = @userId
+    `);
+  return result.recordset[0] || null;
+}
 
-  const passwordOk = await comparePassword(password, user.Password);
-  if (!passwordOk) {
-    const err = new Error('Sai ten dang nhap hoac mat khau');
-    err.statusCode = 401;
-    err.publicMessage = err.message;
-    throw err;
-  }
-
+/** Dung chung cho ca dang nhap mat khau lan dang nhap WebAuthn (van tay/Face ID) - cung 1 phien JWT. */
+function issueSession(user) {
   const token = jwt.sign(
     {
       userId: user.UserID,
@@ -54,6 +75,13 @@ async function login(username, password) {
   };
 }
 
+function unauthorized() {
+  const err = new Error('Sai ten dang nhap hoac mat khau');
+  err.statusCode = 401;
+  err.publicMessage = err.message;
+  return err;
+}
+
 async function comparePassword(plain, stored) {
   if (!stored) return false;
   // Ho tro ca mat khau da hash bcrypt lan mat khau plaintext cu (di chuyen dan)
@@ -63,4 +91,4 @@ async function comparePassword(plain, stored) {
   return plain === stored;
 }
 
-module.exports = { login };
+module.exports = { login, findUserByUsername, findUserById, issueSession };
