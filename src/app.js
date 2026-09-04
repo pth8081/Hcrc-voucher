@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const pinoHttp = require('pino-http');
 const path = require('path');
 const logger = require('./utils/logger');
@@ -40,6 +41,9 @@ function createApp() {
   );
 
   app.use(cors());
+  // Nen gzip/brotli cho response (JSON API + static JS/CSS/HTML) - giam bang thong,
+  // quan trong voi cac diem thu hoi co duong truyen yeu.
+  app.use(compression());
   app.use(express.json());
   app.use(pinoHttp({ logger }));
   app.use(express.static(path.join(__dirname, '..', 'public')));
