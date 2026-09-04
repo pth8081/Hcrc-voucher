@@ -224,7 +224,12 @@ Luong quet tren UI:
    hien cot "Dong bo" (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
 4. Neu **da tieu**: hien canh bao do, chi con nut "Quet ma khac" — khong cho thu hoi.
 
-## 7. Bao mat
+## 7. Hieu nang
+
+- Response (JSON API lan file tinh JS/CSS/HTML) duoc **nen gzip** qua middleware `compression`
+  (`src/app.js`) — giam bang thong tai, quan trong voi cac diem thu hoi co duong truyen yeu.
+
+## 8. Bao mat
 
 - **CSP nghiem ngat, khong `unsafe-inline`/`unsafe-eval`** (`src/app.js`, qua `helmet`): toan bo
   CSS/JS nam trong file rieng (khong con the `<style>`/`<script>` inline hay thuoc tinh
