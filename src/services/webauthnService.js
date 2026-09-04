@@ -153,8 +153,20 @@ async function verifyAuthentication({ flowId, response }) {
   // het han" va tu dong redirect ve /login.html - se gay vong lap ky la tren chinh trang
   // dang nhap. 401 chi con danh cho cac API can JWT hop le (xem middleware/auth.js).
   if (!stored) {
+    // Khong biet duoc credential nay thuoc ve ai (id la 1 gia tri khong the doan duoc, khac
+    // mat khau/OTP) nen khong co username de tinh vao loginGuard - khong phai lo hong that
+    // vi khong the "do" duoc credential id qua mang.
     throw badRequest('Thiet bi/sinh trac hoc nay chua duoc dang ky tren he thong.');
   }
+
+  // Biet duoc tai khoan dich tu day (qua credential da dang ky) - ap dung cung 1 chinh sach
+  // khoa dang nhap voi duong mat khau/OTP (xem loginGuard.js) truoc khi thu xac thuc chu ky.
+  const user = await authService.findUserById(stored.UserId);
+  if (!user) {
+    throw badRequest('Tai khoan gan voi thiet bi nay khong con hoat dong.');
+  }
+  const role = authService.roleOf(user);
+  loginGuard.assertNotLocked(user.Username);
 
   let verification;
   try {
@@ -171,21 +183,18 @@ async function verifyAuthentication({ flowId, response }) {
       },
     });
   } catch (err) {
+    loginGuard.recordResult(user.Username, false, role);
     throw badRequest('Xac thuc sinh trac hoc that bai: ' + err.message);
   }
 
   if (!verification.verified) {
+    loginGuard.recordResult(user.Username, false, role);
     throw badRequest('Xac thuc sinh trac hoc that bai.');
   }
 
   await updateCredentialAfterUse(stored.Id, verification.authenticationInfo.newCounter);
+  loginGuard.recordResult(user.Username, true, role);
 
-  const user = await authService.findUserById(stored.UserId);
-  if (!user) {
-    throw badRequest('Tai khoan gan voi thiet bi nay khong con hoat dong.');
-  }
-
-  loginGuard.recordResult(user.Username, true);
   // Van tay/Face ID xac minh danh tinh, nhung tai khoan quan tri van phai qua buoc xac thuc
   // hai yeu to (TOTP) rieng truoc khi duoc cap phien day du - xem authService.buildLoginOutcome.
   return authService.buildLoginOutcome(user);

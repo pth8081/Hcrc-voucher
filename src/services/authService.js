@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { sql, getPool } = require('../config/db');
 const loginGuard = require('../utils/loginGuard');
 const twoFactorService = require('./twoFactorService');
+const userScheduleService = require('./userScheduleService');
 
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
@@ -13,14 +14,20 @@ async function login(username, password) {
     throw unauthorized();
   }
 
+  const role = roleOf(user);
   const passwordOk = await comparePassword(password, user.Password);
   if (!passwordOk) {
-    loginGuard.recordResult(username, false);
+    loginGuard.recordResult(username, false, role);
     throw unauthorized();
   }
 
-  loginGuard.recordResult(username, true);
+  loginGuard.recordResult(username, true, role);
   return buildLoginOutcome(user);
+}
+
+/** 'admin' dung nguong khoa dang nhap long hon vi da co lop 2FA bao ve rieng - xem loginGuard.js. */
+function roleOf(user) {
+  return Number(user.status) === 1 ? 'admin' : 'staff';
 }
 
 /**
@@ -30,8 +37,15 @@ async function login(username, password) {
  *  - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
  *  - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
  *  - Khong phai quan tri (status=0) -> cap phien day du ngay, khong yeu cau 2FA.
+ *
+ * Truoc tien kiem tra tai khoan co dang trong thoi han su dung khong (UserAccountSchedule) -
+ * ap dung cho MOI tai khoan, khong chi rieng admin. Kiem tra nay chay SAU KHI da xac minh
+ * danh tinh dung (khong lo trang thai tai khoan cho nguoi chua biet mat khau/van tay), va
+ * KHONG tinh vao bo dem loginGuard vi day khong phai loi go sai.
  */
 async function buildLoginOutcome(user) {
+  await userScheduleService.assertAccountActive(user.UserID);
+
   if (Number(user.status) === 1) {
     const status = await twoFactorService.getStatus(user.UserID);
     if (!status.enabled) {
@@ -126,4 +140,4 @@ async function comparePassword(plain, stored) {
   return plain === stored;
 }
 
-module.exports = { login, findUserByUsername, findUserById, issueSession, issuePendingToken, buildLoginOutcome };
+module.exports = { login, findUserByUsername, findUserById, issueSession, issuePendingToken, buildLoginOutcome, roleOf };
