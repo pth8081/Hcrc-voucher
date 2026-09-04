@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dang nhap - HCRC Voucher Redemption</title>
+<title>Xac thuc hai yeu to - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/twofa.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#ee7d1a" />
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -31,32 +32,23 @@
         <span class="brand-tagline">He thong thu hoi voucher doi tac</span>
       </div>
 
-      <p class="login-title">Dang nhap de tiep tuc</p>
+      <p class="login-title">Nhap ma xac thuc hai yeu to</p>
+      <p class="twofa-lead">Mo ung dung xac thuc (Google Authenticator, Microsoft Authenticator, Authy...) tren thiet bi da dang ky, nhap ma 6 so dang hien ra.</p>
 
-      <form id="loginForm">
-        <label>Ten dang nhap</label>
-        <input id="username" required autocomplete="username" placeholder="vd: nhanvien1" />
-        <label>Mat khau</label>
-        <input id="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
-        <button class="btn-primary btn-block mt-6" type="submit">Dang nhap</button>
+      <form id="verifyForm">
+        <input id="code" class="twofa-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required />
+        <button class="btn-primary btn-block mt-10" type="submit">Xac nhan</button>
       </form>
 
-      <button id="webauthnLoginBtn" class="btn-secondary btn-block mt-10 hidden" type="button">
-        Dang nhap bang van tay / Face ID
-      </button>
-
-      <p class="login-footer">
-        © 2026 Cong ty TNHH Xuat - Nhap khau &amp; Ban le hang tieu dung Ha Noi (HCRC)<br />
-        Ung dung noi bo danh cho don vi doi tac thu hoi voucher
+      <p class="hint twofa-hint-center mt-16 mb-0">
+        Mat thiet bi xac thuc? Can mot quan tri vien khac go xac thuc hai yeu to cho ban trong man "Bao mat".
       </p>
+      <a id="cancelLink" class="twofa-cancel" href="/login.html">Huy, quay lai dang nhap</a>
     </div>
   </div>
 
   <script src="/js/api.js"></script>
-  <script src="/js/pwa.js"></script>
-  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
-  <script src="/js/webauthn.js"></script>
   <script src="/js/twofa.js"></script>
-  <script src="/js/login.js"></script>
+  <script src="/js/twofa-verify.js"></script>
 </body>
 </html>

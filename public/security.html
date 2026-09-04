@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bao mat - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/twofa.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+    </div>
+
+    <div id="securityCards">
+      <div class="card">
+        <h2>Xac thuc hai yeu to cua toi</h2>
+        <p id="myStatus" class="text-muted">Dang tai...</p>
+        <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Doi thiet bi xac thuc</button>
+      </div>
+
+      <div class="card">
+        <h2>Quan tri vien &amp; trang thai 2FA</h2>
+        <p class="security-note">
+          Chi quan tri vien khac moi go duoc xac thuc hai yeu to cua ban - khong the tu go cua chinh minh,
+          de tranh 1 phien bi chiem quyen tu vo hieu hoa lop bao ve nay.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Ten dang nhap</th><th>Ho ten</th><th>Trang thai 2FA</th><th>Kich hoat luc</th><th>Dung gan nhat</th><th></th></tr>
+          </thead>
+          <tbody id="adminsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/twofa.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/security.js"></script>
+</body>
+</html>

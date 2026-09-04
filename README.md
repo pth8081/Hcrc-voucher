@@ -49,6 +49,8 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
 - `WebAuthnCredentials` (006): luu **khoa cong khai** cua tung passkey (van tay/Face ID) da dang
   ky cho tung tai khoan — khong luu du lieu sinh trac hoc that (van tay/khuon mat khong bao gio
   roi khoi thiet bi cua nguoi dung) — xem muc 9.
+- `AdminTwoFactor` (007): luu secret TOTP (**da ma hoa** AES-256-GCM) cua tung tai khoan quan tri
+  — **bat buoc** doi voi `Users.status = 1`, khong ap dung cho nhan vien thu hoi thuong — xem muc 10.
 
 Chay migration:
 
@@ -196,6 +198,12 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
 | POST | `/api/api-connections/test-check` | Test kiem tra voucher that voi cau hinh dang nhap tren form/da luu |
 | POST | `/api/api-connections/test-redeem` | Test thu hoi voucher that (bat buoc `confirmRedeem: true`) |
+| POST | `/api/auth/2fa/setup-init` | (token tam hoac phien admin) Sinh QR + ma thu cong de thiet lap 2FA |
+| POST | `/api/auth/2fa/setup-verify` | (token tam hoac phien admin) Xac nhan ma TOTP, bat 2FA |
+| POST | `/api/auth/2fa/login-verify` | (token tam) Nhap ma TOTP de hoan tat dang nhap (admin da bat 2FA) |
+| GET | `/api/auth/2fa/status` | (can quyen admin) Trang thai 2FA cua chinh minh |
+| GET | `/api/auth/2fa/admins` | (can quyen admin) Danh sach quan tri vien + trang thai 2FA |
+| DELETE | `/api/auth/2fa/admins/:userId` | (can quyen admin) Go 2FA cua **admin khac** (khong tu go duoc cua chinh minh) |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -276,11 +284,18 @@ Luong quet tren UI:
   bi khoa van bi tu choi (khong "mo khoa som" bang mat khau dung, tranh do sai lien tuc de tim
   cua so ho). Ap dung cho ca dang nhap mat khau lan dang nhap van tay/Face ID that bai lien tiep
   (xem muc 9).
+- **Xac thuc hai yeu to (2FA) bat buoc cho quan tri**: tai khoan `Users.status = 1` khong the vao
+  duoc ung dung neu chua thiet lap 2FA (TOTP) — xem muc 10. Token cap ngay sau khi dang nhap
+  dung mat khau/van tay nhung **chua** qua 2FA la token TAM (`purpose` khac `'session'`), bi
+  `middleware/auth.js` tu choi thang neu dem goi bat ky API nghiep vu nao khac ngoai 2 buoc
+  thiet lap/xac minh 2FA.
 - Doi mat khau demo, dat `JWT_SECRET` va `ENCRYPTION_KEY` ngau nhien du dai truoc khi deploy.
-  `ENCRYPTION_KEY` dung de ma hoa token/API key/password cua ket noi Core API luu trong bang
-  `ApiConnections` — **khong duoc doi hoac lam mat key nay** sau khi da co du lieu that, neu
-  khong se khong giai ma lai duoc cac secret da luu (phai nhap lai tu dau).
-- Chi tai khoan admin (`Users.status = 1`) moi vao duoc man hinh "Ket noi API" va "Don vi thu hoi".
+  `ENCRYPTION_KEY` dung de ma hoa token/API key/password cua ket noi Core API (`ApiConnections`)
+  va secret TOTP cua 2FA (`AdminTwoFactor`) — **khong duoc doi hoac lam mat key nay** sau khi da
+  co du lieu that, neu khong se khong giai ma lai duoc cac secret da luu (phai nhap lai/thiet lap
+  lai tu dau).
+- Chi tai khoan admin (`Users.status = 1`) moi vao duoc man hinh "Ket noi API", "Don vi thu hoi"
+  va "Bao mat" (quan ly 2FA — muc 10).
 - Nen dat app sau HTTPS (may scan/camera tren dien thoai yeu cau HTTPS de truy cap camera, tru localhost).
 - Xem xet gioi han `DailyLimitAmount` trong `RedemptionUnits` va canh bao khi don vi vuot han muc thu hoi/ngay.
 
@@ -324,3 +339,42 @@ hay luu du lieu sinh trac hoc that**, chi luu **khoa cong khai** cua tung thiet 
 - Dang nhap van tay/Face ID that bai (khong tim thay passkey hop le, chu ky sai...) cung tinh vao
   bo dem cua `loginGuard` (muc 8) nhu dang nhap mat khau sai, tranh bi loi dung de do doan.
 - Quan ly thiet bi da dang ky (xoa khi mat thiet bi) qua `GET/DELETE /api/auth/webauthn/devices`.
+
+## 10. Xac thuc hai yeu to bat buoc cho quan tri (2FA)
+
+Tai khoan quan tri (`Users.status = 1`) nam giu quyen cau hinh ket noi Core API va thong tin doi
+tac, nen **bat buoc** phai bat xac thuc hai yeu to (TOTP — Google Authenticator, Microsoft
+Authenticator, Authy...) truoc khi vao duoc ung dung. Nhan vien thu hoi thuong (`status = 0`)
+**khong** bi anh huong, dang nhap binh thuong nhu truoc.
+
+### 10a. Luong dang nhap cua tai khoan quan tri
+
+1. Dang nhap bang mat khau (hoac van tay/Face ID) nhu binh thuong.
+2. Sau khi xac minh danh tinh dung, server **chua** cap phien day du ma tra ve 1 token TAM
+   (het han sau 10 phut, `purpose` la `2fa_setup` hoac `2fa_verify` tuy tinh trang):
+   - **Lan dau chua tung thiet lap 2FA** → chuyen sang `2fa-setup.html`: hien ma QR + ma nhap
+     thu cong, quet bang ung dung xac thuc, nhap ma 6 so hien ra de xac nhan. Xac nhan dung se
+     duoc cap phien day du ngay (khong can dang nhap lai lan nua).
+   - **Da bat 2FA tu truoc** → chuyen sang `2fa-verify.html`: chi can nhap ma 6 so dang hien
+     tren ung dung xac thuc la vao duoc, khong phai quet lai QR.
+3. Token TAM **khong dung duoc** cho bat ky API nghiep vu nao khac (xem `middleware/auth.js`) —
+   du bi lo cung khong the goi quet/thu hoi voucher, chi goi duoc dung 2 nhom API thiet lap/xac
+   minh 2FA.
+
+### 10b. Quan tri vien khac go duoc 2FA cho nhau (khoi phuc khi mat thiet bi)
+
+Man hinh **"Bao mat"** (`/security.html`, chi tai khoan admin) liet ke toan bo quan tri vien kem
+trang thai 2FA, va cho phep:
+
+- **Doi thiet bi xac thuc**: tu minh (dang co phien dang nhap hop le) bam "Doi thiet bi xac thuc"
+  de thiet lap lai TOTP tren thiet bi moi — khong can ai giup.
+- **Go 2FA cua mot admin khac** (khi ho bi mat dien thoai/mat thiet bi xac thuc, khong con cach
+  nao tu dang nhap duoc): **bat ky admin nao khac** bam "Go 2FA" tren dong cua nguoi do — lan
+  dang nhap ke tiep cua ho se quay lai buoc **bat buoc thiet lap tu dau** (10a).
+  **Khong ai tu go duoc 2FA cua chinh minh** — nut nay bi an tren dong cua chinh ban, va API
+  `DELETE /api/auth/2fa/admins/:userId` cung tu choi (400) neu `userId` trung voi tai khoan dang
+  goi — chan truong hop 1 phien bi chiem quyen tu vo hieu hoa lop bao ve nay.
+
+File lien quan: `src/services/twoFactorService.js` (sinh/xac minh TOTP bang `otplib`, QR bang
+`qrcode`), `src/middleware/require2FAPending.js` (chi chap nhan token TAM cho 2 buoc thiet
+lap/xac minh), `sql/007_create_admin_two_factor.sql`.

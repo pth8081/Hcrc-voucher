@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sql, getPool } = require('../config/db');
 const loginGuard = require('../utils/loginGuard');
+const twoFactorService = require('./twoFactorService');
 
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
@@ -19,7 +20,26 @@ async function login(username, password) {
   }
 
   loginGuard.recordResult(username, true);
-  return issueSession(user);
+  return buildLoginOutcome(user);
+}
+
+/**
+ * Ket qua sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG - dung
+ * chung cho ca 2 duong dang nhap. Tai khoan quan tri (status=1) BAT BUOC phai qua xac thuc
+ * hai yeu to (TOTP) truoc khi duoc cap phien day du:
+ *  - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
+ *  - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
+ *  - Khong phai quan tri (status=0) -> cap phien day du ngay, khong yeu cau 2FA.
+ */
+async function buildLoginOutcome(user) {
+  if (Number(user.status) === 1) {
+    const status = await twoFactorService.getStatus(user.UserID);
+    if (!status.enabled) {
+      return { twoFactor: 'setup_required', pendingToken: issuePendingToken(user, '2fa_setup') };
+    }
+    return { twoFactor: 'verify_required', pendingToken: issuePendingToken(user, '2fa_verify') };
+  }
+  return { twoFactor: 'none', ...issueSession(user) };
 }
 
 async function findUserByUsername(username) {
@@ -52,6 +72,7 @@ async function findUserById(userId) {
 function issueSession(user) {
   const token = jwt.sign(
     {
+      purpose: 'session',
       userId: user.UserID,
       username: user.Username,
       fullName: user.FullName,
@@ -75,6 +96,20 @@ function issueSession(user) {
   };
 }
 
+/**
+ * Token TAM, KHONG phai phien dang nhap day du - chi dung de goi 2 nhom API xac thuc hai
+ * yeu to (thiet lap lan dau / xac minh ma). Het han rat nhanh (10 phut) va middleware xac
+ * thuc chinh (middleware/auth.js) tu choi thang moi token co purpose khac 'session', nen token
+ * nay khong the dung de goi bat ky API nghiep vu nao khac du bi lo.
+ */
+function issuePendingToken(user, purpose) {
+  return jwt.sign(
+    { purpose, userId: user.UserID, username: user.Username },
+    process.env.JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+}
+
 function unauthorized() {
   const err = new Error('Sai ten dang nhap hoac mat khau');
   err.statusCode = 401;
@@ -91,4 +126,4 @@ async function comparePassword(plain, stored) {
   return plain === stored;
 }
 
-module.exports = { login, findUserByUsername, findUserById, issueSession };
+module.exports = { login, findUserByUsername, findUserById, issueSession, issuePendingToken, buildLoginOutcome };

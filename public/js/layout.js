@@ -11,6 +11,7 @@ const NAV_ICONS = {
   report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
   units: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6M4 21h16"/></svg>',
   connection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6M11 5l1.5-1.5a3.5 3.5 0 1 1 5 5L16 10M13 19l-1.5 1.5a3.5 3.5 0 1 1-5-5L8 14"/></svg>',
+  security: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>',
 };
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report },
   { key: 'units', href: '/units.html', label: 'Don vi thu hoi', icon: NAV_ICONS.units },
   { key: 'connection', href: '/api-connection.html', label: 'Ket noi API', icon: NAV_ICONS.connection },
+  { key: 'security', href: '/security.html', label: 'Bao mat', icon: NAV_ICONS.security },
 ];
 
 function initials(name) {

@@ -186,7 +186,9 @@ async function verifyAuthentication({ flowId, response }) {
   }
 
   loginGuard.recordResult(user.Username, true);
-  return authService.issueSession(user);
+  // Van tay/Face ID xac minh danh tinh, nhung tai khoan quan tri van phai qua buoc xac thuc
+  // hai yeu to (TOTP) rieng truoc khi duoc cap phien day du - xem authService.buildLoginOutcome.
+  return authService.buildLoginOutcome(user);
 }
 
 // =====================================================================
