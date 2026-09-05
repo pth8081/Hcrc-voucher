@@ -8,19 +8,64 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
 </head>
 <body>
   <div id="topbar"></div>
 
   <div class="container">
     <div class="card">
-      <h2>Them don vi thu hoi</h2>
+      <h2>Them cong ty</h2>
+      <p class="hint mb-10">1 cong ty co the gan nhieu diem tieu (vd chuoi nhieu chi nhanh) - khai bao cong ty truoc, roi chon o form "Them diem tieu" ben duoi.</p>
+      <form id="companyForm">
+        <label>Ma cong ty *</label>
+        <input id="companyCode" required />
+        <label>Ten cong ty *</label>
+        <input id="companyName" required />
+        <label>Nguoi lien he</label>
+        <input id="companyContactName" />
+        <label>So dien thoai</label>
+        <input id="companyContactPhone" />
+        <label>Email</label>
+        <input id="companyContactEmail" />
+        <label>Dia chi</label>
+        <input id="companyAddress" />
+        <label>Ma so thue</label>
+        <input id="companyTaxCode" />
+        <label>So tai khoan ngan hang</label>
+        <input id="companyBankAccount" />
+        <label>Ten ngan hang</label>
+        <input id="companyBankName" />
+        <button class="btn-primary btn-block" type="submit">Luu cong ty</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Danh sach cong ty</h2>
+      <table>
+        <thead>
+          <tr><th>Ma</th><th>Ten cong ty</th><th>Lien he</th><th>So diem tieu</th><th>Trang thai</th></tr>
+        </thead>
+        <tbody id="companiesBody"><tr><td colspan="5" class="text-muted">Dang tai...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Them diem tieu</h2>
       <form id="unitForm">
+        <label>Cong ty *</label>
+        <select id="companyId" required></select>
         <label>Dia diem (Locations_Detail) *</label>
         <select id="locationDetailId" required></select>
-        <label>Ma doi tac (PartnerCode) *</label>
+        <label>Ma diem (PartnerCode) *</label>
         <input id="partnerCode" required />
-        <label>Ten doi tac (PartnerName) *</label>
+        <label>Ten diem tieu (PartnerName) *</label>
         <input id="partnerName" required />
         <label>Nguoi lien he</label>
         <input id="contactName" />
@@ -38,24 +83,27 @@
         <input id="bankName" />
         <label>Han muc thu hoi/ngay (tuy chon)</label>
         <input id="dailyLimitAmount" type="number" min="0" step="1000" />
-        <button class="btn-primary btn-block" type="submit">Luu don vi</button>
+        <button class="btn-primary btn-block" type="submit">Luu diem tieu</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Danh sach don vi thu hoi</h2>
+      <h2>Danh sach diem tieu</h2>
       <table>
         <thead>
           <tr>
-            <th>Ma DT</th><th>Ten doi tac</th><th>Dia diem</th><th>Lien he</th><th>Trang thai</th>
+            <th>Ma diem</th><th>Ten diem tieu</th><th>Cong ty</th><th>Dia diem</th><th>Lien he</th><th>Trang thai</th>
           </tr>
         </thead>
-        <tbody id="unitsBody"><tr><td colspan="5" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
     </div>
   </div>
 
   <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
   <script src="/js/layout.js"></script>
   <script src="/js/units.js"></script>
 </body>

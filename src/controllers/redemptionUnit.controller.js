@@ -11,11 +11,11 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { locationDetailId, partnerCode, partnerName } = req.body;
-    if (!locationDetailId || !partnerCode || !partnerName) {
+    const { locationDetailId, companyId, partnerCode, partnerName } = req.body;
+    if (!locationDetailId || !companyId || !partnerCode || !partnerName) {
       return res
         .status(400)
-        .json({ success: false, message: 'Thieu locationDetailId, partnerCode hoac partnerName' });
+        .json({ success: false, message: 'Thieu locationDetailId, companyId, partnerCode hoac partnerName' });
     }
     const id = await redemptionUnitService.create(req.body);
     res.status(201).json({ success: true, data: { id } });

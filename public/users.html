@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bao cao doi soat - HCRC Voucher Redemption</title>
+<title>Tai khoan nguoi dung - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/twofa.css" />
+<link rel="stylesheet" href="/css/users.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#ee7d1a" />
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -19,28 +21,30 @@
 <body>
   <div id="topbar"></div>
 
-  <div class="container">
-    <div class="card">
-      <h2>Doi soat voucher da thu hoi</h2>
-      <label>Ngay</label>
-      <input id="reportDate" type="date" />
-      <button id="loadBtn" class="btn-primary">Xem bao cao</button>
+  <div class="container container-wide">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
     </div>
 
-    <div class="card">
-      <h3>Tong hop theo dia diem</h3>
-      <table>
-        <thead><tr><th>Dia diem</th><th>So luong</th><th>Tong tien</th></tr></thead>
-        <tbody id="summaryBody"><tr><td colspan="3" class="text-muted">Chua co du lieu</td></tr></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h3>Chi tiet giao dich</h3>
-      <table>
-        <thead><tr><th>Gio</th><th>TRANS_NUM</th><th>Ma voucher</th><th>Nguoi thu hoi</th><th>Dia diem</th><th>Menh gia</th></tr></thead>
-        <tbody id="detailBody"><tr><td colspan="6" class="text-muted">Chua co du lieu</td></tr></tbody>
-      </table>
+    <div id="usersCard" class="card">
+      <h2>Thoi han su dung tai khoan</h2>
+      <p class="security-note">
+        De trong <strong>"Kich hoat tu"</strong> = kich hoat ngay lap tuc; de trong
+        <strong>"Het han"</strong> = khong gioi han thoi gian su dung. Tai khoan tu dong
+        khoa/mo dung theo 2 moc thoi gian nay tai thoi diem dang nhap - khong can thao tac
+        them.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ten dang nhap</th><th>Ho ten</th><th>Vai tro</th>
+              <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"><tr><td colspan="7" class="text-muted">Dang tai...</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -49,6 +53,6 @@
   <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/layout.js"></script>
-  <script src="/js/report.js"></script>
+  <script src="/js/users.js"></script>
 </body>
 </html>
