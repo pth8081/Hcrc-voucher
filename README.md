@@ -480,3 +480,31 @@ song) — noi voi `Locations_Detail` (theo ma) roi noi tiep sang `RedemptionUnit
 `RedemptionCompanies` de biet giao dich do thuoc diem/cong ty nao
 (`src/services/summaryReportService.js`). Cot "Nguoi tieu" doc truc tiep tu `User_Name` da luu
 san trong `VOUCHER_SYNC` luc thu hoi — khong can truy van them.
+
+## 13. Phan quyen xem bao cao theo cong ty
+
+Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
+1 tai khoan **CHI duoc xem doanh thu/bao cao cua dung cong ty gan voi dia diem cua chinh minh**
+(`Users.Locations_Detail` -> `RedemptionUnits` -> `RedemptionCompanies`) — khong thay du lieu
+cua cong ty khac. Ap dung cho ca 2 bao cao: "Bao cao doi soat" (muc 5/6) va "Bao cao tong hop"
+(muc 12b).
+
+Admin co the cap them quyen xem **cheo** hoac **xem nhieu cong ty** bang cach tao **nhom quyen**
+va gan tai khoan vao nhom, tai man hinh **"Don vi thu hoi"** (`/units.html`, khu vuc "Nhom quyen
+xem bao cao") va man hinh **"Tai khoan"** (`/users.html`, cot "Nhom quyen xem bao cao"):
+
+- **Mac dinh (khong gan nhom)**: chi xem dung cong ty cua dia diem gan voi tai khoan.
+- **Nhom pham vi "ALL"**: xem duoc **toan bo tat ca cong ty** (khong loc gi ca).
+- **Nhom pham vi "SPECIFIC"**: xem duoc cong ty cua chinh minh **cong them** danh sach cong ty
+  duoc chi dinh trong nhom (xem cheo/xem nhieu cong ty cung luc).
+
+Du lieu: `sql/011_create_report_access_control.sql` (bang `ReportAccessGroups`,
+`ReportAccessGroupCompanies`, `UserReportAccess` — 1 tai khoan chi thuoc toi da 1 nhom).
+Logic tinh pham vi xem nam o `src/services/reportAccessService.js`
+(`resolveVisibleLocationCodes`), tra ve danh sach **ma dia diem duoc phep xem** roi ap dung
+vao ca 2 bao cao qua tham so `visibleLocationCodes` (`null` = xem het, `[]` = khong xem gi,
+`[...]` = chi xem dung cac dia diem do) — dam bao tai khoan chua duoc gan dia diem/cong ty nao
+khong vo tinh thay duoc du lieu cong ty khac.
+
+API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
+`PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin).

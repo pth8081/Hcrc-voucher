@@ -1,8 +1,21 @@
 const userScheduleService = require('../services/userScheduleService');
+const reportAccessService = require('../services/reportAccessService');
 
 async function list(req, res, next) {
   try {
-    const data = await userScheduleService.listAllWithSchedule();
+    const [withSchedule, withAccess] = await Promise.all([
+      userScheduleService.listAllWithSchedule(),
+      reportAccessService.listUserAccess(),
+    ]);
+    const accessByUserId = new Map(withAccess.map((a) => [a.userId, a]));
+    const data = withSchedule.map((u) => {
+      const access = accessByUserId.get(u.userId);
+      return {
+        ...u,
+        reportAccessGroupId: access ? access.groupId : null,
+        reportAccessGroupName: access ? access.groupName : null,
+      };
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -22,4 +35,14 @@ async function updateSchedule(req, res, next) {
   }
 }
 
-module.exports = { list, updateSchedule };
+async function updateReportAccess(req, res, next) {
+  try {
+    const { groupId } = req.body;
+    await reportAccessService.setUserGroup(Number(req.params.userId), groupId ? Number(groupId) : null, req.user.username);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, updateSchedule, updateReportAccess };

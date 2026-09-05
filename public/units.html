@@ -98,6 +98,39 @@
         <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
     </div>
+
+    <div class="card">
+      <h2>Them nhom quyen xem bao cao</h2>
+      <p class="hint mb-10">
+        Mac dinh moi tai khoan CHI xem duoc doanh thu/bao cao cua dung cong ty gan voi dia diem
+        cua minh. Tao nhom o day de cap them quyen xem CHEO sang cong ty khac, hoac xem TOAN BO -
+        roi gan tai khoan vao nhom o man hinh "Tai khoan".
+      </p>
+      <form id="accessGroupForm">
+        <label>Ten nhom *</label>
+        <input id="groupName" required />
+        <label>Pham vi *</label>
+        <select id="scopeType">
+          <option value="SPECIFIC">Chi xem them mot so cong ty duoc chon</option>
+          <option value="ALL">Xem toan bo tat ca cong ty</option>
+        </select>
+        <div id="groupCompaniesField">
+          <label>Cong ty duoc xem them (ngoai cong ty cua chinh tai khoan)</label>
+          <div id="groupCompaniesList" class="hint">Dang tai danh sach cong ty...</div>
+        </div>
+        <button class="btn-primary btn-block mt-10" type="submit">Luu nhom quyen</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Danh sach nhom quyen</h2>
+      <table>
+        <thead>
+          <tr><th>Ten nhom</th><th>Pham vi</th><th>Cong ty duoc xem them</th></tr>
+        </thead>
+        <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Dang tai...</td></tr></tbody>
+      </table>
+    </div>
   </div>
 
   <script src="/js/api.js"></script>

@@ -25,9 +25,15 @@ function fromLocalInputValue(value) {
   return new Date(value).toISOString();
 }
 
+let accessGroupsCache = [];
+
 async function load() {
   try {
-    const users = await apiFetch('/users');
+    const [users, groups] = await Promise.all([
+      apiFetch('/users'),
+      apiFetch('/access-groups').catch(() => []),
+    ]);
+    accessGroupsCache = groups;
     renderUsers(users);
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
@@ -36,6 +42,10 @@ async function load() {
 }
 
 function renderUsers(users) {
+  const groupOptions = accessGroupsCache
+    .map((g) => `<option value="${g.Id}">${escapeHtmlLayout(g.GroupName)}</option>`)
+    .join('');
+
   usersBody.innerHTML = users
     .map(
       (u) => `
@@ -46,27 +56,46 @@ function renderUsers(users) {
         <td><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
         <td><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell">${STATE_CHIP[u.state] || ''}</td>
+        <td>
+          <select class="report-access-group">
+            <option value="">Mac dinh (chi cong ty cua minh)</option>
+            ${groupOptions}
+          </select>
+        </td>
         <td><button class="btn-secondary save-btn" type="button">Luu</button></td>
       </tr>`
     )
     .join('');
 
   usersBody.querySelectorAll('tr[data-user-id]').forEach((tr) => {
-    tr.querySelector('.save-btn').addEventListener('click', () => saveSchedule(tr));
+    const userId = tr.dataset.userId;
+    const user = users.find((u) => String(u.userId) === String(userId));
+    if (user && user.reportAccessGroupId) {
+      tr.querySelector('.report-access-group').value = String(user.reportAccessGroupId);
+    }
+    tr.querySelector('.save-btn').addEventListener('click', () => saveUser(tr));
   });
 }
 
-async function saveSchedule(tr) {
+async function saveUser(tr) {
   const userId = tr.dataset.userId;
   const activeFrom = fromLocalInputValue(tr.querySelector('.active-from').value);
   const activeUntil = fromLocalInputValue(tr.querySelector('.active-until').value);
+  const groupIdRaw = tr.querySelector('.report-access-group').value;
+  const groupId = groupIdRaw ? Number(groupIdRaw) : null;
 
   try {
-    await apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
-      method: 'PUT',
-      body: JSON.stringify({ activeFrom, activeUntil }),
-    });
-    showToast('Da luu thoi han tai khoan');
+    await Promise.all([
+      apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
+        method: 'PUT',
+        body: JSON.stringify({ activeFrom, activeUntil }),
+      }),
+      apiFetch(`/users/${encodeURIComponent(userId)}/report-access`, {
+        method: 'PUT',
+        body: JSON.stringify({ groupId }),
+      }),
+    ]);
+    showToast('Da luu tai khoan');
     load();
   } catch (err) {
     showToast(err.message);
