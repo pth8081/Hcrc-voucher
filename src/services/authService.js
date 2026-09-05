@@ -4,6 +4,7 @@ const { sql, getPool } = require('../config/db');
 const loginGuard = require('../utils/loginGuard');
 const twoFactorService = require('./twoFactorService');
 const userScheduleService = require('./userScheduleService');
+const passwordPolicyService = require('./passwordPolicyService');
 
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
@@ -32,11 +33,14 @@ function roleOf(user) {
 
 /**
  * Ket qua sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG - dung
- * chung cho ca 2 duong dang nhap. Tai khoan quan tri (status=1) BAT BUOC phai qua xac thuc
- * hai yeu to (TOTP) truoc khi duoc cap phien day du:
- *  - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
- *  - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
- *  - Khong phai quan tri (status=0) -> cap phien day du ngay, khong yeu cau 2FA.
+ * chung cho ca 2 duong dang nhap. Thu tu cac buoc bat buoc truoc khi duoc cap phien day du:
+ *  1. Doi mat khau (passwordPolicyService.js) - ap dung cho MOI tai khoan, ca quan tri lan
+ *     nhan vien, trong LAN DANG NHAP DAU TIEN vao app nay (hoac sau khi bi dat lai mat khau).
+ *  2. Xac thuc hai yeu to TOTP (twoFactorService.js) - CHI bat buoc voi tai khoan quan tri
+ *     (status=1):
+ *      - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
+ *      - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
+ *  3. Khong con buoc nao khac -> cap phien day du.
  *
  * Truoc tien kiem tra tai khoan co dang trong thoi han su dung khong (UserAccountSchedule) -
  * ap dung cho MOI tai khoan, khong chi rieng admin. Kiem tra nay chay SAU KHI da xac minh
@@ -46,6 +50,11 @@ function roleOf(user) {
 async function buildLoginOutcome(user) {
   await userScheduleService.assertAccountActive(user.UserID);
 
+  const mustChangePassword = await passwordPolicyService.mustChangePassword(user.UserID);
+  if (mustChangePassword) {
+    return { passwordChange: 'required', pendingToken: issuePendingToken(user, 'password_change') };
+  }
+
   if (Number(user.status) === 1) {
     const status = await twoFactorService.getStatus(user.UserID);
     if (!status.enabled) {
@@ -54,6 +63,14 @@ async function buildLoginOutcome(user) {
     return { twoFactor: 'verify_required', pendingToken: issuePendingToken(user, '2fa_verify') };
   }
   return { twoFactor: 'none', ...issueSession(user) };
+}
+
+/** Doi mat khau bat buoc (token TAM purpose='password_change') roi tiep tuc luong dang nhap
+ * (2FA neu la quan tri, hoac cap phien day du luon). */
+async function changePasswordForced(userId, newPassword) {
+  await passwordPolicyService.setNewPassword(userId, newPassword);
+  const user = await findUserById(userId);
+  return buildLoginOutcome(user);
 }
 
 async function findUserByUsername(username) {
@@ -140,4 +157,13 @@ async function comparePassword(plain, stored) {
   return plain === stored;
 }
 
-module.exports = { login, findUserByUsername, findUserById, issueSession, issuePendingToken, buildLoginOutcome, roleOf };
+module.exports = {
+  login,
+  findUserByUsername,
+  findUserById,
+  issueSession,
+  issuePendingToken,
+  buildLoginOutcome,
+  changePasswordForced,
+  roleOf,
+};

@@ -548,3 +548,27 @@ khong vo tinh thay duoc du lieu cong ty khac.
 
 API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
 `PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin).
+
+## 14. Bat buoc doi mat khau trong lan dang nhap dau tien
+
+Ap dung cho **MOI tai khoan** — ca quan tri (`status=1`) lan nhan vien thu hoi (`status=0`) —
+tach biet hoan toan voi xac thuc hai yeu to (muc 10). Thu tu cac buoc bat buoc sau khi xac
+minh dung mat khau (hoac van tay/Face ID): **doi mat khau (neu can) → 2FA (chi admin) → phien
+day du**.
+
+- Tai khoan **chua tung doi mat khau qua app nay** (chua co dong trong `UserPasswordPolicy`,
+  ap dung cho ca tai khoan cu co san trong `Users` lan tai khoan moi tao bang
+  `npm run create-admin` — muc 3a) se nhan token TAM (`purpose=password_change`, het han 10
+  phut) thay vi phien day du, va bi chuyen sang trang `change-password.html`.
+- **Yeu cau do phuc tap**: mat khau moi phai co it nhat **8 ky tu**, gom ca **chu cai**, **chu
+  so**, va **it nhat 1 ky tu dac biet** (`! @ # $ % ...`) — kiem tra ca o client (bao loi som)
+  lan o server (`passwordPolicyService.js`, khong the vong qua du sua request truc tiep).
+- Doi thanh cong se **bam lai bang bcrypt** va ghi de `Users.Password`, danh dau
+  `MustChangePassword = 0` (khong hoi lai o cac lan dang nhap sau), roi **tiep tuc dung luong
+  dang nhap**: nhan vien thuong nhan phien day du ngay, con quan tri **chua thiet lap 2FA** se
+  duoc dan tiep sang buoc bat buoc thiet lap 2FA (muc 10) truoc khi vao duoc ung dung.
+- Token TAM nay (giong token TAM cua 2FA) **khong dung duoc** cho bat ky API nghiep vu nao khac
+  ngoai `POST /api/auth/change-password`.
+
+File lien quan: `src/services/passwordPolicyService.js`, `sql/012_create_user_password_policy.sql`,
+`public/change-password.html` + `public/js/change-password.js`.

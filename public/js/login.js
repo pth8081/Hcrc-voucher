@@ -1,21 +1,4 @@
-/**
- * Dieu huong sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG.
- * Tai khoan quan tri BAT BUOC phai qua them buoc xac thuc hai yeu to - xem authService.js.
- */
-function continueAfterPrimaryAuth(data) {
-  if (data.twoFactor === 'setup_required') {
-    setPendingTwoFactorToken(data.pendingToken);
-    window.location.href = '/2fa-setup.html';
-    return;
-  }
-  if (data.twoFactor === 'verify_required') {
-    setPendingTwoFactorToken(data.pendingToken);
-    window.location.href = '/2fa-verify.html';
-    return;
-  }
-  setSession(data.token, data.user);
-  window.location.href = '/index.html';
-}
+// continueAfterPrimaryAuth() dung chung, dinh nghia trong twofa.js (load truoc file nay).
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();

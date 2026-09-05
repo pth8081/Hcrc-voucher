@@ -3,7 +3,7 @@
 // luon phai qua mang that de xac minh voi Core, tranh mo lai dung rui ro double-spend
 // da duoc chan o tang nghiep vu (xem voucherService.js).
 
-const CACHE_NAME = 'hcrc-shell-v5';
+const CACHE_NAME = 'hcrc-shell-v6';
 
 const PRECACHE_URLS = [
   '/login.html',
@@ -16,6 +16,7 @@ const PRECACHE_URLS = [
   '/users.html',
   '/2fa-setup.html',
   '/2fa-verify.html',
+  '/change-password.html',
   '/css/style.css',
   '/css/api-connection.css',
   '/css/twofa.css',
@@ -34,6 +35,7 @@ const PRECACHE_URLS = [
   '/js/twofa.js',
   '/js/twofa-setup.js',
   '/js/twofa-verify.js',
+  '/js/change-password.js',
   '/js/pwa.js',
   '/js/webauthn.js',
   '/js/vendor/simplewebauthn-browser.umd.min.js',

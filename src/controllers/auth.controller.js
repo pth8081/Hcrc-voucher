@@ -13,4 +13,20 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { login };
+/** Doi mat khau BAT BUOC trong lan dang nhap dau tien - chi chap nhan token TAM
+ * purpose='password_change' (xem middleware/require2FAPending.js). */
+async function changePassword(req, res, next) {
+  try {
+    const { userId } = req.pending;
+    const { newPassword } = req.body;
+    if (!newPassword) {
+      return res.status(400).json({ success: false, message: 'Thieu mat khau moi' });
+    }
+    const result = await authService.changePasswordForced(userId, newPassword);
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { login, changePassword };
