@@ -7,12 +7,19 @@ const locationSelect = document.getElementById('locationDetailId');
 const companySelect = document.getElementById('companyId');
 const unitForm = document.getElementById('unitForm');
 const companyForm = document.getElementById('companyForm');
+const accessGroupForm = document.getElementById('accessGroupForm');
+const accessGroupsBody = document.getElementById('accessGroupsBody');
+const scopeTypeSelect = document.getElementById('scopeType');
+const groupCompaniesField = document.getElementById('groupCompaniesField');
+const groupCompaniesList = document.getElementById('groupCompaniesList');
 
 let companiesCache = [];
 
 (async function init() {
   await Promise.all([loadLocations(), loadCompanies()]);
   await loadUnits();
+  await loadAccessGroups();
+  renderGroupCompaniesCheckboxes();
 })();
 
 async function loadLocations() {
@@ -33,6 +40,7 @@ async function loadCompanies() {
       .map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)} (${escapeHtml(c.CompanyCode)})</option>`)
       .join('');
     renderCompanies();
+    renderGroupCompaniesCheckboxes();
   } catch (err) {
     showToast(err.message);
   }
@@ -90,6 +98,79 @@ async function loadUnits() {
     showToast(err.message);
   }
 }
+
+function renderGroupCompaniesCheckboxes() {
+  if (!companiesCache.length) {
+    groupCompaniesList.innerHTML = '<span class="text-muted">Chua co cong ty nao</span>';
+    return;
+  }
+  groupCompaniesList.innerHTML = companiesCache
+    .map(
+      (c) => `
+      <label class="checkbox-inline">
+        <input type="checkbox" class="groupCompanyCheckbox" value="${c.Id}" />
+        ${escapeHtml(c.CompanyName)} (${escapeHtml(c.CompanyCode)})
+      </label>`
+    )
+    .join('');
+}
+
+function toggleGroupCompaniesField() {
+  groupCompaniesField.style.display = scopeTypeSelect.value === 'SPECIFIC' ? '' : 'none';
+}
+scopeTypeSelect.addEventListener('change', toggleGroupCompaniesField);
+toggleGroupCompaniesField();
+
+async function loadAccessGroups() {
+  try {
+    const data = await apiFetch('/access-groups');
+    renderAccessGroups(data);
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function renderAccessGroups(data) {
+  if (!data.length) {
+    accessGroupsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chua co nhom quyen nao</td></tr>';
+    return;
+  }
+  accessGroupsBody.innerHTML = data
+    .map(
+      (g) => `
+      <tr>
+        <td>${escapeHtml(g.GroupName)}</td>
+        <td>${g.ScopeType === 'ALL' ? 'Toan bo cong ty' : 'Chi dinh cong ty'}</td>
+        <td>${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
+      </tr>`
+    )
+    .join('');
+}
+
+accessGroupForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const scopeType = scopeTypeSelect.value;
+  const companyIds = Array.from(document.querySelectorAll('.groupCompanyCheckbox:checked')).map((el) => Number(el.value));
+  if (scopeType === 'SPECIFIC' && !companyIds.length) {
+    showToast('Vui long chon it nhat 1 cong ty');
+    return;
+  }
+  const payload = {
+    groupName: document.getElementById('groupName').value.trim(),
+    scopeType,
+    companyIds,
+  };
+  try {
+    await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
+    showToast('Da luu nhom quyen');
+    accessGroupForm.reset();
+    toggleGroupCompaniesField();
+    renderGroupCompaniesCheckboxes();
+    await loadAccessGroups();
+  } catch (err) {
+    showToast(err.message);
+  }
+});
 
 companyForm.addEventListener('submit', async (e) => {
   e.preventDefault();

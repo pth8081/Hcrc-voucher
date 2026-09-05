@@ -10,13 +10,28 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
  * vi 1 cong ty co the co nhieu diem tieu (xem sql/009, sql/010) - dung de bao cao cho tung
  * cong ty doi tac va tong hop toan bo cac cong ty.
  */
-async function consolidatedReport({ fromDate, toDate }) {
+/**
+ * visibleLocationCodes (xem reportAccessService.js): null = duoc xem toan bo (khong loc);
+ * [] = khong duoc xem dia diem nao; [...] = chi xem dung cac dia diem do.
+ */
+async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
   const pool = await getPool();
-  const result = await pool
-    .request()
-    .input('fromDate', sql.Date, fromDate)
-    .input('toDate', sql.Date, toDate)
-    .query(`
+  const request = pool.request().input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
+
+  let locationFilter = '';
+  if (visibleLocationCodes !== null && visibleLocationCodes !== undefined) {
+    if (!visibleLocationCodes.length) {
+      locationFilter = ' AND 1 = 0';
+    } else {
+      const placeholders = visibleLocationCodes.map((code, i) => {
+        request.input(`locCode${i}`, sql.NVarChar(100), code);
+        return `@locCode${i}`;
+      });
+      locationFilter = ` AND vs.Locations_Detail IN (${placeholders.join(', ')})`;
+    }
+  }
+
+  const result = await request.query(`
       SELECT
         vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
         vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
@@ -25,7 +40,7 @@ async function consolidatedReport({ fromDate, toDate }) {
       LEFT JOIN dbo.Locations_Detail ld ON LTRIM(RTRIM(ld.LocationCode)) = LTRIM(RTRIM(vs.Locations_Detail))
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
-      WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate
+      WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}
       ORDER BY rc.CompanyName, ru.PartnerName, vs.Created_Date
     `);
 

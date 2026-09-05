@@ -307,6 +307,8 @@ tbody tr:hover { background: var(--ink-100); }
 .mb-10 { margin-bottom: 10px; }
 .fw-normal { font-weight: 400; }
 .fw-600 { font-weight: 600; }
+.checkbox-inline { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 6px 0; }
+.checkbox-inline input { width: auto; }
 .fs-13 { font-size: 13px; }
 .text-muted { color: var(--muted); }
 .w-auto { width: auto; }

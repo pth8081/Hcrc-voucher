@@ -1,13 +1,13 @@
 const express = require('express');
-const controller = require('../controllers/user.controller');
 const { authenticate } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/requireRole');
+const controller = require('../controllers/accessGroup.controller');
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
 
 router.get('/', controller.list);
-router.put('/:userId/schedule', controller.updateSchedule);
-router.put('/:userId/report-access', controller.updateReportAccess);
+router.post('/', controller.create);
+router.put('/:id', controller.update);
 
 module.exports = router;
