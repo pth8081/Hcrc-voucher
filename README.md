@@ -91,6 +91,46 @@ WEBAUTHN_ORIGIN=http://localhost:3000   # doi thanh https://voucher.hcrc.vn khi 
 (co `https://`) dung khop voi domain nguoi dung truy cap — sai 1 trong 2 gia tri nay se lam
 trinh duyet tu choi hop thoai van tay/Face ID.
 
+### 3a. Tro thang vao DB that dang chay (khong phai DB rieng cho app nay)
+
+App nay **dung chung** bang `Users`/`Locations_Group`/`Locations_Detail`/`VOUCHER_SYNC`/
+`Voucher_Exelogs` voi he thong Core hien co — chi `npm run migrate` tao THEM cac bang moi cua
+rieng app nay (`RedemptionUnits`, `VoucherScanLogs`, `ApiConnections`, `WebAuthnCredentials`,
+`AdminTwoFactor`, `UserAccountSchedule`, `RedemptionCompanies`, cac bang phan quyen bao cao —
+xem muc 2). Cac lenh:
+
+```bash
+cp .env.example .env
+# Sua DB_SERVER, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD trong .env tro dung DB that dang chay
+npm run migrate
+```
+
+`npm run migrate` chay TOAN BO file trong thu muc `sql/` theo thu tu ten file (001, 002,
+...), moi file deu boc trong `IF NOT EXISTS (...)` nen **chay lai bao nhieu lan cung an toan**
+(khong tao trung/mat du lieu) — dung 1 lenh nay cho ca lan dau va cho moi lan cap nhat code co
+them migration moi (vd sau nay co `012_...sql`).
+
+**Tai khoan cu (co san trong `Users`) dang nhap duoc luon**, khong can thao tac gi them — mien
+la cot `Password` cua ho la mat khau dang **plaintext cu** hoac **da hash bang bcrypt**
+(`authService.js` ho tro ca 2, xem muc 8). Rieng tai khoan co `status = 1` (quan tri) se bi bat
+buoc thiet lap 2FA (TOTP) khi dang nhap lan dau tien qua app nay (xem muc 10) — day la yeu cau
+cua rieng app, khong doi du lieu cu.
+
+Neu chua co tai khoan `status = 1` nao de dang nhap lan dau (vd DB that dang dung chi co tai
+khoan nhan vien thuong), tao 1 tai khoan quan tri moi bang script co san:
+
+```bash
+npm run create-admin -- --username=admin_moi --password="MatKhauManhToiThieu8KyTu" --fullName="Ten quan tri"
+```
+
+Script `scripts/create-admin.js` se **bam mat khau bang bcrypt** (khong luu plaintext) roi
+tao/cap nhat 1 dong trong `dbo.Users` voi `status = 1`. Neu `--username` da ton tai, script se
+cap nhat lai mat khau + nang cap tai khoan do thanh quan tri thay vi tao trung; co the them tuy
+chon `--locationsGroup=...`/`--locationsDetail=...` neu muon gan san tai khoan quan tri nay vao
+1 dia diem cu the (thuong khong can, vi tai khoan `status = 1` mac dinh da xem/thao tac duoc
+toan bo he thong — xem muc 13). Dang nhap lan dau bang tai khoan nay se duoc dan qua man hinh
+thiet lap 2FA truoc khi vao duoc trang chinh.
+
 ## 4. Cau hinh ket noi Core Voucher API qua giao dien Admin (khuyen nghi)
 
 Thay vi sua code, admin co the tu cau hinh + test ket noi Core API ngay tren web tai
