@@ -1,0 +1,25 @@
+.summary-filters { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.summary-filters .field { display: flex; flex-direction: column; }
+.summary-filters label { margin-bottom: 6px; }
+.summary-filters input { margin-bottom: 0; }
+
+tr.company-row td {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+  border-top: 2px solid var(--ink-200);
+}
+tr.point-row td {
+  background: var(--ink-100);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+tr.point-row td:first-child { padding-left: 24px; }
+tr.detail-row td:first-child { padding-left: 40px; }
+tr.detail-row .text-muted { font-size: 12.5px; }
+tr.grand-total-row td {
+  background: var(--ink-900);
+  color: #fff;
+  font-weight: 700;
+  border-top: 2px solid var(--ink-900);
+}

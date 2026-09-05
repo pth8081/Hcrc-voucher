@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bao cao tong hop - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div class="card">
+      <h2>Bao cao tong hop thu hoi voucher</h2>
+      <p class="hint">
+        Tong hop so voucher va menh gia da thu hoi theo <strong>cong ty</strong> va
+        <strong>diem tieu</strong> trong 1 khoang ngay - khac voi "Bao cao doi soat" (chi xem
+        theo tung ngay, nhom theo dia diem tai khoan).
+      </p>
+      <div class="summary-filters">
+        <div class="field">
+          <label>Tu ngay</label>
+          <input id="fromDate" type="date" />
+        </div>
+        <div class="field">
+          <label>Den ngay</label>
+          <input id="toDate" type="date" />
+        </div>
+        <button id="loadBtn" class="btn-primary">Xem bao cao</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Cong ty / Diem tieu</th><th>Ngay tieu</th><th>Nguoi tieu</th>
+            <th>Ma giao dich</th><th>Ma voucher</th><th>So voucher</th><th>Menh gia</th>
+          </tr>
+        </thead>
+        <tbody id="reportBody"><tr><td colspan="7" class="text-muted">Chon khoang ngay roi bam "Xem bao cao"</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/summary-report.js"></script>
+</body>
+</html>

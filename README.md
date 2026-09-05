@@ -54,6 +54,10 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
 - `UserAccountSchedule` (008): moc `ActiveFrom`/`ActiveUntil` (tuy chon) cho **tung tai khoan** —
   cho phep cap tai khoan co thoi han, tu dong kich hoat/het han dung theo 2 moc nay ma khong can
   job nen — xem muc 11.
+- `RedemptionCompanies` (009) + cot `CompanyId` tren `RedemptionUnits` (010): them cap **"Cong
+  ty"** phia tren tung diem tieu — 1 cong ty co the gan **nhieu diem tieu** (vd chuoi nhieu chi
+  nhanh cua cung 1 doi tac). Thong tin lien he/thue/ngan hang chung cua ca cong ty nam o day,
+  tach khoi tung diem — xem muc 12.
 
 Chay migration:
 
@@ -190,12 +194,16 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/auth/login` | Dang nhap, tra ve JWT |
 | GET | `/api/locations/groups` | Danh sach nhom dia diem |
 | GET | `/api/locations/details` | Danh sach dia diem chi tiet |
-| GET | `/api/redemption-units` | Danh sach don vi thu hoi |
-| POST | `/api/redemption-units` | Them don vi thu hoi (can quyen admin) |
-| PUT | `/api/redemption-units/:id` | Cap nhat don vi thu hoi (can quyen admin) |
+| GET | `/api/redemption-units` | Danh sach diem tieu (kem ten cong ty) |
+| POST | `/api/redemption-units` | Them diem tieu, bat buoc gan `companyId` (can quyen admin) |
+| PUT | `/api/redemption-units/:id` | Cap nhat diem tieu (can quyen admin) |
+| GET | `/api/companies` | Danh sach cong ty |
+| POST | `/api/companies` | Them cong ty (can quyen admin) |
+| PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
-| GET | `/api/reports/daily?date=YYYY-MM-DD` | Bao cao doi soat theo ngay |
+| GET | `/api/reports/daily?date=YYYY-MM-DD` | Bao cao doi soat theo ngay (nhom theo dia diem tai khoan) |
+| GET | `/api/reports/summary?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
 | GET | `/api/api-connections` | Danh sach ket noi Core API (can quyen admin, secret duoc mask) |
 | GET/POST/PUT/DELETE | `/api/api-connections[/:id]` | CRUD ket noi Core API (can quyen admin) |
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
@@ -246,8 +254,10 @@ Tra ve khi da tieu:
 
 - `login.html`: dang nhap.
 - `index.html`: man hinh quet chinh — 1 o input nhan du lieu tu may scan HID (tu dong focus, Enter = kiem tra) va nut "Quet bang camera" (dung thu vien `html5-qrcode` qua CDN) cho dien thoai/tablet khong co may scan roi.
-- `units.html`: quan ly thong tin don vi thu hoi voucher (them/xem).
-- `report.html`: bao cao doi soat theo ngay, theo tung dia diem.
+- `units.html`: **(admin)** quan ly cong ty + diem tieu voucher (them/xem) — xem muc 12.
+- `report.html`: bao cao doi soat theo ngay, theo tung dia diem tai khoan dang nhap.
+- `summary-report.html`: bao cao tong hop theo khoang ngay, nhom Cong ty -> Diem tieu, cong don
+  2 cap + tong toan bo cong ty — tach biet voi `report.html` — xem muc 12.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
 
@@ -425,3 +435,48 @@ hieu luc cho toi khi tu het han tu nhien du tai khoan vua bi dat het han/chua ki
 tra chi chan duoc **lan dang nhap moi**, khong thu hoi phien dang dung do he thong khong luu
 session phia server (stateless JWT). Neu can khoa tuc thi ca phien dang mo, giam `JWT_EXPIRES_IN`
 xuong ngan hon.
+
+## 12. Cong ty, diem tieu & bao cao tong hop
+
+Ung dung cap tai khoan cho **nhieu doi tac** su dung, moi doi tac co the co **nhieu diem tieu**
+(vd chuoi cua hang nhieu chi nhanh) — can bao cao duoc theo tung cong ty, theo tung diem, va
+tong hop toan bo. Day la ly do co them cap **"Cong ty"** phia tren `RedemptionUnits` (von truoc
+gio la 1-1 voi 1 dia diem), va 1 **bao cao tong hop** rieng, **tach biet** voi "Bao cao doi soat"
+(muc 5/6 — bao cao do chi xem theo tung ngay, nhom theo dia diem cua tai khoan dang nhap).
+
+### 12a. Cong ty & diem tieu
+
+Man hinh **"Don vi thu hoi"** (`/units.html`, chi admin) nay gom 2 cap:
+
+1. **Cong ty** (`RedemptionCompanies`) — khai bao truoc: ma, ten, nguoi lien he, MST, tai khoan
+   ngan hang... (thong tin chung cho ca doi tac).
+2. **Diem tieu** (`RedemptionUnits`, van giu 1-1 voi 1 `Locations_Detail` nhu truoc) — bat buoc
+   chon **Cong ty** khi tao moi qua cot `CompanyId`. **1 cong ty co the gan nhieu diem tieu** —
+   tao nhieu diem, cung chon 1 cong ty o dropdown.
+
+Diem tieu **da khai bao truoc khi co khai niem Cong ty** van giu nguyen `CompanyId = NULL`
+(khong bi xoa/hong du lieu) — cac giao dich cua nhung diem nay se xuat hien duoi nhom
+**"Chua gan cong ty"** trong bao cao tong hop cho toi khi duoc gan cong ty.
+
+### 12b. Bao cao tong hop (`/summary-report.html`)
+
+Chon 1 **khoang ngay** (tu - den, khong gioi han trong 1 ngay nhu bao cao doi soat), xem bang
+phan cap 2 cap cong don:
+
+```
+Cong ty A                                                    12 voucher   3.400.000 d   <- cong don cap cong ty
+  Diem tieu 1                                                 7 voucher   2.000.000 d   <- cong don cap diem
+    12/09  Nguyen Van A   TRANS-xxx   VC-0001              -   200.000 d               <- chi tiet tung giao dich
+    ...
+  Diem tieu 2                                                 5 voucher   1.400.000 d
+    ...
+Cong ty B                                                     4 voucher   1.000.000 d
+  ...
+TONG TOAN BO CONG TY                                         16 voucher   4.400.000 d   <- tong tat ca cong ty
+```
+
+Nguon du lieu van la `VOUCHER_SYNC` (dung bang voi bao cao doi soat, khong tao ban ghi song
+song) — noi voi `Locations_Detail` (theo ma) roi noi tiep sang `RedemptionUnits`/
+`RedemptionCompanies` de biet giao dich do thuoc diem/cong ty nao
+(`src/services/summaryReportService.js`). Cot "Nguoi tieu" doc truc tiep tu `User_Name` da luu
+san trong `VOUCHER_SYNC` luc thu hoi — khong can truy van them.
