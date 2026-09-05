@@ -1,6 +1,7 @@
 const { sql, getPool } = require('../config/db');
 const coreVoucherService = require('./coreVoucherService');
 const systemLogService = require('./systemLogService');
+const locationService = require('./locationService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
 const { SYNC_PROC_NAME } = require('../utils/syncConstants');
@@ -178,6 +179,12 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
 
 async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {
   const pool = await getPool();
+  // Location_DetailName: tra ten theo LocationCode (Locations_Detail co cot ma ro rang de
+  // doi chieu). Location_GroupName KHONG dien duoc tuong tu vi Locations_Group khong co cot
+  // ma - de NULL, bao cao/giao dien da co san phuong an du phong hien ma thay ten (xem
+  // locationService.js).
+  const locationDetailName = await locationService.getDetailNameByCode(user.locationsDetail);
+
   await pool
     .request()
     .input('userid', sql.Int, user.userId)
@@ -189,16 +196,17 @@ async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, v
     .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
     .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
     .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
+    .input('locationDetailName', sql.NVarChar(200), locationDetailName)
     .input('valueAmt', sql.Numeric(9), valueAmt || 0)
     .input('sync', sql.NVarChar(2), synced ? 'Y' : 'N')
     .query(`
       INSERT INTO dbo.VOUCHER_SYNC
         (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
-         Status, Computer_name, Locations_Group, Locations_Detail, VALUE_AMT,
+         Status, Computer_name, Locations_Group, Locations_Detail, Location_DetailName, VALUE_AMT,
          Last_update, Sync, Sync_update)
       VALUES
         (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
-         @status, @computerName, @locationsGroup, @locationsDetail, @valueAmt,
+         @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
          GETDATE(), @sync, @sync)
     `);
 }

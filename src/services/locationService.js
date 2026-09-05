@@ -1,4 +1,4 @@
-const { getPool } = require('../config/db');
+const { sql, getPool } = require('../config/db');
 
 // Luu y: schema goc khong co cot lien ket truc tiep giua Locations_Group va
 // Locations_Detail (VOUCHER_SYNC luu ca 2 ma nhu 2 truong doc lap). Neu can
@@ -32,4 +32,24 @@ async function listDetails() {
   return result.recordset;
 }
 
-module.exports = { listGroups, listDetails };
+/**
+ * Tra ten dia diem theo ma (LocationCode) - dung de dien VOUCHER_SYNC.Location_DetailName
+ * luc thu hoi (xem voucherService.js). Locations_Detail.LocationCode co du lieu ro rang de
+ * doi chieu (khac Locations_Group - khong co cot ma nen KHONG the tra ten nhom tuong tu,
+ * xem ghi chu dau file).
+ */
+async function getDetailNameByCode(code) {
+  if (!code) return null;
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('code', sql.NVarChar(20), code)
+    .query(`
+      SELECT TOP 1 LTRIM(RTRIM(LocationName)) AS LocationName
+      FROM dbo.Locations_Detail
+      WHERE LTRIM(RTRIM(LocationCode)) = @code
+    `);
+  return result.recordset[0]?.LocationName || null;
+}
+
+module.exports = { listGroups, listDetails, getDetailNameByCode };
