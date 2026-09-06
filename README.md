@@ -579,6 +579,25 @@ phien ban truoc, chi can `git checkout` lai commit cu va khoi dong lai process (
 du con ton tai trong DB cung khong anh huong gi den code cu, vi code cu don gian la khong biet
 den chung).
 
+> **Dung `root` (hoac tai khoan admin co `sudo`) de `git pull`/copy code co duoc khong?** —
+> **Duoc**, khong lien quan gi den viec han che `hcrcapp` o muc 3d/3e (tach `hcrcapp` chi de
+> gioi han **ai chay app va doc duoc `.env` luc app dang chay**, khong gioi han ai duoc quyen
+> quan tri/cap nhat file). Chi can luu y: neu `git pull` bang `root` ngay trong thu muc app da
+> `chown` cho `hcrcapp`, cac file moi se tam thoi thuoc so huu `root` — nen tra lai quyen so
+> huu truoc khi khoi dong lai, de giu dung nguyen tac "ca thu muc thuoc ve 1 chu duy nhat" (muc
+> 3d) va tranh loi ky la ve sau (vd `.git` bi lan quyen so huu giua 2 tai khoan):
+>
+> ```bash
+> # Cach 1: pull/copy code bang root/sudo nhu binh thuong, roi tra lai quyen so huu:
+> git pull
+> sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
+>
+> # Cach 2 (sach hon, khoi phai nho buoc tren): pull ngay duoi danh tinh hcrcapp tu dau:
+> sudo -u hcrcapp git pull
+> ```
+>
+> Rieng file `.env` khong bi anh huong (file nay khong nam trong git, `git pull` khong dung toi).
+
 ## 4. Cau hinh ket noi Core Voucher API qua giao dien Admin (khuyen nghi)
 
 Thay vi sua code, admin co the tu cau hinh + test ket noi Core API ngay tren web tai
