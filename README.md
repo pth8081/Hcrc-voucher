@@ -186,7 +186,9 @@ npm run migrate
 Thu tu trien khai khuyen nghi: **(3a)** xac nhan cach ket noi + chay migrate trên DB that →
 **(3b)** thu nghiem nhanh tren may local (tuy chon, co the bo qua neu da quen ung dung) →
 **(3c)** cau hinh domain that cho PWA/van tay → **(3d)** chay that o production (process manager
-+ HTTPS) → **(3e)** checklist xac nhan sau khi len → **(3f)** quy trinh cap nhat phien ban sau nay.
++ HTTPS) → **(3e)** bao ve file `.env` bang quyen he thong (service account rieng, khong dua
+vao ma hoa) → **(3f)** checklist xac nhan sau khi len → **(3g)** quy trinh cap nhat phien ban
+sau nay.
 
 ### 3a. Ket noi ke thua DB hien co (KHONG tao DB rieng cho app nay)
 
@@ -342,7 +344,55 @@ server {
 > hoat dong** tren dien thoai/tablet cua nhan vien (may quet HID qua USB thi khong bi anh huong,
 > vi khong can quyen camera).
 
-### 3e. Checklist xac nhan sau khi trien khai
+### 3e. Bao ve file `.env` bang quyen he thong (khong dua vao ma hoa)
+
+`.env` dang chua **plaintext** `DB_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`... — day la cach
+lam **binh thuong va du dung** cho quy mo 1 server nhu app nay (khong can ma hoa noi dung file
+nay: neu ma hoa ma chia khoa giai ma van nam tren cung server, ke tan cong chiem duoc server se
+lay duoc ca 2 cung luc, khong tang them bao ve thuc su). Lop phong thu dung thuc su la **gioi
+han ai/tien trinh nao doc duoc file nay**:
+
+```bash
+# 1) Tao 1 user he thong RIENG cho app - KHONG the dang nhap/SSH truc tiep bang user nay
+#    (khac voi tai khoan ca nhan cua admin dung hang ngay de SSH vao server)
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin hcrcapp
+
+# 2) Chuyen quyen so huu thu muc app (dac biet la .env) cho dung user nay
+sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
+
+# 3) Khoa .env chi minh chu so huu (hcrcapp) moi doc/ghi duoc - nhom khac va "other" khong xem duoc
+sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
+```
+
+Roi khai bao **dung user nay** trong process manager de tien trinh Node chay bang danh tinh
+`hcrcapp` (nen doc duoc `.env` vi no la chu so huu, dung `whoami` khong lien quan gi den viec
+"dang nhap duoc hay khong"):
+
+```ini
+# vi du don vi systemd (/etc/systemd/system/hcrc-voucher.service)
+[Service]
+User=hcrcapp
+Group=hcrcapp
+WorkingDirectory=/duong-dan/toi/hcrc-voucher
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+```
+
+(Neu dung PM2 nhu vi du o 3d, chay lenh `pm2 start ...` **bang chinh user `hcrcapp`** thay vi
+user ca nhan cua admin — vd `sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher`.)
+
+> **Vi sao lam vay**: neu app chay bang chinh tai khoan SSH ca nhan hang ngay cua admin, thi ai
+> do sau nay chiem duoc quyen dang nhap tai khoan do (do mat khau SSH, lo SSH key...) se **tu
+> dong** doc duoc `.env` luon. Tach ra 1 service account rieng, **khong co mat khau/khong dang
+> nhap duoc**, thu hep con duong doc file nay lai chi con: (1) chiem duoc chinh tien trinh app
+> dang chay (lo hong trong code), hoac (2) co san quyen `root`/`sudo` — ca 2 deu la muc do
+> nghiem trong hon nhieu so voi "do duoc 1 mat khau SSH thuong".
+>
+> **Luu y**: `root` luon doc duoc moi file bat ke `chmod` gi — 600 khong chong duoc mot ke da co
+> quyen root, no chong cac user/tai khoan **khac** khong co quyen root tren cung may chu (rat
+> thuc te neu server dung chung voi he thong khac, hoac nhieu admin voi muc quyen khac nhau).
+
+### 3f. Checklist xac nhan sau khi trien khai
 
 - [ ] `npm run migrate` chay xong khong loi (xem log co dong "Migration complete").
 - [ ] Dang nhap thu **1 tai khoan nhan vien cu** co san trong `Users` — vao duoc, hien dung ho
@@ -361,8 +411,11 @@ server {
       truong production** (khong dung lai gia tri mau/dev) — va da **luu tru an toan o noi khac**
       (vd trinh quan ly secret cua cong ty), vi mat `ENCRYPTION_KEY` sau khi da co du lieu that
       se **khong the giai ma lai** secret cua ket noi Core API/2FA da luu (xem muc 8).
+- [ ] `.env` da duoc `chown` cho 1 service account rieng (khong dang nhap duoc) va `chmod 600`,
+      process manager (PM2/systemd) chay bang dung user do — **khong** chay app bang tai khoan
+      SSH ca nhan cua admin (xem muc 3e).
 
-### 3f. Cap nhat len phien ban code moi sau nay
+### 3g. Cap nhat len phien ban code moi sau nay
 
 ```bash
 git pull                  # lay code moi
