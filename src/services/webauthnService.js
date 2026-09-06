@@ -14,27 +14,42 @@ const RP_ID = process.env.WEBAUTHN_RP_ID || 'localhost';
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000';
 
 const CHALLENGE_TTL_MS = 2 * 60 * 1000; // 2 phut de hoan tat 1 lot dang ky/dang nhap
-const pendingChallenges = new Map(); // flowId -> { challenge, userId, expiresAt }
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [flowId, entry] of pendingChallenges) {
-    if (now > entry.expiresAt) pendingChallenges.delete(flowId);
-  }
-}, 60 * 1000).unref?.();
-
-function putChallenge(challenge, userId) {
+/**
+ * Luu TAM challenge vao DB (dbo.WebAuthnChallenges) thay vi bo nho cua 1 tien trinh - dung
+ * chung duoc giua moi worker khi chay nhieu tien trinh (CLUSTER_WORKERS > 1, xem README muc 3).
+ * Nhan tien don don cac dong da het han moi lan ghi moi, khong can job nen rieng.
+ */
+async function putChallenge(challenge, userId) {
   const flowId = crypto.randomBytes(16).toString('hex');
-  pendingChallenges.set(flowId, { challenge, userId: userId || null, expiresAt: Date.now() + CHALLENGE_TTL_MS });
+  const pool = await getPool();
+  await pool.request().query('DELETE FROM dbo.WebAuthnChallenges WHERE ExpiresAt < GETDATE()');
+  await pool
+    .request()
+    .input('flowId', sql.Char(32), flowId)
+    .input('challenge', sql.NVarChar(500), challenge)
+    .input('userId', sql.Int, userId || null)
+    .input('expiresAt', sql.DateTime, new Date(Date.now() + CHALLENGE_TTL_MS))
+    .query(`
+      INSERT INTO dbo.WebAuthnChallenges (FlowId, Challenge, UserId, ExpiresAt)
+      VALUES (@flowId, @challenge, @userId, @expiresAt)
+    `);
   return flowId;
 }
 
-function takeChallenge(flowId) {
-  const entry = pendingChallenges.get(flowId);
-  if (!entry) return null;
-  pendingChallenges.delete(flowId);
-  if (Date.now() > entry.expiresAt) return null;
-  return entry;
+/** Dung 1 lan - xoa ngay khoi DB bat ke con han hay khong het han. */
+async function takeChallenge(flowId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('flowId', sql.Char(32), flowId)
+    .query('SELECT Challenge, UserId, ExpiresAt FROM dbo.WebAuthnChallenges WHERE FlowId = @flowId');
+  await pool.request().input('flowId', sql.Char(32), flowId).query('DELETE FROM dbo.WebAuthnChallenges WHERE FlowId = @flowId');
+
+  const row = result.recordset[0];
+  if (!row) return null;
+  if (new Date() > new Date(row.ExpiresAt)) return null;
+  return { challenge: row.Challenge, userId: row.UserId };
 }
 
 function badRequest(message) {
@@ -82,12 +97,12 @@ async function getRegistrationOptions(user) {
     },
   });
 
-  const flowId = putChallenge(options.challenge, user.userId);
+  const flowId = await putChallenge(options.challenge, user.userId);
   return { options, flowId };
 }
 
 async function verifyRegistration({ flowId, userId, response, deviceLabel }) {
-  const entry = takeChallenge(flowId);
+  const entry = await takeChallenge(flowId);
   if (!entry || entry.userId !== userId) {
     throw badRequest('Phien dang ky da het han, vui long thu lai.');
   }
@@ -137,12 +152,12 @@ async function getAuthenticationOptions() {
     rpID: RP_ID,
     userVerification: 'required',
   });
-  const flowId = putChallenge(options.challenge, null);
+  const flowId = await putChallenge(options.challenge, null);
   return { options, flowId };
 }
 
 async function verifyAuthentication({ flowId, response }) {
-  const entry = takeChallenge(flowId);
+  const entry = await takeChallenge(flowId);
   if (!entry) {
     throw badRequest('Phien dang nhap da het han, vui long thu lai.');
   }
