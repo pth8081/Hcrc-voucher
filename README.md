@@ -165,6 +165,8 @@ sequenceDiagram
   bao cao cheo/toan bo cong ty, gan theo tung tai khoan — xem muc 13.
 - `UserPasswordPolicy` (012): danh dau tai khoan nao **da doi mat khau** qua app nay, dung de
   bat buoc doi mat khau lan dang nhap dau tien — xem muc 14.
+- `WebAuthnChallenges` (013): luu TAM challenge dang ky/dang nhap van tay-Face ID trong DB thay
+  vi bo nho — de dung duoc khi chay nhieu worker (`CLUSTER_WORKERS > 1`) — xem muc 3e, 9b.
 
 Chay migration:
 
@@ -183,12 +185,18 @@ npm run migrate
 > them bang moi cho nghiep vu rieng cua app**, khong bao gio `ALTER`/`DROP` hay sua du lieu tren
 > cac bang cu — an toan chay tren DB dang production, khong can tao DB/schema moi.
 
-Thu tu trien khai khuyen nghi: **(3a)** xac nhan cach ket noi + chay migrate trên DB that →
-**(3b)** thu nghiem nhanh tren may local (tuy chon, co the bo qua neu da quen ung dung) →
-**(3c)** cau hinh domain that cho PWA/van tay → **(3d)** chay that o production (process manager
-+ HTTPS) → **(3e)** bao ve file `.env` bang quyen he thong (service account rieng, khong dua
-vao ma hoa) → **(3f)** checklist xac nhan sau khi len → **(3g)** quy trinh cap nhat phien ban
-sau nay.
+**Lam theo dung thu tu sau, tu tren xuong duoi** (moi buoc deu can buoc truoc do):
+
+| Buoc | Noi dung | Bat buoc? |
+|---|---|---|
+| 3a | Ket noi ke thua DB hien co + tao tai khoan admin dau tien | Bat buoc |
+| 3b | Chay thu tren may local | Tuy chon (bo qua neu da quen app) |
+| 3c | Cau hinh domain that cho PWA/van tay | Bat buoc neu dung tren dien thoai/tablet |
+| 3d | Tao 1 tai khoan he thong rieng de chay app (khong dung tai khoan ca nhan) | Khuyen nghi manh |
+| 3e | Chay that o production — chon PM2 hoac systemd, co the bat nhieu worker | Bat buoc |
+| 3f | Dat Nginx phia truoc de co HTTPS | Bat buoc neu dung tren dien thoai/tablet |
+| 3g | Checklist xac nhan lai truoc khi ban giao | Bat buoc |
+| 3h | Quy trinh cap nhat code sau nay | Tham khao khi can |
 
 ### 3a. Ket noi ke thua DB hien co (KHONG tao DB rieng cho app nay)
 
@@ -229,7 +237,7 @@ DB_TRUST_SERVER_CERT=true       # true neu dung chung cert noi bo/tu ky; doi fal
 > quyen `CREATE TABLE` (mot lan, luc chay migrate) de tao cac bang bo sung o muc 2. Neu chinh
 > sach bao mat noi bo khong cho phep 1 user co quyen `CREATE TABLE` truc tiep tren DB production,
 > nho DBA chay `npm run migrate` (hoac copy noi dung tung file trong `sql/` chay thu cong theo
-> dung thu tu ten file 001 → 012) bang 1 tai khoan co quyen cao hon **1 lan duy nhat**, sau do
+> dung thu tu ten file 001 → 013) bang 1 tai khoan co quyen cao hon **1 lan duy nhat**, sau do
 > tra lai quyen han che cho `DB_USER` dung hang ngay.
 
 ```bash
@@ -242,7 +250,7 @@ npm run migrate
 ```
 
 `npm run migrate` doc va chay tuan tu toan bo file `.sql` trong `sql/` theo thu tu ten file
-(hien tai 001 → 012, xem danh sach o muc 2), moi file boc trong `IF NOT EXISTS (...)` nen
+(hien tai 001 → 013, xem danh sach o muc 2), moi file boc trong `IF NOT EXISTS (...)` nen
 **chay lai bao nhieu lan cung an toan** (khong tao trung, khong mat du lieu) — dung dung 1 lenh
 nay cho ca lan dau tien va cho moi lan sau nay code co them migration moi.
 
@@ -298,14 +306,66 @@ WEBAUTHN_ORIGIN=https://voucher.hcrc.vn   # URL day du, BAT BUOC https:// (tru l
 > duyet **tu choi tham lang** hop thoai van tay/Face ID (khong bao loi ro rang), rat kho debug
 > neu khong biet truoc dieu nay.
 
-### 3d. Chay that o production (process manager + reverse proxy + HTTPS)
+### 3d. Tao 1 tai khoan he thong rieng de chay app
+
+`.env` chua **plaintext** `DB_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`... — day la cach lam
+**binh thuong va du dung** cho quy mo 1 server nhu app nay (khong can ma hoa noi dung file nay:
+neu ma hoa ma chia khoa giai ma van nam tren cung server, ke tan cong chiem duoc server se lay
+duoc ca 2 cung luc, khong tang them bao ve thuc su). Lop phong thu dung thuc su la **gioi han
+ai/tien trinh nao doc duoc file nay** — bang cach cho app chay duoi 1 tai khoan he thong RIENG,
+KHONG dung chung voi tai khoan ca nhan hang ngay cua admin:
+
+```bash
+# 1) Tao 1 user he thong RIENG cho app - KHONG the dang nhap/SSH truc tiep bang user nay
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin hcrcapp
+
+# 2) Chuyen quyen so huu toan bo thu muc app (dac biet la .env) cho dung user nay
+sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
+
+# 3) Khoa .env chi minh chu so huu (hcrcapp) moi doc/ghi duoc
+sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
+```
+
+> **Vi sao lam vay**: neu app chay bang chinh tai khoan SSH ca nhan hang ngay cua admin, ai do
+> sau nay chiem duoc quyen dang nhap tai khoan do (do mat khau SSH, lo SSH key...) se **tu dong**
+> doc duoc `.env` luon. Tach ra 1 service account rieng, **khong co mat khau/khong dang nhap
+> duoc**, thu hep con duong doc file nay lai chi con: (1) chiem duoc chinh tien trinh app dang
+> chay (lo hong trong code), hoac (2) co san quyen `root`/`sudo` — ca 2 deu nghiem trong hon
+> nhieu so voi "do duoc 1 mat khau SSH thuong". Luu y `root` luon doc duoc moi file bat ke
+> `chmod` gi — 600 khong chong duoc ke da co quyen root, no chong cac user **khac** khong co
+> quyen root tren cung may chu.
+
+Muc 3e ben duoi se cho app **chay bang dung user `hcrcapp` nay**, dung ca cho PM2 lan systemd.
+
+**Sau nay moi lan can sua `.env`** (vi du doi mat khau DB, xoay `JWT_SECRET`...): **khong dang
+nhap bang `root` hay bang `hcrcapp`** (ca 2 von khong cho dang nhap truc tiep) — admin van dung
+tai khoan ca nhan cua minh SSH vao server (can nam trong nhom `sudo`), roi chon 1 trong 2 cach:
+
+```bash
+# Cach 1 - sua bang quyen root (root luon doc/ghi duoc moi file, bat ke chmod gi):
+sudo nano /duong-dan/toi/hcrc-voucher/.env
+# Sau khi luu, KIEM TRA/DAT LAI quyen so huu (mot so trinh soan thao xoa-tao lai file khi luu,
+# co the vo tinh doi chu so huu ve root khien app khong con doc duoc .env nua):
+sudo chown hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher/.env
+sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
+
+# Cach 2 (khuyen nghi, sach hon) - chay thang trinh soan thao DUOI danh tinh hcrcapp, khong can
+# nho buoc chown lai vi file van do dung chu so huu tao ra:
+sudo -u hcrcapp nano /duong-dan/toi/hcrc-voucher/.env
+```
+
+> `sudo -u hcrcapp <lenh>` chi la "muon quyen tam thoi de chay 1 lenh", khong phai dang nhap mo
+> phien lam viec cua `hcrcapp` — nen van chay duoc binh thuong du user nay khai bao
+> `--shell /usr/sbin/nologin` (chi chan mo shell tuong tac/SSH, khong chan `sudo -u` goi thang
+> 1 chuong trinh cu the).
+
+### 3e. Chay that o production: 2 cach + cluster nhieu worker
 
 `npm run dev`/`npm start` chi phu hop dev/demo — khi chay that can 1 **process manager** de:
-(1) tu dong khoi dong lai app neu crash, (2) tu dong chay lai app moi khi server reboot,
-(3) quan ly log gon gang. Chon **1 trong 2 cach** duoi day (khong can lam ca 2) — ca 2 vi du
-deu chay app bang user rieng **`hcrcapp`** da tao o muc 3e (khong chay bang tai khoan SSH ca
-nhan cua admin). Sau khi co process manager, van can them 1 **reverse proxy** (Nginx) truoc app
-de lo HTTPS ra ngoai — app tu than chi lang nghe HTTP o cong noi bo, khong tu xu ly TLS.
+(1) tu dong khoi dong lai app neu crash, (2) tu dong chay lai app khi server reboot, (3) quan ly
+log gon gang. Chon **1 trong 2 cach** duoi day (khong can lam ca 2) — ca 2 deu chay app bang
+user `hcrcapp` da tao o muc 3d, va ca 2 deu ho tro **chay nhieu worker song song** theo cach
+giong het nhau (xem phan "Chay nhieu worker" ngay ben duoi).
 
 #### Cach 1: Chay bang PM2 (don gian, quen thuoc voi nguoi hay dung Node.js)
 
@@ -335,6 +395,14 @@ sudo -u hcrcapp pm2 logs hcrc-voucher       # xem log truc tiep (Ctrl+C de thoat
 sudo -u hcrcapp pm2 restart hcrc-voucher    # khoi dong lai (vd sau khi sua .env hoac cap nhat code)
 sudo -u hcrcapp pm2 stop hcrc-voucher       # dung han (khong tu bat lai cho toi khi restart)
 ```
+
+> **Quan trong — KHONG dung ca `pm2 -i` lan `CLUSTER_WORKERS` cung luc**: PM2 co san 1 co che
+> cluster rieng qua co `-i <so-tien-trinh>`, nhung app nay da tu lam cluster BEN TRONG
+> `src/server.js` (xem phan "Chay nhieu worker" ngay duoi) de dung duoc voi ca systemd chu
+> khong chi PM2. Neu bat ca 2 cung luc (`pm2 start ... -i 4` VA `CLUSTER_WORKERS=4` trong
+> `.env`), ban se vo tinh chay **4 tien trinh PM2, moi tien trinh lai tu fork them 4 worker con
+> = 16 tien trinh** thay vi 4 nhu mong muon. Voi PM2, luon de **mac dinh (khong dung `-i`)**, chi
+> dieu chinh so worker qua `CLUSTER_WORKERS` trong `.env`.
 
 #### Cach 2: Chay bang systemd service (khong can cai them goi nao, co san tren moi distro Linux hien dai)
 
@@ -386,8 +454,11 @@ sudo systemctl restart hcrc-voucher    # khoi dong lai (vd sau khi sua .env hoac
 sudo systemctl stop hcrc-voucher       # dung han
 ```
 
-**Nen chon cach nao?** Ca 2 deu dam bao app tu khoi dong lai khi crash/reboot server, khac biet
-chu yeu la trai nghiem quan tri:
+#### Nen chon PM2 hay systemd?
+
+Ca 2 deu dam bao app tu khoi dong lai khi crash/reboot server va deu ho tro cluster nhu nhau
+(vi cluster nam trong chinh code cua app, khong phu thuoc process manager nao) — khac biet chi
+o trai nghiem quan tri:
 
 | Tieu chi | PM2 | systemd |
 |---|---|---|
@@ -399,7 +470,44 @@ chu yeu la trai nghiem quan tri:
 Neu khong chac chon gi, **PM2** thuong de bat dau hon voi nguoi quen viet code Node.js; **systemd**
 phu hop hon neu server da co san quy trinh quan tri dich vu bang systemd cho cac app khac.
 
-**Vi du reverse proxy Nginx** (dat truoc app, xu ly HTTPS bang chung chi that, vd Let's Encrypt):
+#### Chay nhieu worker (cluster) de tan dung nhieu nhan CPU
+
+App dung san module `cluster` cua Node.js (`src/server.js`) de chay **nhieu tien trinh worker
+song song**, tat ca cung lang nghe chung 1 cong — Node tu dong chia deu request cho cac worker,
+khong can cau hinh gi them o Nginx hay process manager. Bat qua **1 bien duy nhat** trong `.env`:
+
+```ini
+CLUSTER_WORKERS=1      # mac dinh - 1 tien trinh duy nhat, giong het truoc khi co tinh nang nay
+CLUSTER_WORKERS=4      # chay dung 4 worker xu ly HTTP song song
+CLUSTER_WORKERS=max    # chay bang dung so nhan CPU cua may chu
+```
+
+Sau khi doi `CLUSTER_WORKERS`, khoi dong lai app (`pm2 restart hcrc-voucher` hoac
+`systemctl restart hcrc-voucher`) de ap dung.
+
+**Co che hoat dong** (khong can hieu de dung, chi de biet vi sao an toan): khi `CLUSTER_WORKERS
+> 1`, tien trinh dau tien tu fork ra N tien trinh con de xu ly HTTP, ban than no **khong nhan
+request nao ca** — chi giu 1 ket noi DB rieng de chay **DUY NHAT 1 lan** job nen dong bo voucher
+loi (muc 4c). Neu de moi worker tu chay job nay se bi lap lai N lan song song, gay goi trung
+Core API — app da tu xu ly de tranh dieu nay, khong can cau hinh gi them.
+
+> **Luu y quan trong ve bao mat khi dung nhieu worker**: co che khoa tam dang nhap sai nhieu lan
+> (`loginGuard`/`guessGuard`, muc 8) dang dem so lan sai **trong bo nho cua tung tien trinh**.
+> Voi N worker, 1 nguoi dang go sai lien tuc co the roi vao worker khac nhau moi lan (Node chia
+> request theo kieu xoay vong) — nguong khoa tren thuc te co the long hon toi da khoang N lan
+> so voi con so cong bo (vd nguong 5 lan/khoa cua nhan vien co the thanh ~5×N lan neu chia deu
+> qua N worker). Day la danh doi da can nhac: voi vai worker (2-4), muc do long hon nay van con
+> chap nhan duoc; neu can dem chinh xac tuyet doi bat ke bao nhieu worker, phai chuyen bo dem
+> nay sang luu o DB thay vi bo nho (chua trien khai — lien he neu can). Rieng challenge dang
+> nhap van tay/Face ID (WebAuthn) **da luu san trong DB** (`dbo.WebAuthnChallenges`, migration
+> 013) nen KHONG bi anh huong boi so worker — dang ky/dang nhap van tay hoat dong binh thuong
+> du chay bao nhieu worker.
+
+### 3f. Reverse proxy Nginx + HTTPS
+
+Dat Nginx phia truoc app de xu ly HTTPS bang chung chi that (vd Let's Encrypt) — app tu than
+chi lang nghe HTTP thuan o cong noi bo, du dang chay 1 tien trinh hay nhieu worker (Nginx luon
+chi tro vao **1 cong duy nhat**, khong doi gi khi ban tang/giam `CLUSTER_WORKERS`):
 
 ```nginx
 server {
@@ -430,66 +538,7 @@ server {
 > hoat dong** tren dien thoai/tablet cua nhan vien (may quet HID qua USB thi khong bi anh huong,
 > vi khong can quyen camera).
 
-### 3e. Bao ve file `.env` bang quyen he thong (khong dua vao ma hoa)
-
-`.env` dang chua **plaintext** `DB_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`... — day la cach
-lam **binh thuong va du dung** cho quy mo 1 server nhu app nay (khong can ma hoa noi dung file
-nay: neu ma hoa ma chia khoa giai ma van nam tren cung server, ke tan cong chiem duoc server se
-lay duoc ca 2 cung luc, khong tang them bao ve thuc su). Lop phong thu dung thuc su la **gioi
-han ai/tien trinh nao doc duoc file nay**:
-
-```bash
-# 1) Tao 1 user he thong RIENG cho app - KHONG the dang nhap/SSH truc tiep bang user nay
-#    (khac voi tai khoan ca nhan cua admin dung hang ngay de SSH vao server)
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin hcrcapp
-
-# 2) Chuyen quyen so huu thu muc app (dac biet la .env) cho dung user nay
-sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
-
-# 3) Khoa .env chi minh chu so huu (hcrcapp) moi doc/ghi duoc - nhom khac va "other" khong xem duoc
-sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
-```
-
-**Sau nay moi lan can sua `.env`** (vi du doi mat khau DB, xoay `JWT_SECRET`...), **khong dang
-nhap bang `root` hay bang `hcrcapp`** (ca 2 tai khoan nay von khong cho dang nhap truc tiep) —
-admin van dung tai khoan ca nhan cua minh SSH vao server nhu binh thuong (tai khoan nay can nam
-trong nhom `sudo`), roi chon 1 trong 2 cach sau de sua:
-
-```bash
-# Cach 1 - sua bang quyen root (root luon doc/ghi duoc moi file, bat ke chmod gi):
-sudo nano /duong-dan/toi/hcrc-voucher/.env
-# Sau khi luu, KIEM TRA/DAT LAI quyen so huu (mot so trinh soan thao xoa-tao lai file khi luu,
-# co the vo tinh doi chu so huu ve root khien app khong con doc duoc .env nua):
-sudo chown hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher/.env
-sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
-
-# Cach 2 (khuyen nghi, sach hon) - chay thang trinh soan thao DUOI danh tinh hcrcapp, khong can
-# nho buoc chown lai vi file van do dung chu so huu tao ra:
-sudo -u hcrcapp nano /duong-dan/toi/hcrc-voucher/.env
-```
-
-> `sudo -u hcrcapp <lenh>` chi la "muon quyen tam thoi de chay 1 lenh", khong phai dang nhap mo
-> phien lam viec cua `hcrcapp` — nen van chay duoc binh thuong du user nay khai bao
-> `--shell /usr/sbin/nologin` (chi chan mo shell tuong tac/SSH, khong chan `sudo -u` goi thang
-> 1 chuong trinh cu the).
-
-Roi khai bao **dung user nay** khi chay app bang process manager (xem lai muc 3d — ca 2 vi du
-PM2 lan systemd o do deu da chay san bang user `hcrcapp`, khong phai tai khoan ca nhan cua
-admin) — dung `whoami` khong lien quan gi den viec "dang nhap duoc hay khong", nen tien trinh
-Node van doc duoc `.env` binh thuong vi no chinh la chu so huu file.
-
-> **Vi sao lam vay**: neu app chay bang chinh tai khoan SSH ca nhan hang ngay cua admin, thi ai
-> do sau nay chiem duoc quyen dang nhap tai khoan do (do mat khau SSH, lo SSH key...) se **tu
-> dong** doc duoc `.env` luon. Tach ra 1 service account rieng, **khong co mat khau/khong dang
-> nhap duoc**, thu hep con duong doc file nay lai chi con: (1) chiem duoc chinh tien trinh app
-> dang chay (lo hong trong code), hoac (2) co san quyen `root`/`sudo` — ca 2 deu la muc do
-> nghiem trong hon nhieu so voi "do duoc 1 mat khau SSH thuong".
->
-> **Luu y**: `root` luon doc duoc moi file bat ke `chmod` gi — 600 khong chong duoc mot ke da co
-> quyen root, no chong cac user/tai khoan **khac** khong co quyen root tren cung may chu (rat
-> thuc te neu server dung chung voi he thong khac, hoac nhieu admin voi muc quyen khac nhau).
-
-### 3f. Checklist xac nhan sau khi trien khai
+### 3g. Checklist xac nhan sau khi trien khai
 
 - [ ] `npm run migrate` chay xong khong loi (xem log co dong "Migration complete").
 - [ ] Dang nhap thu **1 tai khoan nhan vien cu** co san trong `Users` — vao duoc, hien dung ho
@@ -510,9 +559,12 @@ Node van doc duoc `.env` binh thuong vi no chinh la chu so huu file.
       se **khong the giai ma lai** secret cua ket noi Core API/2FA da luu (xem muc 8).
 - [ ] `.env` da duoc `chown` cho 1 service account rieng (khong dang nhap duoc) va `chmod 600`,
       process manager (PM2/systemd) chay bang dung user do — **khong** chay app bang tai khoan
-      SSH ca nhan cua admin (xem muc 3e).
+      SSH ca nhan cua admin (xem muc 3d).
+- [ ] Neu bat `CLUSTER_WORKERS > 1`: dang nhap/dang xuat thu vai lan, quet-thu-hoi thu vai
+      voucher, dang ky + dang nhap thu van tay/Face ID — xac nhan moi thu hoat dong binh thuong
+      du request co the roi vao worker khac nhau (xem luu y bao mat o muc 3e).
 
-### 3g. Cap nhat len phien ban code moi sau nay
+### 3h. Cap nhat len phien ban code moi sau nay
 
 ```bash
 git pull                  # lay code moi
