@@ -300,18 +300,104 @@ WEBAUTHN_ORIGIN=https://voucher.hcrc.vn   # URL day du, BAT BUOC https:// (tru l
 
 ### 3d. Chay that o production (process manager + reverse proxy + HTTPS)
 
-`npm run dev`/`npm start` chi phu hop dev/demo — khi chay that can 1 **process manager** de tu
-dong khoi dong lai app neu crash/reboot server, va 1 **reverse proxy** de lo HTTPS ra ngoai
-(app tu than chi lang nghe HTTP o cong noi bo, khong tu xu ly TLS).
+`npm run dev`/`npm start` chi phu hop dev/demo — khi chay that can 1 **process manager** de:
+(1) tu dong khoi dong lai app neu crash, (2) tu dong chay lai app moi khi server reboot,
+(3) quan ly log gon gang. Chon **1 trong 2 cach** duoi day (khong can lam ca 2) — ca 2 vi du
+deu chay app bang user rieng **`hcrcapp`** da tao o muc 3e (khong chay bang tai khoan SSH ca
+nhan cua admin). Sau khi co process manager, van can them 1 **reverse proxy** (Nginx) truoc app
+de lo HTTPS ra ngoai — app tu than chi lang nghe HTTP o cong noi bo, khong tu xu ly TLS.
 
-**Vi du voi PM2** (don gian, pho bien voi app Node.js don may):
+#### Cach 1: Chay bang PM2 (don gian, quen thuoc voi nguoi hay dung Node.js)
 
 ```bash
-npm install -g pm2
-pm2 start src/server.js --name hcrc-voucher --env production
-pm2 save                  # luu danh sach process de tu khoi dong lai sau khi reboot server
-pm2 startup               # in ra lenh de dang ky pm2 chay cung he dieu hanh (chay 1 lan)
+# 1) Cai PM2 (chi 1 lan, cai global cho toan he thong)
+sudo npm install -g pm2
+
+# 2) Khoi dong app BANG DUNG USER hcrcapp (khong dung tai khoan ca nhan cua admin) - luu y PM2
+#    quan ly danh sach tien trinh RIENG cho tung user, nen tu day ve sau moi lenh pm2 lien quan
+#    toi app nay deu phai chay kem "sudo -u hcrcapp" nhu duoi day.
+sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher --cwd /duong-dan/toi/hcrc-voucher
+
+# 3) Luu lai danh sach tien trinh hien tai cua user hcrcapp
+sudo -u hcrcapp pm2 save
+
+# 4) Dang ky PM2 tu khoi dong lai cung he dieu hanh sau khi reboot server - lenh nay se IN RA
+#    1 dong lenh "sudo env PATH=... pm2 startup systemd -u hcrcapp --hp ..." - COPY va chay
+#    dung dong do (khong tu doan, moi may in ra duong dan khac nhau)
+sudo -u hcrcapp pm2 startup
 ```
+
+**Cac lenh thuong dung sau khi da chay** (luon nho kem `sudo -u hcrcapp` vi app chay duoi user do):
+
+```bash
+sudo -u hcrcapp pm2 list                    # xem trang thai (online/stopped), uptime, so lan restart
+sudo -u hcrcapp pm2 logs hcrc-voucher       # xem log truc tiep (Ctrl+C de thoat, khong dung app)
+sudo -u hcrcapp pm2 restart hcrc-voucher    # khoi dong lai (vd sau khi sua .env hoac cap nhat code)
+sudo -u hcrcapp pm2 stop hcrc-voucher       # dung han (khong tu bat lai cho toi khi restart)
+```
+
+#### Cach 2: Chay bang systemd service (khong can cai them goi nao, co san tren moi distro Linux hien dai)
+
+```bash
+# 1) Tao file dinh nghia service
+sudo nano /etc/systemd/system/hcrc-voucher.service
+```
+
+Dan noi dung sau (sua duong dan cho dung voi noi ban da clone/giai nen code):
+
+```ini
+[Unit]
+Description=HCRC Voucher Redemption App
+After=network.target
+
+[Service]
+Type=simple
+User=hcrcapp
+Group=hcrcapp
+WorkingDirectory=/duong-dan/toi/hcrc-voucher
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+(App tu doc `.env` bang thu vien `dotenv` ngay khi khoi dong — chi can `WorkingDirectory` dung
+chinh xac thu muc chua `.env` la du, khong can khai bao them `EnvironmentFile=` trong file nay.)
+
+```bash
+# 2) Bao systemd nap lai cau hinh (bat buoc moi lan tao/sua file .service)
+sudo systemctl daemon-reload
+
+# 3) Bat tu dong chay cung he dieu hanh sau khi reboot server
+sudo systemctl enable hcrc-voucher
+
+# 4) Khoi dong app ngay bay gio
+sudo systemctl start hcrc-voucher
+```
+
+**Cac lenh thuong dung sau khi da chay:**
+
+```bash
+sudo systemctl status hcrc-voucher     # xem app dang chay hay loi, PID, thoi gian uptime
+sudo journalctl -u hcrc-voucher -f     # xem log truc tiep (tuong duong pm2 logs, Ctrl+C de thoat)
+sudo systemctl restart hcrc-voucher    # khoi dong lai (vd sau khi sua .env hoac cap nhat code)
+sudo systemctl stop hcrc-voucher       # dung han
+```
+
+**Nen chon cach nao?** Ca 2 deu dam bao app tu khoi dong lai khi crash/reboot server, khac biet
+chu yeu la trai nghiem quan tri:
+
+| Tieu chi | PM2 | systemd |
+|---|---|---|
+| Can cai them goi ngoai | Co (`npm install -g pm2`) | Khong (co san tren Linux) |
+| Xem log | `pm2 logs` | `journalctl -u ...` |
+| Quen thuoc voi | Nguoi quen he sinh thai Node.js | Nguoi quen quan tri Linux server noi chung |
+| Theo doi CPU/RAM tien trinh | Co san lenh `pm2 monit` | Can them cong cu ngoai (`systemctl status`, `htop`...) |
+
+Neu khong chac chon gi, **PM2** thuong de bat dau hon voi nguoi quen viet code Node.js; **systemd**
+phu hop hon neu server da co san quy trinh quan tri dich vu bang systemd cho cac app khac.
 
 **Vi du reverse proxy Nginx** (dat truoc app, xu ly HTTPS bang chung chi that, vd Let's Encrypt):
 
@@ -387,22 +473,10 @@ sudo -u hcrcapp nano /duong-dan/toi/hcrc-voucher/.env
 > `--shell /usr/sbin/nologin` (chi chan mo shell tuong tac/SSH, khong chan `sudo -u` goi thang
 > 1 chuong trinh cu the).
 
-Roi khai bao **dung user nay** trong process manager de tien trinh Node chay bang danh tinh
-`hcrcapp` (nen doc duoc `.env` vi no la chu so huu, dung `whoami` khong lien quan gi den viec
-"dang nhap duoc hay khong"):
-
-```ini
-# vi du don vi systemd (/etc/systemd/system/hcrc-voucher.service)
-[Service]
-User=hcrcapp
-Group=hcrcapp
-WorkingDirectory=/duong-dan/toi/hcrc-voucher
-ExecStart=/usr/bin/node src/server.js
-Restart=on-failure
-```
-
-(Neu dung PM2 nhu vi du o 3d, chay lenh `pm2 start ...` **bang chinh user `hcrcapp`** thay vi
-user ca nhan cua admin — vd `sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher`.)
+Roi khai bao **dung user nay** khi chay app bang process manager (xem lai muc 3d — ca 2 vi du
+PM2 lan systemd o do deu da chay san bang user `hcrcapp`, khong phai tai khoan ca nhan cua
+admin) — dung `whoami` khong lien quan gi den viec "dang nhap duoc hay khong", nen tien trinh
+Node van doc duoc `.env` binh thuong vi no chinh la chu so huu file.
 
 > **Vi sao lam vay**: neu app chay bang chinh tai khoan SSH ca nhan hang ngay cua admin, thi ai
 > do sau nay chiem duoc quyen dang nhap tai khoan do (do mat khau SSH, lo SSH key...) se **tu
