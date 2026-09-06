@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voucher da su dung - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div class="card">
+      <h2>Danh sach voucher da su dung</h2>
+      <p class="hint">
+        Liet ke TOAN BO tung voucher da duoc thu hoi (khong cong don theo cong ty/diem tieu nhu
+        "Bao cao tong hop") - dung de doi soat/kiem toan chi tiet va xuat ra file Excel.
+        De trong ca 2 o ngay de xem toan bo lich su.
+      </p>
+      <div class="summary-filters">
+        <div class="field">
+          <label>Tu ngay (tuy chon)</label>
+          <input id="fromDate" type="date" />
+        </div>
+        <div class="field">
+          <label>Den ngay (tuy chon)</label>
+          <input id="toDate" type="date" />
+        </div>
+        <button id="loadBtn" class="btn-primary">Xem danh sach</button>
+        <button id="exportBtn" class="btn-secondary">Xuat Excel</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Ngay tieu</th><th>Ma giao dich</th><th>Ma voucher</th><th>Nguoi tieu</th>
+            <th>Cong ty</th><th>Diem tieu</th><th>So tien</th><th>Dong bo</th>
+          </tr>
+        </thead>
+        <tbody id="reportBody"><tr><td colspan="8" class="text-muted">Dang tai...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/used-vouchers.js"></script>
+</body>
+</html>
