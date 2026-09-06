@@ -1,35 +1,138 @@
 # HCRC Voucher Redemption App
 
-Ung dung danh cho **don vi doi tac khong dung phan mem ban hang (POS)** de:
+Ung dung web (khong phai POS) cap cho **cac don vi doi tac** de **quet va thu hoi (redeem)
+voucher tai quay**, doi chieu ngay lap tuc voi he thong phat hanh trung tam
+(**Core Voucher API**), roi **bao cao lai theo tung cong ty/diem tieu** cho HCRC quan ly.
 
-1. Quan ly thong tin cac don vi thu hoi voucher.
-2. Quet ma voucher (bang dien thoai/camera hoac may scan ma vach HID) tai quay.
-3. Doi chieu ngay lap tuc voi **Core Voucher API** (he thong phat hanh voucher da co san) de biet voucher da tieu hay chua.
-4. Neu voucher **chua tieu**: hien thi trang thai, menh gia, ngay cap, han su dung; cho phep xac nhan thu hoi va luu vao CSDL.
-5. Neu voucher **da tieu**: bao "voucher da su dung", bat buoc quet ma khac.
-6. Xuat bao cao doi soat hang ngay theo tung dia diem, doi chieu voi Core system.
+## Mo ta nghiep vu
 
-Stack: **Node.js (Express) + MSSQL** (dung lai schema hien co cua ban).
+**Nguyen tac quan trong nhat: DB nghiep vu (Users, Locations_*, VOUCHER_SYNC, Voucher_Exelogs)
+la DB HIEN CO cua he thong Core — app nay KHONG tao DB rieng, chi KET NOI VAO va KE THUA toan
+bo du lieu/tai khoan dang co san.** App chi bo sung THEM cac bang moi cho nghiep vu cua rieng
+no (xem muc 2), tuyet doi khong sua cau truc hay xoa du lieu tren cac bang cu.
+
+Luong nghiep vu chinh:
+
+1. Nhan vien tai diem tieu **dang nhap** (tai khoan da co san trong `Users`, hoac tai khoan moi
+   duoc admin tao/gan them — xem muc 3a, 12, 13).
+2. **Quet ma voucher** bang may quet ma vach HID (cam vao PC/tablet nhu ban phim) hoac camera
+   dien thoai (quet QR) — khong cho go tay de tranh do/doan ma (muc 8).
+3. App goi **Core Voucher API** de **kiem tra** (`checkVoucher`) — hoi Core "voucher nay con
+   dung duoc khong". Day la buoc CHI DOC, khong lam thay doi trang thai voucher.
+4. Neu Core tra ve **CHUA tieu**: hien menh gia/han dung/ngay cap, cho phep nhan vien bam
+   **"Xac nhan thu hoi"** → app goi tiep **`redeemVoucher`** de **bao Core** la voucher nay vua
+   duoc tieu tai diem nay, dong thoi **ghi 1 dong vao `VOUCHER_SYNC`** (bang co san, dung dung
+   nghiep vu cu) de phuc vu bao cao/doi soat cua rieng HCRC (vi 1 minh Core API khong biet duoc
+   giao dich nay thuoc **cong ty/diem tieu nao** cua HCRC — xem muc 12).
+5. Neu Core tra ve **DA tieu**: canh bao do, khong cho thu hoi, bat buoc quet ma khac.
+6. **Neu mat ket noi toi Core dung luc bao thu hoi** (sau khi vua xac nhan CHUA tieu vai giay
+   truoc): app **van cho thu hoi thanh cong tai quay** (khong lam gian doan khach hang dang cho),
+   dua vao "hang doi dong bo" (`VOUCHER_SYNC.Sync='N'`) va co job nen tu dong gui lai cho Core
+   sau — xem muc 4c.
+7. Admin xem **bao cao doi soat theo ngay** (muc 5/6) va **bao cao tong hop theo khoang ngay,
+   cong don theo Cong ty → Diem tieu** (muc 12) — moi tai khoan **mac dinh chi thay du lieu cong
+   ty cua chinh minh**, tru khi duoc cap quyen xem cheo/xem toan bo (muc 13).
+8. Cac lop bao mat bao quanh toan bo luong tren: khoa tam khi go sai lien tuc (muc 8), xac thuc
+   hai yeu to bat buoc cho quan tri (muc 10), dang nhap van tay/Face ID qua PWA (muc 9), bat
+   buoc doi mat khau lan dau (muc 14), gioi han thoi han su dung tai khoan (muc 11).
+
+Stack: **Node.js (Express) + MSSQL** (ket noi vao DB hien co, khong tao DB moi).
 
 ---
 
-## 1. Kien truc tong quan
+## 1. Kien truc & So do ket noi he thong
 
-```
-Dien thoai / May scan HID (web app chay tren trinh duyet)
-        |
-        v
-   Node.js API (Express)  ---->  Core Voucher API (he thong phat hanh, da co san)
-        |
-        v
-   MSSQL (VOUCHER_SYNC, VoucherScanLogs, RedemptionUnits, Locations_*, Users, ...)
+```mermaid
+flowchart LR
+    subgraph QUAY["Thiet bi tai diem tieu"]
+        A1["May quet ma vach - HID"]
+        A2["Dien thoai / tablet - camera quet QR"]
+    end
+
+    subgraph APP["HCRC Voucher Redemption App - Node.js/Express"]
+        B1["Giao dien web - thu muc public"]
+        B2["REST API - routes + controllers"]
+        B3["Cac service nghiep vu - src/services"]
+        B4["Job nen dong bo lai - syncRetryService"]
+    end
+
+    subgraph DB["MSSQL - DB HIEN CO cua Core, app CHI KET NOI VAO, KHONG tao DB rieng"]
+        C1["Users, Locations_Group, Locations_Detail - bang co san, giu nguyen"]
+        C2["VOUCHER_SYNC, Voucher_Exelogs - bang co san, giu nguyen"]
+        C3["Bang app bo sung THEM: RedemptionUnits, RedemptionCompanies, ApiConnections, WebAuthnCredentials, AdminTwoFactor, UserAccountSchedule, ReportAccessGroups, UserPasswordPolicy..."]
+    end
+
+    subgraph CORE["He thong phat hanh voucher trung tam - co san tu truoc, ngoai pham vi app nay"]
+        D1["Core Voucher API"]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    B1 <-->|"HTTPS + JWT"| B2
+    B2 --> B3
+    B3 <-->|"Truy van tham so hoa - mssql .input()"| C1
+    B3 <-->|"Ghi giao dich thu hoi, doc bao cao"| C2
+    B3 <-->|"CRUD nghiep vu rieng cua app"| C3
+    B3 -->|"HTTP(S): kiem tra + bao thu hoi"| D1
+    B4 -->|"Goi lai khi truoc do mat ket noi"| D1
+    B4 <--> C2
 ```
 
-- App **khong tu quan ly** trang thai "da tieu / chua tieu" cua voucher — do la trach nhiem cua Core Voucher API (nguon su that duy nhat, single source of truth), tranh 2 he thong lech nhau.
-- Moi lan quet, app goi `checkVoucher()` sang Core API truoc, roi moi cho phep nguoi dung bam "Xac nhan thu hoi" (goi `redeemVoucher()`).
-- Khi thu hoi thanh cong, app ghi 1 dong vao bang `VOUCHER_SYNC` (bang co san trong schema cua ban) de dung lai cho bao cao doi soat/dong bo hien tai — khong tao bang moi song song lam phan manh du lieu.
-- **Neu Core API mat ket noi dung luc goi bao thu hoi** (sau khi da xac nhan UNUSED it giay truoc do): app **van cho thu hoi thanh cong tai cho** (khong lam gian doan giao dich voi khach hang), ghi vao `VOUCHER_SYNC` voi `Sync='N'` nhu 1 "hang doi cho dong bo", roi 1 job chay dinh ky se tu dong gui lai — xem muc 4c.
-- Moi lan quet (ca thanh cong lan that bai) duoc ghi vao bang moi `VoucherScanLogs` (**log thao tac nguoi dung**) de phuc vu tra soat, chong gian lan, debug khieu nai tu doi tac. Moi lan job dong bo chay (thanh cong/that bai) duoc ghi vao bang co san `Voucher_Exelogs` (**log he thong**), dung dung y goc cua bang nay trong schema ban gui.
+**Doc so do:** app **khong bao gio thay the** Core Voucher API — Core van la **nguon su that
+duy nhat** ve trang thai "da tieu/chua tieu" cua voucher. App chi dong vai tro **giao dien thu
+hoi tai quay + lop bao cao theo cong ty/diem tieu** rieng cho HCRC, va **dung chung** khoi DB
+nghiep vu cot loi (`Users`/`Locations_*`/`VOUCHER_SYNC`) voi he thong Core hien co thay vi tach
+rieng — tranh 2 noi du lieu lech nhau.
+
+### 1a. Luong quet - thu hoi (chi tiet xu ly khi Core mat ket noi)
+
+```mermaid
+sequenceDiagram
+    actor NV as Nhan vien thu hoi
+    participant UI as Giao dien quet
+    participant API as HCRC Voucher API
+    participant DB as VOUCHER_SYNC
+    participant CORE as Core Voucher API
+
+    NV->>UI: Quet ma voucher
+    UI->>API: POST /api/vouchers/check
+    API->>CORE: Kiem tra trang thai voucher
+    CORE-->>API: UNUSED / USED / EXPIRED / CANCELLED
+    API-->>UI: Ket qua kiem tra
+
+    alt Voucher CHUA tieu
+        NV->>UI: Bam "Xac nhan thu hoi"
+        UI->>API: POST /api/vouchers/redeem
+        API->>CORE: Bao thu hoi (redeem)
+        alt Core phan hoi THANH CONG
+            CORE-->>API: success = true
+            API->>DB: Ghi VOUCHER_SYNC, Sync = Y
+        else Core MAT KET NOI (timeout, bao tri...)
+            API->>DB: Ghi VOUCHER_SYNC, Sync = N (vao hang doi)
+            Note over API,DB: Job nen (syncRetryService) se tu dong<br/>goi lai Core dinh ky cho toi khi thanh cong
+        end
+        API-->>UI: Bao thu hoi thanh cong cho nhan vien
+    else Voucher DA tieu
+        API-->>UI: Tu choi, hien canh bao do, bat buoc quet ma khac
+    end
+```
+
+**Nguyen tac kien truc:**
+
+- App **khong tu quan ly** trang thai "da tieu/chua tieu" — do la trach nhiem cua Core Voucher
+  API (nguon su that duy nhat), tranh 2 he thong lech nhau.
+- Moi lan quet, app goi `checkVoucher()` sang Core API truoc, roi moi cho phep nguoi dung bam
+  "Xac nhan thu hoi" (goi `redeemVoucher()`).
+- Khi thu hoi thanh cong, app ghi 1 dong vao bang `VOUCHER_SYNC` (bang co san, ke thua) de dung
+  lai cho bao cao doi soat/dong bo hien tai — khong tao bang moi song song lam phan manh du lieu.
+- **Neu Core API mat ket noi dung luc goi bao thu hoi** (sau khi da xac nhan UNUSED it giay
+  truoc do): app **van cho thu hoi thanh cong tai cho** (khong lam gian doan giao dich voi
+  khach hang), ghi vao `VOUCHER_SYNC` voi `Sync='N'` nhu 1 "hang doi cho dong bo", roi 1 job
+  chay dinh ky se tu dong gui lai — xem muc 4c.
+- Moi lan quet (ca thanh cong lan that bai) duoc ghi vao bang moi `VoucherScanLogs` (**log thao
+  tac nguoi dung**) de phuc vu tra soat, chong gian lan, debug khieu nai tu doi tac. Moi lan job
+  dong bo chay (thanh cong/that bai) duoc ghi vao bang co san `Voucher_Exelogs` (**log he
+  thong**), dung dung y goc cua bang nay trong schema ban gui.
 
 ## 2. Cac bang du lieu
 
@@ -58,6 +161,10 @@ Dien thoai / May scan HID (web app chay tren trinh duyet)
   ty"** phia tren tung diem tieu — 1 cong ty co the gan **nhieu diem tieu** (vd chuoi nhieu chi
   nhanh cua cung 1 doi tac). Thong tin lien he/thue/ngan hang chung cua ca cong ty nam o day,
   tach khoi tung diem — xem muc 12.
+- `ReportAccessGroups`, `ReportAccessGroupCompanies`, `UserReportAccess` (011): nhom quyen xem
+  bao cao cheo/toan bo cong ty, gan theo tung tai khoan — xem muc 13.
+- `UserPasswordPolicy` (012): danh dau tai khoan nao **da doi mat khau** qua app nay, dung de
+  bat buoc doi mat khau lan dang nhap dau tien — xem muc 14.
 
 Chay migration:
 
@@ -67,29 +174,261 @@ npm run migrate
 
 (script doc va thuc thi tuan tu cac file `.sql` trong `sql/`, an toan chay lai nhieu lan nho `IF NOT EXISTS`).
 
-## 3. Cai dat & chay
+## 3. Trien khai ung dung (Deployment)
+
+> **Doc truoc khi lam**: app nay **KHONG di kem DB rieng** — no **ket noi vao DB MSSQL hien co**
+> cua he thong Core (qua 4 bien `DB_SERVER/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` trong `.env`) va
+> **ke thua nguyen ven** du lieu/tai khoan dang co (`Users`, `Locations_Group`,
+> `Locations_Detail`, `VOUCHER_SYNC`, `Voucher_Exelogs`). Buoc migrate (`npm run migrate`) **chi
+> them bang moi cho nghiep vu rieng cua app**, khong bao gio `ALTER`/`DROP` hay sua du lieu tren
+> cac bang cu — an toan chay tren DB dang production, khong can tao DB/schema moi.
+
+Thu tu trien khai khuyen nghi: **(3a)** xac nhan cach ket noi + chay migrate trên DB that →
+**(3b)** thu nghiem nhanh tren may local (tuy chon, co the bo qua neu da quen ung dung) →
+**(3c)** cau hinh domain that cho PWA/van tay → **(3d)** chay that o production (process manager
++ HTTPS) → **(3e)** bao ve file `.env` bang quyen he thong (service account rieng, khong dua
+vao ma hoa) → **(3f)** checklist xac nhan sau khi len → **(3g)** quy trinh cap nhat phien ban
+sau nay.
+
+### 3a. Ket noi ke thua DB hien co (KHONG tao DB rieng cho app nay)
+
+App **dung chung** 100% du lieu nghiep vu cot loi voi he thong Core hien co — khong tach ra 1
+DB moi, khong di chuyen/sao chep du lieu cu sang noi khac:
+
+| Bang | Vai tro trong app moi |
+|---|---|
+| `Users` | Dang nhap — **giu nguyen tai khoan cu**, app chi doc/so sanh mat khau va (khi can) ghi de lai `Password` khi doi mat khau (muc 14). |
+| `Locations_Group`, `Locations_Detail` | Danh muc dia diem — app chi **doc**, khong ghi. |
+| `VOUCHER_SYNC` | App **ghi them dong moi** moi khi thu hoi thanh cong (giu nguyen dung y goc: noi luu ban ghi da tieu de doi soat). |
+| `Voucher_Exelogs` | App **ghi them dong moi** moi lan job dong bo chay (dung y goc: log he thong). |
+
+**Cac buoc:**
 
 ```bash
+# 1) Cai dependency
 npm install
-cp .env.example .env   # dien thong tin MSSQL + Core API that vao .env
-npm run migrate        # tao bang bo sung
-npm run dev             # chay server dev (auto-reload)
+
+# 2) Tao file cau hinh tu mau, roi SUA 5 bien DB_* tro dung DB THAT dang chay (khong phai DB test)
+cp .env.example .env
 ```
 
-Mo trinh duyet: `http://localhost:3000` (may scan may vach cam vao PC/tablet, con dien thoai dung camera).
+Mo `.env`, sua **dung** thong tin ket noi cua DB that:
+
+```ini
+DB_SERVER=<ip-hoac-hostname-cua-may-chu-sql-that>
+DB_PORT=1433
+DB_NAME=<ten-database-hien-co-cua-Core>
+DB_USER=<user-co-quyen-doc/ghi-db-nay>
+DB_PASSWORD=<mat-khau>
+DB_ENCRYPT=true                 # giu true neu SQL Server co cau hinh SSL (khuyen nghi)
+DB_TRUST_SERVER_CERT=true       # true neu dung chung cert noi bo/tu ky; doi false neu da co CA hop le
+```
+
+> **Luu y**: tai khoan `DB_USER` toi thieu can quyen `SELECT` tren `Users`/`Locations_Group`/
+> `Locations_Detail`, va `SELECT/INSERT/UPDATE` tren `VOUCHER_SYNC`/`Voucher_Exelogs`, cong them
+> quyen `CREATE TABLE` (mot lan, luc chay migrate) de tao cac bang bo sung o muc 2. Neu chinh
+> sach bao mat noi bo khong cho phep 1 user co quyen `CREATE TABLE` truc tiep tren DB production,
+> nho DBA chay `npm run migrate` (hoac copy noi dung tung file trong `sql/` chay thu cong theo
+> dung thu tu ten file 001 → 012) bang 1 tai khoan co quyen cao hon **1 lan duy nhat**, sau do
+> tra lai quyen han che cho `DB_USER` dung hang ngay.
+
+```bash
+# 3) Backup DB TRUOC KHI migrate lan dau tren production (buoc bat buoc, khong duoc bo qua)
+#    - Day la thao tac them bang (IF NOT EXISTS) nen rui ro rat thap, nhung backup truoc van la
+#      nguyen tac an toan bat buoc voi moi thay doi tren DB dang phuc vu that.
+
+# 4) Chay migrate - tao THEM cac bang rieng cua app (KHONG dung den bang cu)
+npm run migrate
+```
+
+`npm run migrate` doc va chay tuan tu toan bo file `.sql` trong `sql/` theo thu tu ten file
+(hien tai 001 → 012, xem danh sach o muc 2), moi file boc trong `IF NOT EXISTS (...)` nen
+**chay lai bao nhieu lan cung an toan** (khong tao trung, khong mat du lieu) — dung dung 1 lenh
+nay cho ca lan dau tien va cho moi lan sau nay code co them migration moi.
+
+**Tai khoan cu (co san trong `Users`) dang nhap duoc ngay**, khong can thao tac gi them — mien
+la cot `Password` cua ho dang la mat khau **plaintext cu** hoac **da hash bang bcrypt**
+(`authService.js` ho tro doc ca 2 dang, xem muc 8). Luu y 2 rang buoc **rieng cua app** ap dung
+ngay tu lan dang nhap dau (khong doi/xoa du lieu cu, chi la buoc bo sung khi dang nhap):
+tai khoan `status = 1` (quan tri) bat buoc thiet lap 2FA (muc 10), va **moi tai khoan** bat buoc
+doi mat khau neu chua tung doi qua app nay (muc 14).
+
+Neu DB that **chua co san tai khoan `status = 1`** nao de dang nhap lan dau (vi du DB chi co san
+tai khoan nhan vien thuong), tao 1 tai khoan quan tri moi bang script co san — **khong can vao
+thang SQL Server Management Studio tu tay dieu chinh**:
+
+```bash
+npm run create-admin -- --username=admin_moi --password="MatKhauManhToiThieu8KyTu" --fullName="Ten quan tri"
+```
+
+Script `scripts/create-admin.js` se **bam mat khau bang bcrypt** (khong bao gio luu plaintext)
+roi tao/cap nhat 1 dong trong `dbo.Users` voi `status = 1`. Neu `--username` da ton tai (vi du
+mot tai khoan nhan vien cu), script se **cap nhat lai mat khau + nang cap tai khoan do thanh
+quan tri** thay vi tao trung dong moi; co the them `--locationsGroup=...`/
+`--locationsDetail=...` neu muon gan san tai khoan quan tri vao 1 dia diem cu the (thuong khong
+can, vi `status = 1` mac dinh da xem/thao tac duoc toan bo he thong — muc 13). Dang nhap lan dau
+bang tai khoan nay se lan luot di qua: **doi mat khau (muc 14) → thiet lap 2FA (muc 10)** truoc
+khi vao duoc trang chinh.
+
+### 3b. Chay thu tren may local (tuy chon, dung de kiem tra truoc khi len that)
+
+```bash
+npm run dev             # server dev, tu dong reload khi sua code
+```
+
+Mo trinh duyet: `http://localhost:3000` (may quet ma vach cam vao PC/tablet qua cong USB, con
+dien thoai dung camera co san — camera **chi hoat dong tren `localhost` hoac HTTPS**, xem 3c).
+
+### 3c. Cau hinh domain that cho PWA + dang nhap van tay/Face ID (WebAuthn)
 
 App co the **cai dat nhu 1 ung dung (PWA)** va ho tro **dang nhap bang van tay/Face ID** — xem
-muc 9. Voi dang nhap van tay/Face ID, can khai bao them 3 bien trong `.env`:
+muc 9. Ca 2 tinh nang nay **rang buoc chat voi domain that**, nen phai khai bao dung **truoc khi
+dua cho nguoi dung that su dung** (doi domain sau khi da co nguoi dang ky van tay se lam **mat
+het** du lieu passkey da dang ky, phai dang ky lai tu dau):
 
-```
+```ini
 WEBAUTHN_RP_NAME=HCRC Voucher Redemption
-WEBAUTHN_RP_ID=localhost           # doi thanh domain that khi deploy, vd: voucher.hcrc.vn
-WEBAUTHN_ORIGIN=http://localhost:3000   # doi thanh https://voucher.hcrc.vn khi deploy
+WEBAUTHN_RP_ID=voucher.hcrc.vn            # DUNG domain that se dung lau dai, khong dat tam
+WEBAUTHN_ORIGIN=https://voucher.hcrc.vn   # URL day du, BAT BUOC https:// (tru localhost khi dev)
 ```
 
-`WEBAUTHN_RP_ID` phai la domain (khong co scheme/cong), va `WEBAUTHN_ORIGIN` phai la URL day du
-(co `https://`) dung khop voi domain nguoi dung truy cap — sai 1 trong 2 gia tri nay se lam
-trinh duyet tu choi hop thoai van tay/Face ID.
+> **Luu y**: `WEBAUTHN_RP_ID` phai la **domain thuan tuy** (khong co `https://`, khong co dau
+> `/` hay cong o cuoi), con `WEBAUTHN_ORIGIN` phai la **URL day du** khop **chinh xac** (ca
+> scheme lan domain) voi dia chi nguoi dung go tren trinh duyet — sai 1 trong 2 se lam trinh
+> duyet **tu choi tham lang** hop thoai van tay/Face ID (khong bao loi ro rang), rat kho debug
+> neu khong biet truoc dieu nay.
+
+### 3d. Chay that o production (process manager + reverse proxy + HTTPS)
+
+`npm run dev`/`npm start` chi phu hop dev/demo — khi chay that can 1 **process manager** de tu
+dong khoi dong lai app neu crash/reboot server, va 1 **reverse proxy** de lo HTTPS ra ngoai
+(app tu than chi lang nghe HTTP o cong noi bo, khong tu xu ly TLS).
+
+**Vi du voi PM2** (don gian, pho bien voi app Node.js don may):
+
+```bash
+npm install -g pm2
+pm2 start src/server.js --name hcrc-voucher --env production
+pm2 save                  # luu danh sach process de tu khoi dong lai sau khi reboot server
+pm2 startup               # in ra lenh de dang ky pm2 chay cung he dieu hanh (chay 1 lan)
+```
+
+**Vi du reverse proxy Nginx** (dat truoc app, xu ly HTTPS bang chung chi that, vd Let's Encrypt):
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name voucher.hcrc.vn;               # PHAI trung voi WEBAUTHN_RP_ID o 3c
+
+    ssl_certificate     /etc/letsencrypt/live/voucher.hcrc.vn/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/voucher.hcrc.vn/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;      # cong noi bo app dang lang nghe
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;   # QUAN TRONG: giup app biet request goc la https
+    }
+}
+
+server {
+    listen 80;
+    server_name voucher.hcrc.vn;
+    return 301 https://$host$request_uri;      # ep toan bo HTTP chuyen sang HTTPS
+}
+```
+
+> **Vi sao bat buoc HTTPS**: trinh duyet **chi cho phep** truy cap camera (quet QR tren dien
+> thoai — muc 6) va API WebAuthn (van tay/Face ID — muc 9) tren nguon **an toan** (`https://`
+> hoac rieng `localhost` khi dev). Thieu HTTPS o production, 2 tinh nang nay se **am tham khong
+> hoat dong** tren dien thoai/tablet cua nhan vien (may quet HID qua USB thi khong bi anh huong,
+> vi khong can quyen camera).
+
+### 3e. Bao ve file `.env` bang quyen he thong (khong dua vao ma hoa)
+
+`.env` dang chua **plaintext** `DB_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`... — day la cach
+lam **binh thuong va du dung** cho quy mo 1 server nhu app nay (khong can ma hoa noi dung file
+nay: neu ma hoa ma chia khoa giai ma van nam tren cung server, ke tan cong chiem duoc server se
+lay duoc ca 2 cung luc, khong tang them bao ve thuc su). Lop phong thu dung thuc su la **gioi
+han ai/tien trinh nao doc duoc file nay**:
+
+```bash
+# 1) Tao 1 user he thong RIENG cho app - KHONG the dang nhap/SSH truc tiep bang user nay
+#    (khac voi tai khoan ca nhan cua admin dung hang ngay de SSH vao server)
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin hcrcapp
+
+# 2) Chuyen quyen so huu thu muc app (dac biet la .env) cho dung user nay
+sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
+
+# 3) Khoa .env chi minh chu so huu (hcrcapp) moi doc/ghi duoc - nhom khac va "other" khong xem duoc
+sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
+```
+
+Roi khai bao **dung user nay** trong process manager de tien trinh Node chay bang danh tinh
+`hcrcapp` (nen doc duoc `.env` vi no la chu so huu, dung `whoami` khong lien quan gi den viec
+"dang nhap duoc hay khong"):
+
+```ini
+# vi du don vi systemd (/etc/systemd/system/hcrc-voucher.service)
+[Service]
+User=hcrcapp
+Group=hcrcapp
+WorkingDirectory=/duong-dan/toi/hcrc-voucher
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+```
+
+(Neu dung PM2 nhu vi du o 3d, chay lenh `pm2 start ...` **bang chinh user `hcrcapp`** thay vi
+user ca nhan cua admin — vd `sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher`.)
+
+> **Vi sao lam vay**: neu app chay bang chinh tai khoan SSH ca nhan hang ngay cua admin, thi ai
+> do sau nay chiem duoc quyen dang nhap tai khoan do (do mat khau SSH, lo SSH key...) se **tu
+> dong** doc duoc `.env` luon. Tach ra 1 service account rieng, **khong co mat khau/khong dang
+> nhap duoc**, thu hep con duong doc file nay lai chi con: (1) chiem duoc chinh tien trinh app
+> dang chay (lo hong trong code), hoac (2) co san quyen `root`/`sudo` — ca 2 deu la muc do
+> nghiem trong hon nhieu so voi "do duoc 1 mat khau SSH thuong".
+>
+> **Luu y**: `root` luon doc duoc moi file bat ke `chmod` gi — 600 khong chong duoc mot ke da co
+> quyen root, no chong cac user/tai khoan **khac** khong co quyen root tren cung may chu (rat
+> thuc te neu server dung chung voi he thong khac, hoac nhieu admin voi muc quyen khac nhau).
+
+### 3f. Checklist xac nhan sau khi trien khai
+
+- [ ] `npm run migrate` chay xong khong loi (xem log co dong "Migration complete").
+- [ ] Dang nhap thu **1 tai khoan nhan vien cu** co san trong `Users` — vao duoc, hien dung ho
+      ten/dia diem cua ho.
+- [ ] Dang nhap thu **tai khoan admin** (cu hoac vua tao qua `create-admin` o 3a) — di qua dung
+      thu tu doi mat khau (neu lan dau) → thiet lap 2FA → vao duoc trang chinh.
+- [ ] Quet thu **1 ma voucher that** (hoac ma test da biet truoc trang thai o Core) — kiem tra
+      dung ket qua UNUSED/USED, xac nhan thu hoi thanh cong, kiem tra co ban ghi moi trong
+      `VOUCHER_SYNC` (nguoi tieu, dia diem, so tien dung).
+- [ ] Vao **"Ket noi API"** (muc 4) xac nhan dang tro dung Core API production (khong con tro
+      sang moi truong test), bam **"Test kiem tra"** voi 1 ma that de chac chan mapping dung.
+- [ ] Mo bang HTTPS tu **dien thoai that** (khong phai localhost) — thu quet camera va dang ky
+      van tay/Face ID de xac nhan `WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN` (3c) da cau hinh dung.
+- [ ] Kiem tra job dong bo nen dang chay (log dinh ky theo `SYNC_RETRY_INTERVAL_MINUTES`, muc 4c).
+- [ ] `JWT_SECRET` va `ENCRYPTION_KEY` trong `.env` la **chuoi ngau nhien du dai, rieng cho moi
+      truong production** (khong dung lai gia tri mau/dev) — va da **luu tru an toan o noi khac**
+      (vd trinh quan ly secret cua cong ty), vi mat `ENCRYPTION_KEY` sau khi da co du lieu that
+      se **khong the giai ma lai** secret cua ket noi Core API/2FA da luu (xem muc 8).
+- [ ] `.env` da duoc `chown` cho 1 service account rieng (khong dang nhap duoc) va `chmod 600`,
+      process manager (PM2/systemd) chay bang dung user do — **khong** chay app bang tai khoan
+      SSH ca nhan cua admin (xem muc 3e).
+
+### 3g. Cap nhat len phien ban code moi sau nay
+
+```bash
+git pull                  # lay code moi
+npm install                # cap nhat dependency neu package.json co thay doi
+npm run migrate            # AN TOAN chay lai - chi ap dung migration MOI (file .sql chua ton tai)
+pm2 restart hcrc-voucher   # (hoac lenh restart tuong ung voi process manager dang dung)
+```
+
+Vi moi migration deu la **cong bang moi, khong sua bang cu**, quy trinh cap nhat khong can
+downtime bao lau va khong co buoc "rollback schema" phuc tap — truong hop can lui code ve
+phien ban truoc, chi can `git checkout` lai commit cu va khoi dong lai process (cac bang moi
+du con ton tai trong DB cung khong anh huong gi den code cu, vi code cu don gian la khong biet
+den chung).
 
 ## 4. Cau hinh ket noi Core Voucher API qua giao dien Admin (khuyen nghi)
 
@@ -508,3 +847,27 @@ khong vo tinh thay duoc du lieu cong ty khac.
 
 API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
 `PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin).
+
+## 14. Bat buoc doi mat khau trong lan dang nhap dau tien
+
+Ap dung cho **MOI tai khoan** — ca quan tri (`status=1`) lan nhan vien thu hoi (`status=0`) —
+tach biet hoan toan voi xac thuc hai yeu to (muc 10). Thu tu cac buoc bat buoc sau khi xac
+minh dung mat khau (hoac van tay/Face ID): **doi mat khau (neu can) → 2FA (chi admin) → phien
+day du**.
+
+- Tai khoan **chua tung doi mat khau qua app nay** (chua co dong trong `UserPasswordPolicy`,
+  ap dung cho ca tai khoan cu co san trong `Users` lan tai khoan moi tao bang
+  `npm run create-admin` — muc 3a) se nhan token TAM (`purpose=password_change`, het han 10
+  phut) thay vi phien day du, va bi chuyen sang trang `change-password.html`.
+- **Yeu cau do phuc tap**: mat khau moi phai co it nhat **8 ky tu**, gom ca **chu cai**, **chu
+  so**, va **it nhat 1 ky tu dac biet** (`! @ # $ % ...`) — kiem tra ca o client (bao loi som)
+  lan o server (`passwordPolicyService.js`, khong the vong qua du sua request truc tiep).
+- Doi thanh cong se **bam lai bang bcrypt** va ghi de `Users.Password`, danh dau
+  `MustChangePassword = 0` (khong hoi lai o cac lan dang nhap sau), roi **tiep tuc dung luong
+  dang nhap**: nhan vien thuong nhan phien day du ngay, con quan tri **chua thiet lap 2FA** se
+  duoc dan tiep sang buoc bat buoc thiet lap 2FA (muc 10) truoc khi vao duoc ung dung.
+- Token TAM nay (giong token TAM cua 2FA) **khong dung duoc** cho bat ky API nghiep vu nao khac
+  ngoai `POST /api/auth/change-password`.
+
+File lien quan: `src/services/passwordPolicyService.js`, `sql/012_create_user_password_policy.sql`,
+`public/change-password.html` + `public/js/change-password.js`.

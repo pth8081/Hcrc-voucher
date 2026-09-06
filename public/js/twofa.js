@@ -44,3 +44,29 @@ function twoFaSetupVerify(code) {
 function twoFaLoginVerify(code) {
   return twoFaFetch('/auth/2fa/login-verify', { method: 'POST', body: JSON.stringify({ code }) });
 }
+
+/**
+ * Dieu huong sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG, VA
+ * sau khi doi mat khau bat buoc xong (server co the tra ve tiep buoc 2FA hoac phien day du) -
+ * dung chung boi login.js va change-password.js. Thu tu cac buoc: doi mat khau bat buoc (moi
+ * tai khoan) -> 2FA (chi quan tri) -> phien day du.
+ */
+function continueAfterPrimaryAuth(data) {
+  if (data.passwordChange === 'required') {
+    setPendingTwoFactorToken(data.pendingToken);
+    window.location.href = '/change-password.html';
+    return;
+  }
+  if (data.twoFactor === 'setup_required') {
+    setPendingTwoFactorToken(data.pendingToken);
+    window.location.href = '/2fa-setup.html';
+    return;
+  }
+  if (data.twoFactor === 'verify_required') {
+    setPendingTwoFactorToken(data.pendingToken);
+    window.location.href = '/2fa-verify.html';
+    return;
+  }
+  setSession(data.token, data.user);
+  window.location.href = '/index.html';
+}
