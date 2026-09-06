@@ -364,6 +364,29 @@ sudo chown -R hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher
 sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
 ```
 
+**Sau nay moi lan can sua `.env`** (vi du doi mat khau DB, xoay `JWT_SECRET`...), **khong dang
+nhap bang `root` hay bang `hcrcapp`** (ca 2 tai khoan nay von khong cho dang nhap truc tiep) —
+admin van dung tai khoan ca nhan cua minh SSH vao server nhu binh thuong (tai khoan nay can nam
+trong nhom `sudo`), roi chon 1 trong 2 cach sau de sua:
+
+```bash
+# Cach 1 - sua bang quyen root (root luon doc/ghi duoc moi file, bat ke chmod gi):
+sudo nano /duong-dan/toi/hcrc-voucher/.env
+# Sau khi luu, KIEM TRA/DAT LAI quyen so huu (mot so trinh soan thao xoa-tao lai file khi luu,
+# co the vo tinh doi chu so huu ve root khien app khong con doc duoc .env nua):
+sudo chown hcrcapp:hcrcapp /duong-dan/toi/hcrc-voucher/.env
+sudo chmod 600 /duong-dan/toi/hcrc-voucher/.env
+
+# Cach 2 (khuyen nghi, sach hon) - chay thang trinh soan thao DUOI danh tinh hcrcapp, khong can
+# nho buoc chown lai vi file van do dung chu so huu tao ra:
+sudo -u hcrcapp nano /duong-dan/toi/hcrc-voucher/.env
+```
+
+> `sudo -u hcrcapp <lenh>` chi la "muon quyen tam thoi de chay 1 lenh", khong phai dang nhap mo
+> phien lam viec cua `hcrcapp` — nen van chay duoc binh thuong du user nay khai bao
+> `--shell /usr/sbin/nologin` (chi chan mo shell tuong tac/SSH, khong chan `sudo -u` goi thang
+> 1 chuong trinh cu the).
+
 Roi khai bao **dung user nay** trong process manager de tien trinh Node chay bang danh tinh
 `hcrcapp` (nen doc duoc `.env` vi no la chu so huu, dung `whoami` khong lien quan gi den viec
 "dang nhap duoc hay khong"):
