@@ -15,9 +15,33 @@ const { VOUCHER_STATUS } = coreVoucherService;
  * Giao dien chi cho phep quet (khong cho go tay), nhung vi ai co token deu goi thang
  * duoc API nay nen van can chan brute-force/do ma o phia server: khoa tam thoi neu
  * 1 nguoi dung co qua nhieu lan kiem tra ma KHONG TON TAI lien tiep (guessGuard).
+ *
+ * Tra cuu CSDL noi bo (VOUCHER_SYNC) TRUOC khi hoi Core: neu CHINH app nay da tung ghi nhan
+ * da tieu ma nay (ke ca dang cho dong bo, Sync='N') thi CHAC CHAN da tieu - tra loi ngay,
+ * khong can goi Core (nhanh hon, giam tai Core). Day CHI la duong tat de TU CHOI nhanh hon -
+ * neu KHONG thay o local van PHAI hoi Core nhu cu, vi khong the ket luan "con dung duoc" chi
+ * vi local chua co (co the da bi tieu qua kenh khac ngoai app nay).
  */
 async function checkVoucher({ voucherCode, user, scanMethod }) {
   guessGuard.assertNotLocked(user.userId);
+
+  const localRedeemed = await findLocalRedemption(voucherCode);
+  if (localRedeemed) {
+    guessGuard.recordResult(user.userId, true);
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'CHECK',
+      resultStatus: VOUCHER_STATUS.USED,
+      message: `Da tieu truoc do tai CSDL noi bo (TRANS_NUM ${localRedeemed.TRANS_NUM}), khong can goi Core`,
+    });
+    return {
+      canRedeem: false,
+      status: VOUCHER_STATUS.USED,
+      message: 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.',
+    };
+  }
 
   const result = await coreVoucherService.checkVoucher(voucherCode);
   guessGuard.recordResult(user.userId, result.status === VOUCHER_STATUS.UNUSED || result.status === VOUCHER_STATUS.USED);
@@ -175,6 +199,22 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     valueAmt: precheck.valueAmt,
     redeemedAt: redeemResult.redeemedAt,
   };
+}
+
+/** Tim ban ghi da thu hoi (neu co) cua 1 ma voucher trong VOUCHER_SYNC - dung index co san
+ * IX_VOUCHER_SYNC_Voucher_Code (sql/003) nen tra cuu nhanh du bang co nhieu du lieu. */
+async function findLocalRedemption(voucherCode) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('voucherCode', sql.NVarChar(24), voucherCode)
+    .query(`
+      SELECT TOP 1 TRANS_NUM
+      FROM dbo.VOUCHER_SYNC
+      WHERE Voucher_Code = @voucherCode
+      ORDER BY Created_Date DESC
+    `);
+  return result.recordset[0] || null;
 }
 
 async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {

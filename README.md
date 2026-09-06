@@ -621,6 +621,24 @@ de con nguoi ra soat thu cong qua bao cao — khong bao gio am tham xoa/mat du l
 Moi lan thu (thanh cong hay that bai) deu duoc ghi vao `Voucher_Exelogs` — xem duoc lich su day
 du bang cach truy van `pro_name = 'VoucherRedeemSync'`.
 
+### 4d. Tra cuu CSDL noi bo TRUOC khi hoi Core luc kiem tra (rut ngan duong tu choi)
+
+Buoc **kiem tra** (`POST /vouchers/check`, TRUOC khi thu hoi — khac voi buoc **redeem** ben
+duoi, buoc redeem van luon phai hoi Core truc tiep, khong doi) tra `VOUCHER_SYNC` (CSDL noi bo
+cua chinh app nay) THEO MA VOUCHER truoc, roi moi hoi Core:
+
+- **Tim thay trong local** (ke ca ban ghi dang `Sync='N'` cho dong bo): **chac chan da tieu**
+  (chinh app nay da ghi nhan) → tra loi "da su dung" **ngay lap tuc**, **khong goi Core** — nhanh
+  hon va giam tai Core, dung cho tinh huong hay gap: nhan vien quet nham lai dung ma vua tieu
+  xong.
+- **Khong thay trong local**: **KHONG the ket luan la con dung duoc** (co the da bi tieu qua
+  kenh khac ngoai app nay, neu Core con phuc vu them kenh nao khac) → van phai hoi Core **y het
+  nhu truoc**, khong duoc bo qua buoc nay.
+
+Noi cach khac, day chi la 1 "duong tat" 1 chieu de **tu choi nhanh hon** — Core van la **nguon
+su that duy nhat** cho cau tra loi "con dung duoc". Tan dung index co san `IX_VOUCHER_SYNC_Voucher_Code`
+(migration 003) nen tra cuu rat nhanh du bang co nhieu du lieu. Xem `voucherService.js#checkVoucher`.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token>`.
@@ -640,6 +658,8 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
 | GET | `/api/reports/daily?date=YYYY-MM-DD` | Bao cao doi soat theo ngay (nhom theo dia diem tai khoan) |
 | GET | `/api/reports/summary?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
+| GET | `/api/reports/used-vouchers?fromDate=&toDate=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
+| GET | `/api/reports/used-vouchers/export?fromDate=&toDate=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
 | GET | `/api/api-connections` | Danh sach ket noi Core API (can quyen admin, secret duoc mask) |
 | GET/POST/PUT/DELETE | `/api/api-connections[/:id]` | CRUD ket noi Core API (can quyen admin) |
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
@@ -694,6 +714,8 @@ Tra ve khi da tieu:
 - `report.html`: bao cao doi soat theo ngay, theo tung dia diem tai khoan dang nhap.
 - `summary-report.html`: bao cao tong hop theo khoang ngay, nhom Cong ty -> Diem tieu, cong don
   2 cap + tong toan bo cong ty — tach biet voi `report.html` — xem muc 12.
+- `used-vouchers.html`: danh sach PHANG toan bo voucher da su dung (khong cong don), loc theo
+  ngay tuy chon, co nut **xuat Excel** — xem muc 12c.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
 
@@ -917,13 +939,32 @@ song) — noi voi `Locations_Detail` (theo ma) roi noi tiep sang `RedemptionUnit
 (`src/services/summaryReportService.js`). Cot "Nguoi tieu" doc truc tiep tu `User_Name` da luu
 san trong `VOUCHER_SYNC` luc thu hoi — khong can truy van them.
 
+### 12c. Danh sach toan bo voucher da su dung + xuat Excel (`/used-vouchers.html`)
+
+Khac voi "Bao cao tong hop" (12b, cong don theo Cong ty -> Diem tieu), trang nay hien **1 dong =
+1 giao dich**, khong cong don — dung khi can xem/doi soat chi tiet tung voucher hoac xuat du
+lieu ra ngoai:
+
+- **Bo loc ngay tuy chon** — de trong ca 2 o "Tu ngay"/"Den ngay" se lay **TOAN BO lich su**
+  (khong gioi han); dien 1 hoac ca 2 o de thu hep pham vi.
+- **Nut "Xuat Excel"** — tai ve file `.xlsx` **that** (dung thu vien `exceljs`, khong phai CSV
+  doi ten) voi dung du lieu dang hien thi tren man hinh (cung bo loc ngay, cung pham vi cong ty
+  duoc phep xem). Nut nay goi API bang `fetch()` kem san header `Authorization` roi tai xuong
+  qua blob — **khong dung the `<a href>` tro thang toi API** vi request dieu huong truc tiep se
+  khong mang theo token dang nhap va bi tu choi (401).
+- Nguon du lieu **van la `VOUCHER_SYNC`** — moi dong trong bang nay vay ban chat da la 1 voucher
+  da duoc redeem, nen bao cao nay tuong duong "liet ke toan bo bang, kem ten Cong ty/Diem tieu"
+  (`src/services/usedVoucherReportService.js`), khong can bang du lieu rieng.
+- Ap dung **dung phan quyen xem theo cong ty** nhu 2 bao cao con lai (muc 13) — 1 tai khoan mac
+  dinh chi thay/xuat duoc voucher cua cong ty minh, tru khi duoc cap quyen xem cheo/toan bo.
+
 ## 13. Phan quyen xem bao cao theo cong ty
 
 Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
 1 tai khoan **CHI duoc xem doanh thu/bao cao cua dung cong ty gan voi dia diem cua chinh minh**
 (`Users.Locations_Detail` -> `RedemptionUnits` -> `RedemptionCompanies`) — khong thay du lieu
-cua cong ty khac. Ap dung cho ca 2 bao cao: "Bao cao doi soat" (muc 5/6) va "Bao cao tong hop"
-(muc 12b).
+cua cong ty khac. Ap dung cho ca **3 bao cao**: "Bao cao doi soat" (muc 5/6), "Bao cao tong hop"
+(muc 12b) va "Danh sach voucher da su dung" ke ca luc **xuat Excel** (muc 12c).
 
 Admin co the cap them quyen xem **cheo** hoac **xem nhieu cong ty** bang cach tao **nhom quyen**
 va gan tai khoan vao nhom, tai man hinh **"Don vi thu hoi"** (`/units.html`, khu vuc "Nhom quyen

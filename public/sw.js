@@ -3,7 +3,7 @@
 // luon phai qua mang that de xac minh voi Core, tranh mo lai dung rui ro double-spend
 // da duoc chan o tang nghiep vu (xem voucherService.js).
 
-const CACHE_NAME = 'hcrc-shell-v6';
+const CACHE_NAME = 'hcrc-shell-v7';
 
 const PRECACHE_URLS = [
   '/login.html',
@@ -11,6 +11,7 @@ const PRECACHE_URLS = [
   '/units.html',
   '/report.html',
   '/summary-report.html',
+  '/used-vouchers.html',
   '/api-connection.html',
   '/security.html',
   '/users.html',
@@ -29,6 +30,7 @@ const PRECACHE_URLS = [
   '/js/units.js',
   '/js/report.js',
   '/js/summary-report.js',
+  '/js/used-vouchers.js',
   '/js/api-connection.js',
   '/js/security.js',
   '/js/users.js',
