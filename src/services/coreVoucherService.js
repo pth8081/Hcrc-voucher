@@ -103,8 +103,21 @@ async function redeemVoucherLegacyEnv(voucherCode, context) {
       message: (data && data.message) || null,
     };
   } catch (err) {
+    // Core PHAN HOI ro rang (bat ky ma 4xx nao, khong chi 409) nghia la TU CHOI nghiep vu that
+    // su (voucher het han/khong hop le/da tieu...) - PHAI tra ve that bai ro rang, KHONG duoc
+    // coi la loi ha tang roi van thu hoi tai cho (se tao ra thu hoi "ma" ma Core da tu choi).
+    // Chi loi mang/timeout/Core 5xx (khong co response ro rang) moi la loi ha tang thuc su.
     if (err.response && err.response.status === 409) {
       return { httpStatus: 409, success: false, status: VOUCHER_STATUS.USED, message: 'Voucher vua duoc tieu boi giao dich khac, vui long quet ma khac' };
+    }
+    if (err.response && err.response.status >= 400 && err.response.status < 500) {
+      const data = err.response.data;
+      return {
+        httpStatus: err.response.status,
+        success: false,
+        status: mapCoreStatus(data && data.status),
+        message: (data && data.message) || 'Core tu choi thu hoi voucher nay',
+      };
     }
     throw wrapConnError(err);
   }

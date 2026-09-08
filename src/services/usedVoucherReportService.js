@@ -4,6 +4,10 @@ const { sql, getPool } = require('../config/db');
 const UNASSIGNED_COMPANY = 'Chua gan cong ty';
 const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
 
+// Gioi han so dong toi da khi xuat Excel - de trong ca 2 o ngay (xuat toan bo lich su, cang
+// ngay cang lon) khong bi treo/qua tai server neu ai do bam xuat nhieu lan lien tuc.
+const MAX_EXPORT_ROWS = 20000;
+
 /**
  * Danh sach PHANG (khong cong don) toan bo voucher DA SU DUNG - moi dong trong VOUCHER_SYNC la
  * 1 voucher da duoc redeem qua app nay, nen bao cao nay chinh la "SELECT * FROM VOUCHER_SYNC"
@@ -15,9 +19,12 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
  * visibleLocationCodes (xem reportAccessService.js): null = xem het, [] = khong xem gi ca,
  * [...] = chi xem dung cac dia diem do.
  */
-async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes }) {
+async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, maxRows }) {
   const pool = await getPool();
   const request = pool.request();
+
+  const topClause = maxRows ? 'TOP (@maxRows)' : '';
+  if (maxRows) request.input('maxRows', sql.Int, maxRows);
 
   let dateFilter = '';
   if (fromDate) {
@@ -43,7 +50,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes }) {
   }
 
   const result = await request.query(`
-    SELECT
+    SELECT ${topClause}
       vs.Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
       ru.PartnerName, rc.CompanyName
@@ -102,4 +109,4 @@ async function buildExcelBuffer(rows) {
   return workbook.xlsx.writeBuffer();
 }
 
-module.exports = { listUsedVouchers, buildExcelBuffer };
+module.exports = { listUsedVouchers, buildExcelBuffer, MAX_EXPORT_ROWS };

@@ -4,9 +4,9 @@ const { requireAdmin } = require('../middleware/requireRole');
 const controller = require('../controllers/redemptionUnit.controller');
 
 const router = express.Router();
-router.use(authenticate);
+router.use(authenticate, requireAdmin);
 router.get('/', controller.list);
-router.post('/', requireAdmin, controller.create);
-router.put('/:id', requireAdmin, controller.update);
+router.post('/', controller.create);
+router.put('/:id', controller.update);
 
 module.exports = router;

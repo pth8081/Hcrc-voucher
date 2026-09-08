@@ -23,6 +23,16 @@ async function login(username, password) {
     throw unauthorized();
   }
 
+  // Tai khoan cu (tao ngoai app nay, truoc khi co bcrypt) co the con mat khau dang plaintext -
+  // vua xac minh dung xong, nang cap ngay thanh bcrypt de tu lan sau khong con luu tho nua.
+  // Khong lam gian doan dang nhap: loi nang cap (neu co) chi ghi log, khong throw.
+  if (!isBcryptHash(user.Password)) {
+    await rehashPlaintextPassword(user.UserID, password).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('Nang cap mat khau plaintext len bcrypt that bai:', err.message);
+    });
+  }
+
   loginGuard.recordResult(username, true, role);
   return buildLoginOutcome(user);
 }
@@ -161,13 +171,29 @@ function unauthorized() {
   return err;
 }
 
+function isBcryptHash(stored) {
+  return !!stored && (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$'));
+}
+
 async function comparePassword(plain, stored) {
   if (!stored) return false;
   // Ho tro ca mat khau da hash bcrypt lan mat khau plaintext cu (di chuyen dan)
-  if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
+  if (isBcryptHash(stored)) {
     return bcrypt.compare(plain, stored);
   }
   return plain === stored;
+}
+
+/** Nang cap 1 tai khoan con mat khau plaintext (tao ngoai app, truoc khi co bcrypt) len bcrypt
+ * ngay sau lan dang nhap dung dau tien - giam thoi gian ton tai mat khau dang tho trong DB. */
+async function rehashPlaintextPassword(userId, plain) {
+  const passwordHash = await bcrypt.hash(plain, 10);
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('password', sql.NVarChar(200), passwordHash)
+    .query('UPDATE dbo.Users SET Password = @password WHERE UserID = @userId');
 }
 
 module.exports = {

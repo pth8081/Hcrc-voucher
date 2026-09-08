@@ -1,4 +1,5 @@
 const reportAccessService = require('../services/reportAccessService');
+const auditLogService = require('../services/auditLogService');
 
 async function list(req, res, next) {
   try {
@@ -25,6 +26,12 @@ async function create(req, res, next) {
     const error = validate(req.body);
     if (error) return res.status(400).json({ success: false, message: error });
     const id = await reportAccessService.createGroup(req.body);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'CREATE_ACCESS_GROUP',
+      targetUsername: req.body.groupName,
+      detail: { id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
+    });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
     next(err);
@@ -36,6 +43,12 @@ async function update(req, res, next) {
     const error = validate(req.body);
     if (error) return res.status(400).json({ success: false, message: error });
     await reportAccessService.updateGroup(Number(req.params.id), req.body);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_ACCESS_GROUP',
+      targetUsername: req.body.groupName || String(req.params.id),
+      detail: { id: req.params.id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
+    });
     res.json({ success: true });
   } catch (err) {
     next(err);

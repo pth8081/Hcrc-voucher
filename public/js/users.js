@@ -102,25 +102,50 @@ async function saveUser(tr) {
     permissions[field] = !!(el && el.checked);
   });
 
-  try {
-    await Promise.all([
-      apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
+  const saveBtn = tr.querySelector('.save-btn');
+  saveBtn.disabled = true;
+
+  const jobs = [
+    {
+      label: 'Lich hieu luc',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
         method: 'PUT',
         body: JSON.stringify({ activeFrom, activeUntil, username }),
       }),
-      apiFetch(`/users/${encodeURIComponent(userId)}/report-access`, {
+    },
+    {
+      label: 'Nhom quyen bao cao',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/report-access`, {
         method: 'PUT',
         body: JSON.stringify({ groupId, username }),
       }),
-      apiFetch(`/users/${encodeURIComponent(userId)}/permissions`, {
+    },
+    {
+      label: 'Quyen tinh nang',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/permissions`, {
         method: 'PUT',
         body: JSON.stringify({ ...permissions, username }),
       }),
-    ]);
-    showToast('Da luu tai khoan');
+    },
+  ];
+
+  try {
+    const results = await Promise.allSettled(jobs.map((j) => j.run()));
+    const failed = results
+      .map((r, i) => ({ r, label: jobs[i].label }))
+      .filter((x) => x.r.status === 'rejected');
+
+    if (!failed.length) {
+      showToast('Da luu tai khoan');
+    } else if (failed.length === jobs.length) {
+      showToast(`Luu that bai toan bo: ${failed[0].r.reason.message}`);
+    } else {
+      const names = failed.map((x) => x.label).join(', ');
+      showToast(`Loi khi luu: ${names} (${failed[0].r.reason.message}). Cac muc con lai da luu.`);
+    }
+  } finally {
+    saveBtn.disabled = false;
     load();
-  } catch (err) {
-    showToast(err.message);
   }
 }
 

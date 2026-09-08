@@ -21,13 +21,18 @@ async function loadReport() {
   try {
     reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Dang tai...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
-    render(data);
+    render(data.rows, data.unassignedLocation);
   } catch (err) {
     showToast(err.message);
+    reportBody.innerHTML = `<tr><td colspan="8" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;
   }
 }
 
-function render(rows) {
+function render(rows, unassignedLocation) {
+  if (unassignedLocation) {
+    reportBody.innerHTML = '<tr><td colspan="8" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    return;
+  }
   if (!rows.length) {
     reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Khong co voucher nao trong khoang da chon</td></tr>';
     return;
@@ -56,6 +61,10 @@ function render(rows) {
  * tai xuong qua 1 the <a> tam thoi.
  */
 async function exportExcel() {
+  if (!fromDateInput.value && !toDateInput.value) {
+    showToast('Vui long chon it nhat 1 moc ngay (tu ngay hoac den ngay) truoc khi xuat Excel');
+    return;
+  }
   exportBtn.disabled = true;
   try {
     const res = await fetch(`/api/reports/used-vouchers/export?${buildQuery()}`, {

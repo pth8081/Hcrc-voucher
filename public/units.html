@@ -20,6 +20,11 @@
   <div id="topbar"></div>
 
   <div class="container">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+    </div>
+
+    <div id="unitsCard">
     <div class="card">
       <h2>Them cong ty</h2>
       <p class="hint mb-10">1 cong ty co the gan nhieu diem tieu (vd chuoi nhieu chi nhanh) - khai bao cong ty truoc, roi chon o form "Them diem tieu" ben duoi.</p>
@@ -48,12 +53,14 @@
 
     <div class="card">
       <h2>Danh sach cong ty</h2>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>Ma</th><th>Ten cong ty</th><th>Lien he</th><th>So diem tieu</th><th>Trang thai</th></tr>
         </thead>
         <tbody id="companiesBody"><tr><td colspan="5" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -82,6 +89,7 @@
         <label>Ten ngan hang</label>
         <input id="bankName" />
         <label>Han muc thu hoi/ngay (tuy chon)</label>
+        <p class="hint mb-6">Chi de ghi chu/tham khao - he thong CHUA tu dong chan khi vuot han muc nay luc thu hoi.</p>
         <input id="dailyLimitAmount" type="number" min="0" step="1000" />
         <button class="btn-primary btn-block" type="submit">Luu diem tieu</button>
       </form>
@@ -89,6 +97,7 @@
 
     <div class="card">
       <h2>Danh sach diem tieu</h2>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -97,6 +106,7 @@
         </thead>
         <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -124,12 +134,15 @@
 
     <div class="card">
       <h2>Danh sach nhom quyen</h2>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>Ten nhom</th><th>Pham vi</th><th>Cong ty duoc xem them</th></tr>
         </thead>
         <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
+      </div>
+    </div>
     </div>
   </div>
 

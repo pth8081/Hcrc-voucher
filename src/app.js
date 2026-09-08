@@ -47,7 +47,17 @@ function createApp() {
   // quan trong voi cac diem thu hoi co duong truyen yeu.
   app.use(compression());
   app.use(express.json());
-  app.use(pinoHttp({ logger }));
+  // redact: khong ghi token dang nhap/xac thuc vao log server - header Authorization mang
+  // nguyen ban JWT (hoac cookie 2FA/refresh neu co), lo ra la co the chiem dung phien dang nhap.
+  app.use(
+    pinoHttp({
+      logger,
+      redact: {
+        paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+        remove: true,
+      },
+    })
+  );
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   app.get('/health', (req, res) => res.json({ success: true, status: 'ok' }));
