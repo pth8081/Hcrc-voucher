@@ -158,7 +158,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     };
   }
 
-  await insertVoucherSync({
+  const inserted = await insertVoucherSyncGuarded({
     user,
     transNum,
     voucherCode,
@@ -166,6 +166,25 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     valueAmt: precheck.valueAmt,
     synced: !pendingSync,
   });
+
+  if (!inserted) {
+    // Mot request khac (vd quet trung 2 quay, hoac goi lai do mang lag) da ghi VOUCHER_SYNC cho
+    // dung ma nay trong luc request nay dang cho Core tra loi - khong ghi trung, tu choi o day.
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'REDEEM',
+      resultStatus: VOUCHER_STATUS.USED,
+      clientIp,
+      message: 'Tu choi thu hoi: da co ban ghi VOUCHER_SYNC khac ghi nhan dung luc (chan trung theo ma voucher)',
+    });
+    return {
+      success: false,
+      status: VOUCHER_STATUS.USED,
+      message: 'Voucher nay vua duoc thu hoi (co the tu thiet bi/quay khac). Vui long quet ma khac.',
+    };
+  }
 
   await systemLogService.logExecution({
     proName: SYNC_PROC_NAME,
@@ -217,7 +236,20 @@ async function findLocalRedemption(voucherCode) {
   return result.recordset[0] || null;
 }
 
-async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {
+/**
+ * Ghi VOUCHER_SYNC cho 1 lan thu hoi, nhung CO KHOA de chan 2 request cung ma voucher ghi
+ * trung nhau khi den gan nhu cung luc (vd Core API cham/chap chon khien nhieu request cung
+ * roi vao nhanh "khong ket noi duoc Core -> van thu hoi tai cho").
+ *
+ * Dung sp_getapplock (khoa ung dung cua SQL Server, khong dung ban ghi/bang) khoa theo dung
+ * ma voucher trong pham vi 1 transaction - KHONG can doi schema VOUCHER_SYNC (bang dung chung
+ * voi he thong Core, khong duoc phep sua cau truc). Trong luc giu khoa, tra cuu lai xem da co
+ * ban ghi nao cho ma nay chua (phong truong hop request kia ghi xong truoc) - neu co roi thi
+ * KHONG ghi them, tra ve false de goi noi bao tu choi thu hoi.
+ *
+ * Tra ve true neu da ghi thanh cong, false neu phat hien trung (khong ghi).
+ */
+async function insertVoucherSyncGuarded({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {
   const pool = await getPool();
   // Location_DetailName: tra ten theo LocationCode (Locations_Detail co cot ma ro rang de
   // doi chieu). Location_GroupName KHONG dien duoc tuong tu vi Locations_Group khong co cot
@@ -225,30 +257,67 @@ async function insertVoucherSync({ user, transNum, voucherCode, voucherSerial, v
   // locationService.js).
   const locationDetailName = await locationService.getDetailNameByCode(user.locationsDetail);
 
-  await pool
-    .request()
-    .input('userid', sql.Int, user.userId)
-    .input('userName', sql.NChar(60), user.fullName || user.username)
-    .input('transNum', sql.Char(18), transNum)
-    .input('voucherSerial', sql.NVarChar(100), voucherSerial || '')
-    .input('voucherCode', sql.NVarChar(24), voucherCode)
-    .input('status', sql.NVarChar(240), 'REDEEMED')
-    .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
-    .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
-    .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
-    .input('locationDetailName', sql.NVarChar(200), locationDetailName)
-    .input('valueAmt', sql.Numeric(9), valueAmt || 0)
-    .input('sync', sql.NVarChar(2), synced ? 'Y' : 'N')
-    .query(`
-      INSERT INTO dbo.VOUCHER_SYNC
-        (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
-         Status, Computer_name, Locations_Group, Locations_Detail, Location_DetailName, VALUE_AMT,
-         Last_update, Sync, Sync_update)
-      VALUES
-        (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
-         @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
-         GETDATE(), @sync, @sync)
-    `);
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const lockResult = await transaction
+      .request()
+      .input('resource', sql.NVarChar(255), `voucher-redeem:${voucherCode}`)
+      .query(`
+        DECLARE @lockResult INT;
+        EXEC @lockResult = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive',
+          @LockOwner = 'Transaction', @LockTimeout = 5000;
+        SELECT @lockResult AS lockResult;
+      `);
+    if ((lockResult.recordset[0] || {}).lockResult < 0) {
+      throw new Error('Khong lay duoc khoa xu ly voucher (dang co request khac xu ly cung ma nay), vui long thu lai.');
+    }
+
+    const existing = await transaction
+      .request()
+      .input('voucherCode', sql.NVarChar(24), voucherCode)
+      .query('SELECT TOP 1 TRANS_NUM FROM dbo.VOUCHER_SYNC WHERE Voucher_Code = @voucherCode');
+
+    if (existing.recordset[0]) {
+      await transaction.rollback();
+      return false;
+    }
+
+    await transaction
+      .request()
+      .input('userid', sql.Int, user.userId)
+      .input('userName', sql.NChar(60), user.fullName || user.username)
+      .input('transNum', sql.Char(18), transNum)
+      .input('voucherSerial', sql.NVarChar(100), voucherSerial || '')
+      .input('voucherCode', sql.NVarChar(24), voucherCode)
+      .input('status', sql.NVarChar(240), 'REDEEMED')
+      .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
+      .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
+      .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
+      .input('locationDetailName', sql.NVarChar(200), locationDetailName)
+      .input('valueAmt', sql.Numeric(18, 2), valueAmt || 0)
+      .input('sync', sql.NVarChar(2), synced ? 'Y' : 'N')
+      .query(`
+        INSERT INTO dbo.VOUCHER_SYNC
+          (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
+           Status, Computer_name, Locations_Group, Locations_Detail, Location_DetailName, VALUE_AMT,
+           Last_update, Sync, Sync_update)
+        VALUES
+          (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
+           @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
+           GETDATE(), @sync, @sync)
+      `);
+
+    await transaction.commit();
+    return true;
+  } catch (err) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackErr) {
+      // Transaction co the da tu dong rollback (vd loi ket noi) - bo qua loi rollback kep.
+    }
+    throw err;
+  }
 }
 
 async function logScan({

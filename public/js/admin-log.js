@@ -49,9 +49,11 @@ async function loadAudit() {
           )
           .join('')
       : '<tr><td colspan="5" class="text-muted">Chua co nhat ky nao</td></tr>';
+    return true;
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
     logCard.classList.add('hidden');
+    return false;
   }
 }
 
@@ -94,5 +96,9 @@ function escapeHtml(str) {
 
 document.getElementById('loadScanBtn').addEventListener('click', loadScan);
 
-loadAudit();
-loadScan();
+// Chi tai tab "Hoat dong quet" NEU da xac nhan la admin (loadAudit thanh cong) - tranh goi them
+// 1 API se 403 va bao thua 1 toast trung voi khoi "chi admin" da hien tu loadAudit.
+(async function init() {
+  const isAdmin = await loadAudit();
+  if (isAdmin) loadScan();
+})();

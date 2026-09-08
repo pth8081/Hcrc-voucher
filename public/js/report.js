@@ -10,16 +10,25 @@ document.getElementById('loadBtn').addEventListener('click', loadReport);
 loadReport();
 
 async function loadReport() {
+  summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Dang tai...</td></tr>';
+  detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Dang tai...</td></tr>';
   try {
     const data = await apiFetch(`/reports/daily?date=${encodeURIComponent(reportDate.value)}`);
-    renderSummary(data.summary);
-    renderDetails(data.details);
+    renderSummary(data.summary, data.unassignedLocation);
+    renderDetails(data.details, data.unassignedLocation);
   } catch (err) {
     showToast(err.message);
+    const errHtml = `<td colspan="COLSPAN" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td>`;
+    summaryBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '3')}</tr>`;
+    detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '6')}</tr>`;
   }
 }
 
-function renderSummary(rows) {
+function renderSummary(rows, unassignedLocation) {
+  if (unassignedLocation) {
+    summaryBody.innerHTML = '<tr><td colspan="3" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    return;
+  }
   if (!rows.length) {
     summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Khong co giao dich trong ngay</td></tr>';
     return;
@@ -36,7 +45,11 @@ function renderSummary(rows) {
     .join('');
 }
 
-function renderDetails(rows) {
+function renderDetails(rows, unassignedLocation) {
+  if (unassignedLocation) {
+    detailBody.innerHTML = '<tr><td colspan="6" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    return;
+  }
   if (!rows.length) {
     detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co giao dich trong ngay</td></tr>';
     return;

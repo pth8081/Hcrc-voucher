@@ -333,6 +333,10 @@ table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--ink-100); }
 th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 tbody tr:hover { background: var(--ink-100); }
+/* Bang rong (nhieu cot) chi cuon ngang trong pham vi cua no tren man hinh hep, khong keo
+   lech ca trang (topbar/menu) sang ngang. */
+.table-wrap { overflow-x: auto; }
+.table-wrap table { min-width: 560px; }
 
 .toast {
   position: fixed;
@@ -428,6 +432,7 @@ tbody tr:hover { background: var(--ink-100); }
 .checkbox-inline input { width: auto; }
 .fs-13 { font-size: 13px; }
 .text-muted { color: var(--muted); }
+.text-danger { color: var(--danger); }
 .w-auto { width: auto; }
 .m-0 { margin: 0; }
 .checkbox-input { width: auto; margin: 0; }

@@ -1,6 +1,7 @@
 const apiConnectionService = require('../services/apiConnectionService');
 const { callDynamic } = require('../services/dynamicCoreApiClient');
 const { generateTransNum } = require('../utils/transNum');
+const auditLogService = require('../services/auditLogService');
 
 async function list(req, res, next) {
   try {
@@ -36,6 +37,12 @@ async function create(req, res, next) {
   try {
     if (!validateBody(req.body, res)) return;
     const id = await apiConnectionService.create({ ...req.body, updatedBy: req.user.username });
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'CREATE_API_CONNECTION',
+      targetUsername: req.body.name,
+      detail: { id, baseUrl: req.body.baseUrl },
+    });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
     next(err);
@@ -46,6 +53,12 @@ async function update(req, res, next) {
   try {
     if (!validateBody(req.body, res)) return;
     await apiConnectionService.update(req.params.id, { ...req.body, updatedBy: req.user.username });
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_API_CONNECTION',
+      targetUsername: req.body.name,
+      detail: { id: req.params.id, baseUrl: req.body.baseUrl },
+    });
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -55,6 +68,12 @@ async function update(req, res, next) {
 async function activate(req, res, next) {
   try {
     await apiConnectionService.activate(req.params.id);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'ACTIVATE_API_CONNECTION',
+      targetUsername: String(req.params.id),
+      detail: { id: req.params.id },
+    });
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -64,6 +83,12 @@ async function activate(req, res, next) {
 async function remove(req, res, next) {
   try {
     await apiConnectionService.remove(req.params.id);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'DELETE_API_CONNECTION',
+      targetUsername: String(req.params.id),
+      detail: { id: req.params.id },
+    });
     res.json({ success: true });
   } catch (err) {
     next(err);

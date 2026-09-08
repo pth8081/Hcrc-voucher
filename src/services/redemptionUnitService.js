@@ -20,6 +20,22 @@ async function list() {
 
 async function create(data) {
   const pool = await getPool();
+
+  // LocationDetailId KHONG co FK toi Locations_Detail (bang dung chung voi Core, xem
+  // sql/001_create_redemption_units.sql) - tu kiem tra ton tai o day de tranh go nham ma tao
+  // ra 1 diem tieu "ma" (khong lien ket duoc voi dia diem nao, se khong hien o bat ky bao cao
+  // nao vi cac truy van deu JOIN qua Locations_Detail).
+  const locationCheck = await pool
+    .request()
+    .input('locationDetailId', sql.Int, data.locationDetailId)
+    .query('SELECT 1 FROM dbo.Locations_Detail WHERE id = @locationDetailId');
+  if (!locationCheck.recordset.length) {
+    const err = new Error('locationDetailId khong ton tai trong Locations_Detail');
+    err.statusCode = 400;
+    err.publicMessage = 'Dia diem (Locations_Detail) da chon khong ton tai, vui long chon lai';
+    throw err;
+  }
+
   const result = await pool
     .request()
     .input('locationDetailId', sql.Int, data.locationDetailId)

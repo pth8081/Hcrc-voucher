@@ -207,11 +207,19 @@ function addRecentRow(row) {
     .join('');
 }
 
+// Camera dang trong luc bat/tat (co the mat vai giay, nhat la lan dau xin quyen) - khoa nut
+// trong luc nay de tranh bam nhanh 2 lan lam camera chay ngam khong tat duoc nua.
+let cameraBusy = false;
+
 function toggleCamera() {
+  if (cameraBusy) return;
   if (cameraRunning) {
     stopCamera();
     return;
   }
+
+  cameraBusy = true;
+  cameraBtn.disabled = true;
   qrReaderEl.classList.remove('hidden');
   html5QrCode = new Html5Qrcode('qr-reader');
   html5QrCode
@@ -232,18 +240,28 @@ function toggleCamera() {
     .catch((err) => {
       showToast('Khong the mo camera: ' + err.message);
       qrReaderEl.classList.add('hidden');
+    })
+    .finally(() => {
+      cameraBusy = false;
+      cameraBtn.disabled = false;
     });
 }
 
 function stopCamera() {
-  if (html5QrCode && cameraRunning) {
-    html5QrCode.stop().then(() => {
-      html5QrCode.clear();
+  if (!html5QrCode || !cameraRunning) return;
+  cameraBusy = true;
+  cameraBtn.disabled = true;
+  html5QrCode
+    .stop()
+    .then(() => html5QrCode.clear())
+    .catch(() => {})
+    .finally(() => {
       qrReaderEl.classList.add('hidden');
       cameraRunning = false;
       cameraBtn.textContent = 'Quet bang camera';
+      cameraBusy = false;
+      cameraBtn.disabled = false;
     });
-  }
 }
 
 function escapeHtml(str) {

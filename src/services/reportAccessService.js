@@ -65,7 +65,10 @@ async function resolveVisibleLocationCodes({ userId, ownLocationsDetail, role })
     if (Number(role) === 1) {
       return { scope: 'all', codes: null };
     }
-    return { scope: 'own', codes: ownCode ? [ownCode] : [] };
+    // Tai khoan chua duoc gan dia diem (LocationsDetail rong) VA khong o trong nhom quyen nao:
+    // se luon thay bao cao trong, khong the phan biet voi "hom nay khong co giao dich" tren giao
+    // dien - danh dau ro de controller/frontend bao dung nguyen nhan thay vi de trong lang.
+    return { scope: 'own', codes: ownCode ? [ownCode] : [], unassigned: !ownCode };
   }
   if (group.scopeType === 'ALL') {
     return { scope: 'all', codes: null };

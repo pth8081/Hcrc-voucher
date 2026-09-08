@@ -15,9 +15,9 @@ async function daily(req, res, next) {
   try {
     const date = req.query.date || new Date().toISOString().slice(0, 10);
     const locationsDetail = req.query.locationsDetail || null;
-    const { codes } = await resolveScope(req);
+    const { codes, unassigned } = await resolveScope(req);
     const data = await reportService.dailyReconciliation({ date, locationsDetail, visibleLocationCodes: codes });
-    res.json({ success: true, data });
+    res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
     next(err);
   }
@@ -31,9 +31,9 @@ async function summary(req, res, next) {
     if (fromDate > toDate) {
       return res.status(400).json({ success: false, message: 'Ngay bat dau phai truoc hoac bang ngay ket thuc' });
     }
-    const { codes } = await resolveScope(req);
+    const { codes, unassigned } = await resolveScope(req);
     const data = await summaryReportService.consolidatedReport({ fromDate, toDate, visibleLocationCodes: codes });
-    res.json({ success: true, data });
+    res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
     next(err);
   }
@@ -54,9 +54,9 @@ function parseDateRange(query) {
 async function usedVouchers(req, res, next) {
   try {
     const { fromDate, toDate } = parseDateRange(req.query);
-    const { codes } = await resolveScope(req);
-    const data = await usedVoucherReportService.listUsedVouchers({ fromDate, toDate, visibleLocationCodes: codes });
-    res.json({ success: true, data });
+    const { codes, unassigned } = await resolveScope(req);
+    const rows = await usedVoucherReportService.listUsedVouchers({ fromDate, toDate, visibleLocationCodes: codes });
+    res.json({ success: true, data: { rows, unassignedLocation: !!unassigned } });
   } catch (err) {
     next(err);
   }
@@ -65,8 +65,19 @@ async function usedVouchers(req, res, next) {
 async function usedVouchersExport(req, res, next) {
   try {
     const { fromDate, toDate } = parseDateRange(req.query);
+    if (!fromDate && !toDate) {
+      const err = new Error(`Vui long chon khoang ngay truoc khi xuat Excel (toi da ${usedVoucherReportService.MAX_EXPORT_ROWS.toLocaleString('vi-VN')} dong moi lan xuat)`);
+      err.statusCode = 400;
+      err.publicMessage = err.message;
+      throw err;
+    }
     const { codes } = await resolveScope(req);
-    const rows = await usedVoucherReportService.listUsedVouchers({ fromDate, toDate, visibleLocationCodes: codes });
+    const rows = await usedVoucherReportService.listUsedVouchers({
+      fromDate,
+      toDate,
+      visibleLocationCodes: codes,
+      maxRows: usedVoucherReportService.MAX_EXPORT_ROWS,
+    });
     const buffer = await usedVoucherReportService.buildExcelBuffer(rows);
 
     const fileName = `voucher-da-su-dung_${fromDate || 'toanbo'}_${toDate || 'toanbo'}.xlsx`;

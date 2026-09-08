@@ -8,15 +8,31 @@ const { VOUCHER_STATUS } = coreVoucherService;
 const MAX_ATTEMPTS = Number(process.env.SYNC_RETRY_MAX_ATTEMPTS || 20);
 const BATCH_SIZE = Number(process.env.SYNC_RETRY_BATCH_SIZE || 20);
 
+/**
+ * Lay 1 lot ban ghi dang cho dong bo, LOAI TRU ngay trong cau truy van cac ban ghi da vuot
+ * qua so lan thu toi da (MAX_ATTEMPTS) - neu khong loai, cac ban ghi "chet" nay (vd voucher
+ * da het han, khong bao gio dong bo duoc) se chiem het @batchSize moi lan chay mai mai (vi
+ * luon dung dau danh sach theo Created_Date ASC), khien cac ban ghi moi hon phia sau khong
+ * bao gio duoc thu, dan den bao cao thieu du lieu that.
+ */
 async function fetchPendingBatch() {
   const pool = await getPool();
-  const result = await pool.request().input('batchSize', sql.Int, BATCH_SIZE).query(`
-    SELECT TOP (@batchSize) Id, TRANS_NUM, Voucher_Code, User_Name,
-           Locations_Group, Locations_Detail
-    FROM dbo.VOUCHER_SYNC
-    WHERE Sync = 'N'
-    ORDER BY Created_Date ASC
-  `);
+  const result = await pool
+    .request()
+    .input('batchSize', sql.Int, BATCH_SIZE)
+    .input('proName', sql.NVarChar(300), SYNC_PROC_NAME)
+    .input('maxAttempts', sql.Int, MAX_ATTEMPTS)
+    .query(`
+      SELECT TOP (@batchSize) v.Id, v.TRANS_NUM, v.Voucher_Code, v.User_Name,
+             v.Locations_Group, v.Locations_Detail
+      FROM dbo.VOUCHER_SYNC v
+      WHERE v.Sync = 'N'
+        AND (
+          SELECT COUNT(*) FROM dbo.Voucher_Exelogs e
+          WHERE e.pro_name = @proName AND e.p_key = v.TRANS_NUM AND e.p_tatus = 'FAILED'
+        ) < @maxAttempts
+      ORDER BY v.Created_Date ASC
+    `);
   return result.recordset;
 }
 

@@ -214,6 +214,13 @@ DB moi, khong di chuyen/sao chep du lieu cu sang noi khac:
 | `VOUCHER_SYNC` | App **ghi them dong moi** moi khi thu hoi thanh cong (giu nguyen dung y goc: noi luu ban ghi da tieu de doi soat). |
 | `Voucher_Exelogs` | App **ghi them dong moi** moi lan job dong bo chay (dung y goc: log he thong). |
 
+> **Luu y ve mui gio:** cac bao cao loc theo ngay (Bao cao doi soat, Bao cao tong hop, Voucher da
+> su dung) so sanh truc tiep ngay nguoi dung chon voi cot `Created_Date` (duoc SQL Server ghi qua
+> `GETDATE()` - tra ve gio dia phuong cua **may chu CSDL**, khong phai UTC). App **khong tu ep**
+> lai mui gio nay o tang code. Vi vay bat buoc may chu SQL Server phai dat dung mui gio Viet Nam
+> (UTC+7) - neu deploy len cloud/VM moi thuong mac dinh UTC, giao dich cuoi ngay se bi tinh nham
+> sang bao cao cua ngay hom sau. Kiem tra bang `SELECT GETDATE()` va so sanh voi gio VN thuc te.
+
 **Cac buoc:**
 
 ```bash

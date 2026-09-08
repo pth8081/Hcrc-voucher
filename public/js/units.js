@@ -1,6 +1,8 @@
 requireAuth();
 renderTopbar('units');
 
+const notAdminNotice = document.getElementById('notAdminNotice');
+const unitsCard = document.getElementById('unitsCard');
 const unitsBody = document.getElementById('unitsBody');
 const companiesBody = document.getElementById('companiesBody');
 const locationSelect = document.getElementById('locationDetailId');
@@ -16,21 +18,24 @@ const groupCompaniesList = document.getElementById('groupCompaniesList');
 let companiesCache = [];
 
 (async function init() {
-  await Promise.all([loadLocations(), loadCompanies()]);
+  try {
+    await loadLocations();
+  } catch (err) {
+    notAdminNotice.classList.remove('hidden');
+    unitsCard.classList.add('hidden');
+    return;
+  }
+  await loadCompanies();
   await loadUnits();
   await loadAccessGroups();
   renderGroupCompaniesCheckboxes();
 })();
 
 async function loadLocations() {
-  try {
-    const data = await apiFetch('/locations/details');
-    locationSelect.innerHTML = data
-      .map((d) => `<option value="${d.id}">${escapeHtml(d.LocationName)} (${escapeHtml(d.LocationCode)})</option>`)
-      .join('');
-  } catch (err) {
-    showToast(err.message);
-  }
+  const data = await apiFetch('/locations/details');
+  locationSelect.innerHTML = data
+    .map((d) => `<option value="${d.id}">${escapeHtml(d.LocationName)} (${escapeHtml(d.LocationCode)})</option>`)
+    .join('');
 }
 
 async function loadCompanies() {

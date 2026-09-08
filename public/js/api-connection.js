@@ -5,6 +5,8 @@ let currentId = null; // null = dang tao ket noi moi
 let defaults = null;
 
 const el = (id) => document.getElementById(id);
+const notAdminNotice = document.getElementById('notAdminNotice');
+const connectionCard = document.getElementById('connectionCard');
 
 init();
 
@@ -27,7 +29,9 @@ async function init() {
   try {
     defaults = await apiFetch('/api-connections/defaults');
   } catch (err) {
-    defaults = { checkMapping: {}, redeemMapping: {}, checkPath: '', redeemPath: '', redeemBodyTemplate: {} };
+    notAdminNotice.classList.remove('hidden');
+    connectionCard.classList.add('hidden');
+    return;
   }
 
   await loadList();
