@@ -27,7 +27,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
         request.input(`locCode${i}`, sql.NVarChar(100), code);
         return `@locCode${i}`;
       });
-      locationFilter = ` AND vs.Locations_Detail IN (${placeholders.join(', ')})`;
+      locationFilter = ` AND LTRIM(RTRIM(vs.Locations_Detail)) IN (${placeholders.join(', ')})`;
     }
   }
 

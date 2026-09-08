@@ -73,7 +73,7 @@ function renderTopbar(activeKey) {
             <div class="user-meta">
               <span class="user-name">${escapeHtmlLayout(displayName)}</span>
               <span>
-                <a href="#" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
+                <a href="/security.html" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
                 &middot;
                 <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
               </span>
@@ -103,19 +103,12 @@ function renderTopbar(activeKey) {
     window.location.href = '/login.html';
   });
 
+  // Dang ky passkey can 1 form binh thuong (khong dung window.prompt() - hop thoai chan nay
+  // hay lam trang MAT FOCUS truoc khi trinh duyet kip goi API vân tay/Face ID, gay loi "The
+  // document is not focused." tren nhieu dien thoai) nen chi dan huong sang trang "Bao mat"
+  // (co san danh sach + form dang ky, xem security.js) thay vi lam ngay tai day.
   const registerLink = document.getElementById('webauthnRegisterLink');
-  if (typeof webauthnSupported === 'function' && webauthnSupported()) {
-    registerLink.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const deviceLabel = window.prompt('Dat ten cho thiet bi nay (vd: Tablet quay 1):', '') || null;
-      try {
-        await registerPasskey(deviceLabel);
-        showToast('Da dang ky van tay/Face ID cho thiet bi nay');
-      } catch (err) {
-        showToast(err.message);
-      }
-    });
-  } else {
+  if (!(typeof webauthnSupported === 'function' && webauthnSupported())) {
     registerLink.style.display = 'none';
   }
 }
