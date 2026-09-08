@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
-// Bo 0/O va 1/I/L de tranh nham lan khi doc tren dien thoai.
-const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+// Chi dung chu so (de go tren dien thoai, khong can doi ban phim chu/so).
+const CHARS = '0123456789';
 const LENGTH = 4;
 const TTL_MS = 3 * 60 * 1000;
 
