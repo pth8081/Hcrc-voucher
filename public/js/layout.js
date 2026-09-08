@@ -17,6 +17,8 @@ const NAV_ICONS = {
   usedVouchers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4M9 13l2 2 4-4"/></svg>',
 };
 
+const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+
 const NAV_ITEMS = [
   { key: 'scan', href: '/index.html', label: 'Quet voucher', icon: NAV_ICONS.scan },
   { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report },
@@ -54,28 +56,46 @@ function renderTopbar(activeKey) {
             <span class="brand-tagline">Thu hoi voucher</span>
           </span>
         </a>
-        <nav class="nav-links">
-          ${NAV_ITEMS.map(
-            (item) => `
-            <a href="${item.href}" class="nav-link ${item.key === activeKey ? 'active' : ''}">
-              ${item.icon}<span>${item.label}</span>
-            </a>`
-          ).join('')}
-        </nav>
-        <div class="topbar-user">
-          <div class="user-avatar">${initials(displayName)}</div>
-          <div class="user-meta">
-            <span class="user-name">${escapeHtmlLayout(displayName)}</span>
-            <span>
-              <a href="#" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
-              &middot;
-              <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
-            </span>
+        <button type="button" class="topbar-toggle" id="topbarToggle" aria-label="Mo menu" aria-expanded="false">
+          ${MENU_ICON}
+        </button>
+        <div class="topbar-panel" id="topbarPanel">
+          <nav class="nav-links">
+            ${NAV_ITEMS.map(
+              (item) => `
+              <a href="${item.href}" class="nav-link ${item.key === activeKey ? 'active' : ''}">
+                ${item.icon}<span>${item.label}</span>
+              </a>`
+            ).join('')}
+          </nav>
+          <div class="topbar-user">
+            <div class="user-avatar">${initials(displayName)}</div>
+            <div class="user-meta">
+              <span class="user-name">${escapeHtmlLayout(displayName)}</span>
+              <span>
+                <a href="#" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
+                &middot;
+                <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </header>
   `;
+
+  const topbarToggle = document.getElementById('topbarToggle');
+  const topbarPanel = document.getElementById('topbarPanel');
+  topbarToggle.addEventListener('click', () => {
+    const isOpen = topbarPanel.classList.toggle('open');
+    topbarToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+  document.addEventListener('click', (e) => {
+    if (!topbarPanel.classList.contains('open')) return;
+    if (topbarPanel.contains(e.target) || topbarToggle.contains(e.target)) return;
+    topbarPanel.classList.remove('open');
+    topbarToggle.setAttribute('aria-expanded', 'false');
+  });
 
   document.getElementById('logoutLink').addEventListener('click', (e) => {
     e.preventDefault();
