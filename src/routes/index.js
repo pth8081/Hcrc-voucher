@@ -13,5 +13,6 @@ router.use('/companies', require('./company.routes'));
 router.use('/api-connections', require('./apiConnection.routes'));
 router.use('/vouchers', require('./voucher.routes'));
 router.use('/reports', require('./report.routes'));
+router.use('/admin', require('./adminLog.routes'));
 
 module.exports = router;

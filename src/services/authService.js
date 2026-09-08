@@ -5,6 +5,7 @@ const loginGuard = require('../utils/loginGuard');
 const twoFactorService = require('./twoFactorService');
 const userScheduleService = require('./userScheduleService');
 const passwordPolicyService = require('./passwordPolicyService');
+const permissionService = require('./permissionService');
 
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
@@ -62,7 +63,7 @@ async function buildLoginOutcome(user) {
     }
     return { twoFactor: 'verify_required', pendingToken: issuePendingToken(user, '2fa_verify') };
   }
-  return { twoFactor: 'none', ...issueSession(user) };
+  return { twoFactor: 'none', ...(await issueSession(user)) };
 }
 
 /** Doi mat khau bat buoc (token TAM purpose='password_change') roi tiep tuc luong dang nhap
@@ -99,8 +100,18 @@ async function findUserById(userId) {
   return result.recordset[0] || null;
 }
 
-/** Dung chung cho ca dang nhap mat khau lan dang nhap WebAuthn (van tay/Face ID) - cung 1 phien JWT. */
-function issueSession(user) {
+/**
+ * Dung chung cho ca dang nhap mat khau lan dang nhap WebAuthn (van tay/Face ID) - cung 1 phien
+ * JWT. Nhung ca quyen tinh nang (permissionService.js) vao thang trong object `user` tra ve de
+ * frontend an/hien menu ma khong can goi them API - giong het cach role/locationsGroup da lam
+ * tu truoc. Quyen chi "chup" tai thoi diem dang nhap, admin doi quyen cho nguoi dang co phien
+ * se can dang nhap lai moi thay hieu luc - chap nhan duoc, nhat quan voi cach role/lich hieu
+ * luc tai khoan da hoat dong (xem userScheduleService.js).
+ */
+async function issueSession(user) {
+  const role = Number(user.status) === 1 ? 'admin' : 'staff';
+  const permissions = await permissionService.resolvePermissions({ userId: user.UserID, role: user.status });
+
   const token = jwt.sign(
     {
       purpose: 'session',
@@ -123,6 +134,8 @@ function issueSession(user) {
       fullName: user.FullName,
       locationsGroup: user.Locations_Group,
       locationsDetail: user.Locations_Detail,
+      role,
+      permissions,
     },
   };
 }

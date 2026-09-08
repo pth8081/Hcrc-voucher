@@ -15,19 +15,30 @@ const NAV_ICONS = {
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6M16 9.5c1.4.3 2.5 1.5 2.5 3M14.5 4.2c1.6.4 2.8 1.9 2.8 3.7 0 1.5-.8 2.8-2 3.4"/></svg>',
   summaryReport: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   usedVouchers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4M9 13l2 2 4-4"/></svg>',
+  adminLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
 
+// permission: null/undefined = luon hien (moi tai khoan); ten khac = phai co
+// user.permissions[ten] = true moi hien (xem authService.js#issueSession - quyen duoc "chup"
+// vao session luc dang nhap, khong can goi them API o day).
 const NAV_ITEMS = [
-  { key: 'scan', href: '/index.html', label: 'Quet voucher', icon: NAV_ICONS.scan },
-  { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report },
-  { key: 'summary-report', href: '/summary-report.html', label: 'Bao cao tong hop', icon: NAV_ICONS.summaryReport },
-  { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher da su dung', icon: NAV_ICONS.usedVouchers },
+  { key: 'scan', href: '/index.html', label: 'Quet voucher', icon: NAV_ICONS.scan, permission: 'canRedeemVoucher' },
+  { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report, permission: 'canViewReconciliation' },
+  { key: 'summary-report', href: '/summary-report.html', label: 'Bao cao tong hop', icon: NAV_ICONS.summaryReport, permission: 'canViewSummary' },
+  { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher da su dung', icon: NAV_ICONS.usedVouchers, permission: 'canViewUsedVouchers' },
+  { key: 'security', href: '/security.html', label: 'Bao mat', icon: NAV_ICONS.security },
+];
+
+// Chi hien voi tai khoan quan tri (role === 'admin'), gom vao 1 dropdown "Quan tri" thay vi
+// nam rai rac ngang hang voi cac muc tren - tranh topbar qua dai khi them tinh nang moi.
+const ADMIN_NAV_ITEMS = [
   { key: 'units', href: '/units.html', label: 'Don vi thu hoi', icon: NAV_ICONS.units },
   { key: 'connection', href: '/api-connection.html', label: 'Ket noi API', icon: NAV_ICONS.connection },
-  { key: 'security', href: '/security.html', label: 'Bao mat', icon: NAV_ICONS.security },
   { key: 'users', href: '/users.html', label: 'Tai khoan', icon: NAV_ICONS.users },
+  { key: 'admin-log', href: '/admin-log.html', label: 'Nhat ky he thong', icon: NAV_ICONS.adminLog },
 ];
 
 function initials(name) {
@@ -46,6 +57,15 @@ function renderTopbar(activeKey) {
   const user = typeof getUser === 'function' ? getUser() : null;
   const displayName = user ? user.fullName || user.username : '';
 
+  // Quyen "chup" san trong session luc dang nhap (authService.js#issueSession) - phien dang
+  // nhap TU TRUOC ban cap nhat nay chua co cac truong nay, coi nhu "chua ro" va HIEN het (chi
+  // anh huong giao dien, server van chan dung qua requireFeature.js/requireRole.js du sao).
+  const permissions = user && user.permissions ? user.permissions : null;
+  const role = user && user.role ? user.role : null;
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || !permissions || permissions[item.permission]);
+  const showAdminMenu = role !== 'staff';
+  const adminMenuActive = ADMIN_NAV_ITEMS.some((item) => item.key === activeKey);
+
   mount.outerHTML = `
     <header class="topbar">
       <div class="topbar-inner">
@@ -61,12 +81,26 @@ function renderTopbar(activeKey) {
         </button>
         <div class="topbar-panel" id="topbarPanel">
           <nav class="nav-links">
-            ${NAV_ITEMS.map(
+            ${visibleNavItems.map(
               (item) => `
               <a href="${item.href}" class="nav-link ${item.key === activeKey ? 'active' : ''}">
                 ${item.icon}<span>${item.label}</span>
               </a>`
             ).join('')}
+            ${showAdminMenu ? `
+            <div class="nav-dropdown">
+              <button type="button" class="nav-link nav-dropdown-trigger ${adminMenuActive ? 'active' : ''}" id="adminMenuTrigger" aria-expanded="false">
+                ${NAV_ICONS.units}<span>Quan tri</span>${NAV_ICONS.chevron}
+              </button>
+              <div class="nav-dropdown-panel" id="adminMenuPanel">
+                ${ADMIN_NAV_ITEMS.map(
+                  (item) => `
+                  <a href="${item.href}" class="nav-link ${item.key === activeKey ? 'active' : ''}">
+                    ${item.icon}<span>${item.label}</span>
+                  </a>`
+                ).join('')}
+              </div>
+            </div>` : ''}
           </nav>
           <div class="topbar-user">
             <div class="user-avatar">${initials(displayName)}</div>
@@ -96,6 +130,22 @@ function renderTopbar(activeKey) {
     topbarPanel.classList.remove('open');
     topbarToggle.setAttribute('aria-expanded', 'false');
   });
+
+  const adminMenuTrigger = document.getElementById('adminMenuTrigger');
+  const adminMenuPanel = document.getElementById('adminMenuPanel');
+  if (adminMenuTrigger && adminMenuPanel) {
+    adminMenuTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = adminMenuPanel.classList.toggle('open');
+      adminMenuTrigger.setAttribute('aria-expanded', String(isOpen));
+    });
+    document.addEventListener('click', (e) => {
+      if (!adminMenuPanel.classList.contains('open')) return;
+      if (adminMenuPanel.contains(e.target) || adminMenuTrigger.contains(e.target)) return;
+      adminMenuPanel.classList.remove('open');
+      adminMenuTrigger.setAttribute('aria-expanded', 'false');
+    });
+  }
 
   document.getElementById('logoutLink').addEventListener('click', (e) => {
     e.preventDefault();

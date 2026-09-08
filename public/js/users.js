@@ -27,6 +27,8 @@ function fromLocalInputValue(value) {
 
 let accessGroupsCache = [];
 
+const PERM_FIELDS = ['canRedeemVoucher', 'canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'];
+
 async function load() {
   try {
     const [users, groups] = await Promise.all([
@@ -41,18 +43,28 @@ async function load() {
   }
 }
 
+function permCheckbox(field, checked, isAdmin) {
+  return `<input type="checkbox" class="perm-${field}" ${checked ? 'checked' : ''} ${isAdmin ? 'disabled' : ''} />`;
+}
+
 function renderUsers(users) {
   const groupOptions = accessGroupsCache
     .map((g) => `<option value="${g.Id}">${escapeHtmlLayout(g.GroupName)}</option>`)
     .join('');
 
   usersBody.innerHTML = users
-    .map(
-      (u) => `
-      <tr data-user-id="${u.userId}">
+    .map((u) => {
+      const isAdmin = Number(u.role) === 1;
+      const perms = u.permissions || {};
+      return `
+      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}">
         <td>${escapeHtmlLayout(u.username)}</td>
         <td>${escapeHtmlLayout(u.fullName || '-')}</td>
-        <td>${Number(u.role) === 1 ? 'Quan tri' : 'Nhan vien'}</td>
+        <td>${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
+        <td class="perm-cell">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
+        <td class="perm-cell">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
+        <td class="perm-cell">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
+        <td class="perm-cell">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
         <td><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
         <td><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell">${STATE_CHIP[u.state] || ''}</td>
@@ -63,8 +75,8 @@ function renderUsers(users) {
           </select>
         </td>
         <td><button class="btn-secondary save-btn" type="button">Luu</button></td>
-      </tr>`
-    )
+      </tr>`;
+    })
     .join('');
 
   usersBody.querySelectorAll('tr[data-user-id]').forEach((tr) => {
@@ -79,20 +91,30 @@ function renderUsers(users) {
 
 async function saveUser(tr) {
   const userId = tr.dataset.userId;
+  const username = tr.dataset.username;
   const activeFrom = fromLocalInputValue(tr.querySelector('.active-from').value);
   const activeUntil = fromLocalInputValue(tr.querySelector('.active-until').value);
   const groupIdRaw = tr.querySelector('.report-access-group').value;
   const groupId = groupIdRaw ? Number(groupIdRaw) : null;
+  const permissions = {};
+  PERM_FIELDS.forEach((field) => {
+    const el = tr.querySelector(`.perm-${field}`);
+    permissions[field] = !!(el && el.checked);
+  });
 
   try {
     await Promise.all([
       apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
         method: 'PUT',
-        body: JSON.stringify({ activeFrom, activeUntil }),
+        body: JSON.stringify({ activeFrom, activeUntil, username }),
       }),
       apiFetch(`/users/${encodeURIComponent(userId)}/report-access`, {
         method: 'PUT',
-        body: JSON.stringify({ groupId }),
+        body: JSON.stringify({ groupId, username }),
+      }),
+      apiFetch(`/users/${encodeURIComponent(userId)}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...permissions, username }),
       }),
     ]);
     showToast('Da luu tai khoan');
@@ -101,5 +123,34 @@ async function saveUser(tr) {
     showToast(err.message);
   }
 }
+
+const createUserBtn = document.getElementById('createUserBtn');
+createUserBtn.addEventListener('click', async () => {
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const fullName = document.getElementById('newFullName').value.trim();
+  const role = document.getElementById('newRole').value;
+  const locationsGroup = document.getElementById('newLocationsGroup').value.trim() || null;
+  const locationsDetail = document.getElementById('newLocationsDetail').value.trim() || null;
+
+  createUserBtn.disabled = true;
+  try {
+    await apiFetch('/users', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, fullName, role: Number(role), locationsGroup, locationsDetail }),
+    });
+    showToast(`Da tao tai khoan "${username}"`);
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('newFullName').value = '';
+    document.getElementById('newLocationsGroup').value = '';
+    document.getElementById('newLocationsDetail').value = '';
+    load();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    createUserBtn.disabled = false;
+  }
+});
 
 load();

@@ -113,6 +113,28 @@ body {
 .nav-link.active { background: var(--primary-light); color: var(--primary-dark); }
 .nav-link svg { width: 16px; height: 16px; flex: 0 0 auto; }
 
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger { border: none; background: none; cursor: pointer; font-family: inherit; }
+.nav-dropdown-trigger svg:last-child { width: 12px; height: 12px; margin-left: -2px; }
+.nav-dropdown-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  z-index: 30;
+}
+.nav-dropdown-panel.open { display: flex; }
+.nav-dropdown-panel .nav-link { width: 100%; }
+
 .topbar-user { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .user-avatar {
   width: 32px; height: 32px; border-radius: 50%;
@@ -150,6 +172,19 @@ body {
 
   .nav-links { flex-wrap: nowrap; flex-direction: column; align-items: stretch; width: 100%; gap: 2px; flex: none; }
   .nav-link { padding: 11px 12px; }
+
+  /* Ca menu da la 1 dropdown roi (topbar-panel), nen dropdown "Quan tri" long ben trong khong
+     can toggle rieng nua - luon hien San, chi thut le nhe cho de phan biet nhom. */
+  .nav-dropdown-trigger svg:last-child { display: none; }
+  .nav-dropdown-panel {
+    display: flex !important;
+    position: static;
+    margin: 2px 0 0;
+    padding: 0 0 0 10px;
+    border: none;
+    box-shadow: none;
+    background: none;
+  }
 
   .topbar-user { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--border); width: 100%; }
 }
@@ -233,6 +268,21 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 }
 
 .hint { font-size: 12.5px; color: var(--muted); }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 4px 0 16px; }
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--ink-900); }
+.tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
 
 /* ===== Scan page ===== */
 .scan-hero {

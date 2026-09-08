@@ -167,6 +167,10 @@ sequenceDiagram
   bat buoc doi mat khau lan dang nhap dau tien — xem muc 14.
 - `WebAuthnChallenges` (013): luu TAM challenge dang ky/dang nhap van tay-Face ID trong DB thay
   vi bo nho — de dung duoc khi chay nhieu worker (`CLUSTER_WORKERS > 1`) — xem muc 3e, 9b.
+- `VoucherAppPermissions` (014): quyen theo TUNG TINH NANG (thu hoi/doi soat/tong hop/voucher
+  da dung) cho tai khoan nhan vien — xem muc 15b.
+- `AdminAuditLog` (015): nhat ky thao tac quan tri (tao tai khoan, doi quyen, go 2FA nguoi
+  khac...) — xem muc 15c.
 
 Chay migration:
 
@@ -744,7 +748,9 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/auth/2fa/show-qr` | (can quyen admin, bat buoc kem `password`) Hien lai QR cua secret HIEN TAI (khong doi secret) de them thiet bi Authenticator thu 2 |
 | GET | `/api/auth/2fa/admins` | (can quyen admin) Danh sach quan tri vien + trang thai 2FA |
 | DELETE | `/api/auth/2fa/admins/:userId` | (can quyen admin) Go 2FA cua **admin khac** (khong tu go duoc cua chinh minh) |
-| GET | `/api/users` | (can quyen admin) Danh sach tai khoan + lich hieu luc + trang thai hien tai |
+| GET | `/api/users` | (can quyen admin) Danh sach tai khoan + lich hieu luc + quyen tinh nang + trang thai hien tai |
+| POST | `/api/users` | (can quyen admin) Tao tai khoan moi — muc 15a |
+| PUT | `/api/users/:userId/permissions` | (can quyen admin) Doi 4 quyen tinh nang cua 1 tai khoan nhan vien — muc 15b |
 | PUT | `/api/users/:userId/schedule` | (can quyen admin) Dat/sua `ActiveFrom`/`ActiveUntil` cua 1 tai khoan |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
@@ -752,6 +758,8 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/auth/webauthn/register-verify` | Xac minh + luu passkey moi vao `WebAuthnCredentials` |
 | GET | `/api/auth/webauthn/devices` | Danh sach passkey da dang ky cua tai khoan dang dang nhap |
 | DELETE | `/api/auth/webauthn/devices/:id` | Xoa 1 passkey (vi du mat thiet bi) |
+| GET | `/api/admin/audit-log` | (can quyen admin) Nhat ky thao tac quan tri — muc 15c |
+| GET | `/api/admin/scan-log?fromDate=&toDate=` | (can quyen admin) Nhat ky quet/kiem tra voucher (doc lai `VoucherScanLogs`) — muc 15c |
 
 Vi du `POST /api/vouchers/check`:
 ```json
@@ -1097,3 +1105,64 @@ day du**.
 
 File lien quan: `src/services/passwordPolicyService.js`, `sql/012_create_user_password_policy.sql`,
 `public/change-password.html` + `public/js/change-password.js`.
+
+## 15. Quan tri: tao tai khoan, quyen theo tinh nang, nhat ky he thong
+
+Gom vao 1 dropdown **"Quan tri"** tren topbar (chi tai khoan `status=1` moi thay), thay vi
+nam rai rac ngang hang voi cac muc dung hang ngay: **Don vi thu hoi**, **Ket noi API**,
+**Tai khoan**, **Nhat ky he thong**.
+
+### 15a. Tao tai khoan moi (trang "Tai khoan")
+
+Tao truc tiep tren `dbo.Users` (bang dung chung voi he thong Core — xem muc 1) nhung **chi
+ghi 6 cot app nay hieu**: `Username, Password (bam bcrypt), FullName, Locations_Group,
+Locations_Detail, status` — giong het cach `npm run create-admin` da lam tu truoc (muc 3a),
+de trong cac cot rieng cua he thong Core (`PositionCode_Name`, `DepartmentCode_Name`,
+`DSMART`) vi **phan quyen cua app nay hoan toan doc lap voi Core** (Core chi dung de
+kiem tra/cap nhat trang thai voucher, khong lien quan dang nhap/phan quyen). Gan san
+`Locations_Group`/`Locations_Detail` (ma co san o trang "Don vi thu hoi") ngay luc tao de
+tai khoan co pham vi thu hoi/xem bao cao dung tu dau.
+
+### 15b. Quyen theo TUNG TINH NANG (khac voi vai tro admin/nhan vien)
+
+Truoc day chi co 1 muc phan quyen (`Users.status`: 0=nhan vien, 1=admin) va rieng pham vi
+CONG TY duoc xem bao cao (`ReportAccessGroups`, muc 13). Gio them 1 lop nua: **4 quyen tinh
+nang doc lap** cho tai khoan nhan vien (`sql/014_create_voucher_app_permissions.sql`, bang
+`VoucherAppPermissions` — **khac** voi bang `UserPermissions` co san trong schema goc, dat
+ten khac han de tranh nham):
+
+| Quyen | Mac dinh (tai khoan moi tao) | Anh huong |
+|---|---|---|
+| Thu hoi voucher | **Bat** | `POST /api/vouchers/check`, `/redeem` + an/hien muc "Quet voucher" |
+| Xem bao cao doi soat | **Bat** | `GET /api/reports/daily` + an/hien muc "Bao cao doi soat" |
+| Xem bao cao tong hop | Tat | `GET /api/reports/summary` + an/hien muc "Bao cao tong hop" |
+| Xem voucher da su dung | Tat | `GET /api/reports/used-vouchers[/export]` + an/hien muc "Voucher da su dung" |
+
+Tai khoan **quan tri** (`status=1`) **luon co du ca 4 quyen**, khong phu thuoc bang nay —
+kiem tra o `middleware/requireFeature.js` (bypass thang neu `role===1`, giong cach
+`reportAccessService.js`/`requireRole.js` da lam). Sua o trang "Tai khoan" (4 o checkbox dau
+moi dong, chi bam duoc voi nhan vien — dong cua quan tri hien san disabled+checked).
+
+Quyen duoc **"chup" vao token dang nhap** luc dang nhap thanh cong (`authService.js#issueSession`)
+de frontend an/hien menu ngay ma khong can goi them API — nhat quan voi cach `role`/
+`locationsGroup` da lam tu truoc. He qua: **doi quyen cho 1 tai khoan dang co phien dang nhap
+se chi co hieu luc tu lan dang nhap ke tiep cua ho** (giong het cach doi vai tro/lich hieu luc
+hien tai), khong ep dang xuat ngay.
+
+### 15c. Nhat ky he thong (trang moi, chi admin)
+
+Hai nguon, 2 tab tren 1 trang:
+- **Nhat ky quan tri** (`sql/015_create_admin_audit_log.sql`, bang `AdminAuditLog`) — **moi
+  hoan toan**, ghi lai AI da **tao tai khoan / doi quyen tinh nang / doi lich hieu luc / doi
+  nhom quyen bao cao / go 2FA nguoi khac**, luc nao — can thiet vi tu muc nay tro di co nhieu
+  thao tac phan quyen hon, can biet duoc trach nhiem khi co thay doi bat thuong. Ghi qua
+  `auditLogService.js`, khong bao gio lam hong thao tac chinh neu ghi log that bai (chi log
+  loi ra console).
+- **Hoat dong quet/thu hoi** — doc lai `VoucherScanLogs` da co san tu truoc (muc 5, ghi MOI
+  lan quet/kiem tra ca thanh cong lan that bai) qua `scanLogService.js`, truoc day khong co
+  giao dien nao xem duoc, chi nam trong DB.
+
+File lien quan: `src/services/permissionService.js`, `src/services/userAdminService.js`,
+`src/services/auditLogService.js`, `src/services/scanLogService.js`,
+`src/middleware/requireFeature.js`, `public/users.html` + `public/js/users.js`,
+`public/admin-log.html` + `public/js/admin-log.js`.
