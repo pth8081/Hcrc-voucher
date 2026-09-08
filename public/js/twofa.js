@@ -44,6 +44,11 @@ function twoFaSetupVerify(code) {
 function twoFaLoginVerify(code) {
   return twoFaFetch('/auth/2fa/login-verify', { method: 'POST', body: JSON.stringify({ code }) });
 }
+/** Hien lai QR cua secret HIEN TAI (khong doi secret) de quet them tren 1 thiet bi thu 2 - can
+ * nhap lai mat khau de xac nhan. */
+function twoFaShowQr(password) {
+  return twoFaFetch('/auth/2fa/show-qr', { method: 'POST', body: JSON.stringify({ password }) });
+}
 
 /**
  * Dieu huong sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG, VA

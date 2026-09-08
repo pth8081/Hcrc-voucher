@@ -3,6 +3,7 @@ const authController = require('../controllers/auth.controller');
 const { require2FAPending } = require('../middleware/require2FAPending');
 
 const router = express.Router();
+router.get('/captcha', authController.getCaptcha);
 router.post('/login', authController.login);
 
 // Doi mat khau BAT BUOC lan dang nhap dau tien - CHI chap nhan token TAM purpose='password_change'

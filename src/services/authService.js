@@ -166,4 +166,5 @@ module.exports = {
   buildLoginOutcome,
   changePasswordForced,
   roleOf,
+  comparePassword,
 };

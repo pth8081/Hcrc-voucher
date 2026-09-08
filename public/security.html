@@ -21,15 +21,47 @@
   <div id="topbar"></div>
 
   <div class="container">
+    <div class="card">
+      <h2>Van tay / Face ID cua toi</h2>
+      <p class="security-note">
+        Dang ky them thiet bi de lan sau dang nhap bang van tay/Face ID thay vi go mat khau.
+        Co the dang ky nhieu thiet bi cho cung 1 tai khoan.
+      </p>
+      <div id="passkeyList"><p class="text-muted">Dang tai...</p></div>
+      <div class="flex gap-8 mt-10">
+        <input id="passkeyLabel" placeholder="Ten thiet bi (vd: iPhone cua toi)" class="flex-1 m-0" />
+        <button id="passkeyRegisterBtn" class="btn-primary" type="button">Dang ky thiet bi nay</button>
+      </div>
+    </div>
+
     <div id="notAdminNotice" class="card hidden">
-      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+      <p class="text-muted m-0">Cac muc ben duoi chi danh cho tai khoan quan tri.</p>
     </div>
 
     <div id="securityCards">
       <div class="card">
         <h2>Xac thuc hai yeu to cua toi</h2>
         <p id="myStatus" class="text-muted">Dang tai...</p>
-        <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Doi thiet bi xac thuc</button>
+        <div class="flex gap-8 flex-wrap">
+          <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Doi thiet bi xac thuc</button>
+          <button id="showQrBtn" class="btn-secondary hidden" type="button">Them thiet bi Authenticator khac</button>
+        </div>
+
+        <div id="showQrPanel" class="hidden mt-10">
+          <p class="hint">
+            Hien lai dung ma QR dang dung de quet them tren 1 thiet bi thu 2 - khong anh huong
+            thiet bi hien tai. Nhap lai mat khau de xac nhan.
+          </p>
+          <div class="flex gap-8">
+            <input id="showQrPassword" type="password" placeholder="Mat khau" class="flex-1 m-0" autocomplete="current-password" />
+            <button id="showQrConfirmBtn" class="btn-secondary" type="button">Hien ma QR</button>
+          </div>
+          <div id="showQrResult" class="hidden mt-10">
+            <div class="twofa-qr"><img id="showQrImg" alt="Ma QR xac thuc hai yeu to" /></div>
+            <p class="twofa-key-label">Hoac nhap tay ma nay vao ung dung Authenticator:</p>
+            <p id="showQrKey" class="twofa-key"></p>
+          </div>
+        </div>
       </div>
 
       <div class="card">
