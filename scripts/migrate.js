@@ -28,5 +28,18 @@ async function run() {
 
 run().catch((err) => {
   console.error('Migration failed:', err.message);
+  // SQL Server hay bao loi tong quat (vd "Could not create constraint or
+  // index. See previous errors.") va giau loi CHI TIET that su o cac thong
+  // bao truoc do trong cung 1 batch - driver mssql gom nhung loi nay vao
+  // err.precedingErrors. In het ra de biet duoc nguyen nhan that.
+  if (Array.isArray(err.precedingErrors) && err.precedingErrors.length > 0) {
+    console.error('Chi tiet loi truoc do (nguyen nhan that):');
+    err.precedingErrors.forEach((e, i) => {
+      console.error(`  [${i + 1}] ${e.message}`);
+    });
+  }
+  if (err.originalError && err.originalError.message && err.originalError.message !== err.message) {
+    console.error('originalError:', err.originalError.message);
+  }
   process.exit(1);
 });
