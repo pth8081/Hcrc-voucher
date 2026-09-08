@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nhat ky he thong - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+    </div>
+
+    <div id="logCard" class="card">
+      <h2>Nhat ky he thong</h2>
+      <div class="tabs">
+        <button type="button" class="tab-btn active" data-tab="audit">Nhat ky quan tri</button>
+        <button type="button" class="tab-btn" data-tab="scan">Hoat dong quet/thu hoi</button>
+      </div>
+
+      <div id="tabAudit" class="tab-panel">
+        <p class="hint">Ghi lai cac thao tac quan tri: tao tai khoan, doi quyen, doi lich hieu luc, go 2FA nguoi khac...</p>
+        <table>
+          <thead>
+            <tr><th>Thoi gian</th><th>Nguoi thuc hien</th><th>Hanh dong</th><th>Doi tuong</th><th>Chi tiet</th></tr>
+          </thead>
+          <tbody id="auditBody"><tr><td colspan="5" class="text-muted">Dang tai...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div id="tabScan" class="tab-panel hidden">
+        <p class="hint">Ghi lai MOI lan quet/kiem tra voucher (ca thanh cong lan that bai). De trong ca 2 o ngay de xem toan bo lich su gan nhat.</p>
+        <div class="summary-filters">
+          <div class="field">
+            <label>Tu ngay (tuy chon)</label>
+            <input id="scanFromDate" type="date" />
+          </div>
+          <div class="field">
+            <label>Den ngay (tuy chon)</label>
+            <input id="scanToDate" type="date" />
+          </div>
+          <button id="loadScanBtn" class="btn-primary">Xem</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Thoi gian</th><th>Nguoi quet</th><th>Dia diem</th><th>Ma voucher</th><th>Cach quet</th><th>Hanh dong</th><th>Ket qua</th></tr>
+          </thead>
+          <tbody id="scanBody"><tr><td colspan="7" class="text-muted">Dang tai...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/admin-log.js"></script>
+</body>
+</html>

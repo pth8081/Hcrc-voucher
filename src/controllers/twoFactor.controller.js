@@ -1,6 +1,7 @@
 const twoFactorService = require('../services/twoFactorService');
 const authService = require('../services/authService');
 const loginGuard = require('../utils/loginGuard');
+const auditLogService = require('../services/auditLogService');
 
 async function setupInit(req, res, next) {
   try {
@@ -26,7 +27,7 @@ async function setupVerify(req, res, next) {
     // token moi.
     if (req.twoFactorContext === 'pending') {
       const user = await authService.findUserById(userId);
-      return res.json({ success: true, data: authService.issueSession(user) });
+      return res.json({ success: true, data: await authService.issueSession(user) });
     }
     return res.json({ success: true, data: { alreadySignedIn: true } });
   } catch (err) {
@@ -54,7 +55,7 @@ async function loginVerify(req, res, next) {
     loginGuard.recordResult(username, true, 'admin');
 
     const user = await authService.findUserById(userId);
-    res.json({ success: true, data: authService.issueSession(user) });
+    res.json({ success: true, data: await authService.issueSession(user) });
   } catch (err) {
     next(err);
   }
@@ -114,6 +115,11 @@ async function adminReset(req, res, next) {
       });
     }
     await twoFactorService.adminResetOther(targetUserId, req.user.username);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'RESET_2FA',
+      targetUsername: req.body.username || String(targetUserId),
+    });
     res.json({ success: true });
   } catch (err) {
     next(err);

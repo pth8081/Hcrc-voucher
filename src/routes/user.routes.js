@@ -7,6 +7,8 @@ const router = express.Router();
 router.use(authenticate, requireAdmin);
 
 router.get('/', controller.list);
+router.post('/', controller.create);
+router.put('/:userId/permissions', controller.updatePermissions);
 router.put('/:userId/schedule', controller.updateSchedule);
 router.put('/:userId/report-access', controller.updateReportAccess);
 
