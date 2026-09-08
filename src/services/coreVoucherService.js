@@ -18,8 +18,14 @@ const VOUCHER_STATUS = {
 async function checkVoucher(voucherCode) {
   const connection = await apiConnectionService.getActiveDecrypted();
   if (connection) {
-    const result = await callDynamic(connection, 'check', { code: voucherCode });
-    return { httpStatus: result.httpStatus, ...result.normalized, status: mapCoreStatus(result.normalized.status) };
+    try {
+      const result = await callDynamic(connection, 'check', { code: voucherCode });
+      return { httpStatus: result.httpStatus, ...result.normalized, status: mapCoreStatus(result.normalized.status) };
+    } catch (err) {
+      // callDynamic chi throw khi mat mang/timeout/Core 5xx (loi 4xx da duoc xu ly va tra ve
+      // binh thuong o tren, khong roi vao day) - nghia la KHONG ket noi duoc toi Core that su.
+      throw wrapConnError(err);
+    }
   }
   return checkVoucherLegacyEnv(voucherCode);
 }
@@ -27,13 +33,18 @@ async function checkVoucher(voucherCode) {
 async function redeemVoucher(voucherCode, context) {
   const connection = await apiConnectionService.getActiveDecrypted();
   if (connection) {
-    const result = await callDynamic(connection, 'redeem', {
-      code: voucherCode,
-      username: context.username,
-      locationsGroup: context.locationsGroup,
-      locationsDetail: context.locationsDetail,
-      transNum: context.transNum,
-    });
+    let result;
+    try {
+      result = await callDynamic(connection, 'redeem', {
+        code: voucherCode,
+        username: context.username,
+        locationsGroup: context.locationsGroup,
+        locationsDetail: context.locationsDetail,
+        transNum: context.transNum,
+      });
+    } catch (err) {
+      throw wrapConnError(err);
+    }
     return {
       httpStatus: result.httpStatus,
       success: !!result.normalized.success,
@@ -126,7 +137,10 @@ async function redeemVoucherLegacyEnv(voucherCode, context) {
 function wrapConnError(err) {
   const wrapped = new Error('Khong the ket noi Core Voucher API');
   wrapped.statusCode = 502;
-  wrapped.publicMessage = 'He thong kiem tra/thu hoi voucher tam thoi khong phan hoi, vui long thu lai';
+  // Noi ro day la loi KET NOI toi Core API (khong phai loi du lieu voucher) de nguoi dung/quan
+  // tri phan biet duoc voi cac loi nghiep vu khac (voucher het han, da tieu...) va biet huong
+  // xu ly dung (kiem tra mang/Core, khong phai kiem tra lai ma voucher).
+  wrapped.publicMessage = 'Khong ket noi duoc den Core API de kiem tra/thu hoi voucher. Vui long kiem tra ket noi mang hoac bao quan tri vien neu tinh trang keo dai.';
   wrapped.cause = err;
   return wrapped;
 }
