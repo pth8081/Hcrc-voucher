@@ -60,7 +60,12 @@ function createApp() {
   );
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
-  app.get('/health', (req, res) => res.json({ success: true, status: 'ok' }));
+  // Nguon xac nhan version DANG THUC SU CHAY doc lap voi "pm2 status" (cot Version cua pm2 chi
+  // doc dung neu tien trinh duoc dang ky dung cach - xem README muc 3e) - goi endpoint nay hoac
+  // xem dong log luc khoi dong (server.js) de biet chac chan dang chay ban nao, khong phu thuoc
+  // pm2 co hien thi dung hay khong.
+  const { version } = require('../package.json');
+  app.get('/health', (req, res) => res.json({ success: true, status: 'ok', version }));
   app.use('/api', routes);
 
   app.use('/api', notFoundHandler);

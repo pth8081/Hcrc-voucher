@@ -415,6 +415,16 @@ sudo -u hcrcapp pm2 stop hcrc-voucher       # dung han (khong tu bat lai cho toi
 > = 16 tien trinh** thay vi 4 nhu mong muon. Voi PM2, luon de **mac dinh (khong dung `-i`)**, chi
 > dieu chinh so worker qua `CLUSTER_WORKERS` trong `.env`.
 
+> **Kiem tra dang chay dung version nao sau khi cap nhat code:** cot "Version" trong
+> `pm2 list`/`pm2 status` CHI doc dung neu tien trinh duoc dang ky DUNG CACH nhu buoc 2 o tren
+> (`pm2 start src/server.js --cwd <duong-dan-that-toi-thu-muc-app>`) - neu tung dang ky qua cach
+> khac (vd `pm2 start npm -- start`) thi cot nay se hien "N/A" mai mai cho toi khi xoa dang ky
+> cu va lam lai dung cach (`pm2 delete hcrc-voucher` roi chay lai buoc 2). Cach kiem tra CHAC
+> CHAN dung version dang chay, khong phu thuoc pm2 co hien dung hay khong:
+> - Xem dong dau tien trong log luc khoi dong: `sudo -u hcrcapp pm2 logs hcrc-voucher --lines 50`
+>   se co dong "HCRC Voucher Redemption App v<version> ... dang chay tai ...".
+> - Hoac goi `curl http://localhost:3000/health` - tra ve JSON co san field `"version"`.
+
 #### Cach 2: Chay bang systemd service (khong can cai them goi nao, co san tren moi distro Linux hien dai)
 
 ```bash

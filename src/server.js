@@ -5,6 +5,7 @@ const logger = require('./utils/logger');
 const { getPool } = require('./config/db');
 const { startSyncScheduler } = require('./utils/syncScheduler');
 const { resolveWorkerCount } = require('./utils/clusterConfig');
+const { version: APP_VERSION } = require('../package.json');
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,7 +24,10 @@ async function runHttpProcess({ withScheduler }) {
 
   const app = createApp();
   app.listen(PORT, () => {
-    logger.info(`HCRC Voucher Redemption App (PID ${process.pid}) dang chay tai http://localhost:${PORT}`);
+    // In ro version dang chay NGAY TAI DAY (doc thang tu package.json, khong qua pm2) - vi cot
+    // "Version" trong "pm2 status" chi doc dung khi tien trinh duoc dang ky dung cach (xem
+    // README muc 3e); dong log nay + GET /health luon dung du dang ky pm2 the nao.
+    logger.info(`HCRC Voucher Redemption App v${APP_VERSION} (PID ${process.pid}) dang chay tai http://localhost:${PORT}`);
   });
 }
 
@@ -45,7 +49,7 @@ async function runSchedulerOnlyProcess() {
 }
 
 function startCluster(workerCount) {
-  logger.info(`Che do cluster: khoi dong ${workerCount} worker xu ly HTTP (tien trinh chinh PID ${process.pid})`);
+  logger.info(`HCRC Voucher Redemption App v${APP_VERSION} - che do cluster: khoi dong ${workerCount} worker xu ly HTTP (tien trinh chinh PID ${process.pid})`);
 
   for (let i = 0; i < workerCount; i += 1) {
     cluster.fork();
