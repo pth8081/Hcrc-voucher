@@ -353,7 +353,11 @@ tbody tr:hover { background: var(--ink-100); }
 }
 .toast.show { opacity: 1; }
 
-#qr-reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: var(--radius-md); overflow: hidden; }
+/* Thu vien html5-qrcode tu dat width/height inline theo do phan giai that cua camera (thuong
+   rat cao tren dien thoai, dac biet camera sau) - ep lai chieu cao co dinh + object-fit:cover
+   de khung quet gon gang, khong choan het man hinh nhu 1 dai video dai vo tan. */
+#qr-reader { width: 100%; max-width: 400px; max-height: 320px; margin: 0 auto; border-radius: var(--radius-md); overflow: hidden; }
+#qr-reader video { width: 100% !important; height: 320px !important; object-fit: cover; display: block; }
 
 .hidden { display: none !important; }
 
