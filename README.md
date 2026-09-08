@@ -712,11 +712,12 @@ su that duy nhat** cho cau tra loi "con dung duoc". Tan dung index co san `IX_VO
 
 ## 5. API cua app nay (danh cho web/mobile UI)
 
-Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token>`.
+Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
 
 | Method | Path | Mo ta |
 |---|---|---|
-| POST | `/api/auth/login` | Dang nhap, tra ve JWT |
+| GET | `/api/auth/captcha` | (cong khai) Sinh ma xac thuc hinh anh moi (4 ky tu) cho form dang nhap |
+| POST | `/api/auth/login` | Dang nhap, tra ve JWT (bat buoc kem `captchaToken`/`captchaText` tu endpoint tren) |
 | GET | `/api/locations/groups` | Danh sach nhom dia diem |
 | GET | `/api/locations/details` | Danh sach dia diem chi tiet |
 | GET | `/api/redemption-units` | Danh sach diem tieu (kem ten cong ty) |
@@ -740,6 +741,7 @@ Tat ca endpoint (tru `/auth/login`) yeu cau header `Authorization: Bearer <token
 | POST | `/api/auth/2fa/setup-verify` | (token tam hoac phien admin) Xac nhan ma TOTP, bat 2FA |
 | POST | `/api/auth/2fa/login-verify` | (token tam) Nhap ma TOTP de hoan tat dang nhap (admin da bat 2FA) |
 | GET | `/api/auth/2fa/status` | (can quyen admin) Trang thai 2FA cua chinh minh |
+| POST | `/api/auth/2fa/show-qr` | (can quyen admin, bat buoc kem `password`) Hien lai QR cua secret HIEN TAI (khong doi secret) de them thiet bi Authenticator thu 2 |
 | GET | `/api/auth/2fa/admins` | (can quyen admin) Danh sach quan tri vien + trang thai 2FA |
 | DELETE | `/api/auth/2fa/admins/:userId` | (can quyen admin) Go 2FA cua **admin khac** (khong tu go duoc cua chinh minh) |
 | GET | `/api/users` | (can quyen admin) Danh sach tai khoan + lich hieu luc + trang thai hien tai |
@@ -837,6 +839,13 @@ Luong quet tren UI:
   do dung mat khau/van tay khong con du de vao duoc, nen nguong 5 lan/khoa 15 phut cu de bi loi
   dung nguoc lai thanh **DoS chinh admin** (ai biet username admin chi can go sai 5 lan lien tuc
   la khoa duoc ho, lap lai vo han). Nhan vien khong co 2FA nen van giu nguyen muc nghiem ngat.
+- **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
+  (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
+  `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
+  mat khau/`loginGuard`. Token cua ma xac thuc **tu ky (HMAC voi `JWT_SECRET`)**, khong luu DB
+  hay bo nho dung chung nen hoat dong dung khi chay nhieu worker (`CLUSTER_WORKERS > 1`) — xem
+  `src/utils/captcha.js`. Rieng dang nhap bang van tay/Face ID khong can captcha (khong the go
+  tay tu dong duoc vi can thiet bi sinh trac that).
 - **Xac thuc hai yeu to (2FA) bat buoc cho quan tri**: tai khoan `Users.status = 1` khong the vao
   duoc ung dung neu chua thiet lap 2FA (TOTP) — xem muc 10. Token cap ngay sau khi dang nhap
   dung mat khau/van tay nhung **chua** qua 2FA la token TAM (`purpose` khac `'session'`), bi
@@ -891,7 +900,9 @@ hay luu du lieu sinh trac hoc that**, chi luu **khoa cong khai** cua tung thiet 
   xac minh van tay/Face ID/PIN la vao thang, khong can go mat khau.
 - Dang nhap van tay/Face ID that bai (khong tim thay passkey hop le, chu ky sai...) cung tinh vao
   bo dem cua `loginGuard` (muc 8) nhu dang nhap mat khau sai, tranh bi loi dung de do doan.
-- Quan ly thiet bi da dang ky (xoa khi mat thiet bi) qua `GET/DELETE /api/auth/webauthn/devices`.
+- Quan ly thiet bi da dang ky (xem danh sach, dang ky them, xoa khi mat thiet bi) truc tiep
+  trong giao dien tai trang **"Bao mat"** (`security.html`) - muc nay danh cho **moi tai khoan**
+  (khong rieng admin), goi `GET/DELETE /api/auth/webauthn/devices`.
 
 ## 10. Xac thuc hai yeu to bat buoc cho quan tri (2FA)
 
@@ -920,7 +931,13 @@ Man hinh **"Bao mat"** (`/security.html`, chi tai khoan admin) liet ke toan bo q
 trang thai 2FA, va cho phep:
 
 - **Doi thiet bi xac thuc**: tu minh (dang co phien dang nhap hop le) bam "Doi thiet bi xac thuc"
-  de thiet lap lai TOTP tren thiet bi moi — khong can ai giup.
+  de thiet lap lai TOTP tren thiet bi moi — khong can ai giup. Luu y: thao tac nay sinh **secret
+  moi**, huy QR/secret cu — thiet bi Authenticator dang dung se ngung hoat dong.
+- **Them thiet bi Authenticator khac**: khac voi "Doi thiet bi" o tren, nut nay hien lai **dung
+  QR cua secret dang dung** (khong sinh secret moi, khong anh huong thiet bi hien tai) de quet
+  them tren dien thoai/thiet bi thu 2 — huu ich khi muon co 2 thiet bi cung xac thuc duoc. Bat
+  buoc nhap lai mat khau truoc khi hien QR (`POST /api/auth/2fa/show-qr`, gioi han so lan thu sai
+  giong `login-verify`), vi day la lo lai 1 bi mat dung de tao ma OTP.
 - **Go 2FA cua mot admin khac** (khi ho bi mat dien thoai/mat thiet bi xac thuc, khong con cach
   nao tu dang nhap duoc): **bat ky admin nao khac** bam "Go 2FA" tren dong cua nguoi do — lan
   dang nhap ke tiep cua ho se quay lai buoc **bat buoc thiet lap tu dau** (10a).

@@ -60,6 +60,32 @@ async function loginVerify(req, res, next) {
   }
 }
 
+/** Nhap lai mat khau de xem lai QR cua secret 2FA HIEN TAI (them thiet bi Authenticator thu 2),
+ * khong doi secret. Gioi han so lan thu sai nhu loginVerify, tranh bi do mat khau qua endpoint
+ * nay. */
+async function showQr(req, res, next) {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Thieu mat khau xac nhan' });
+    }
+
+    loginGuard.assertNotLocked(req.user.username);
+    const user = await authService.findUserByUsername(req.user.username);
+    const passwordOk = user && (await authService.comparePassword(password, user.Password));
+    if (!passwordOk) {
+      loginGuard.recordResult(req.user.username, false, 'admin');
+      return res.status(401).json({ success: false, message: 'Mat khau khong dung' });
+    }
+    loginGuard.recordResult(req.user.username, true, 'admin');
+
+    const data = await twoFactorService.showCurrentQr(req.user.userId, req.user.username);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function status(req, res, next) {
   try {
     const data = await twoFactorService.getStatus(req.user.userId);
@@ -94,4 +120,4 @@ async function adminReset(req, res, next) {
   }
 }
 
-module.exports = { setupInit, setupVerify, loginVerify, status, listAdmins, adminReset };
+module.exports = { setupInit, setupVerify, loginVerify, showQr, status, listAdmins, adminReset };

@@ -16,6 +16,7 @@ router.post('/login-verify', require2FAPending(['2fa_verify']), controller.login
 
 // Quan ly 2FA - can phien day du + quyen quan tri.
 router.get('/status', authenticate, requireAdmin, controller.status);
+router.post('/show-qr', authenticate, requireAdmin, controller.showQr);
 router.get('/admins', authenticate, requireAdmin, controller.listAdmins);
 router.delete('/admins/:userId', authenticate, requireAdmin, controller.adminReset);
 

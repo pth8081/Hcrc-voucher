@@ -109,6 +109,29 @@ async function verifyLogin(userId, code) {
 }
 
 /**
+ * Hien lai QR cua secret HIEN TAI (dang bat) de quet them tren 1 thiet bi Authenticator thu 2 -
+ * KHONG sinh secret moi (khac han startSetup, ham do se HUY secret/QR cu). Controller phai bat
+ * nguoi dung nhap lai mat khau truoc khi goi ham nay, vi day la lo lai 1 bi mat co the dung de
+ * tao ma OTP thay ho.
+ */
+async function showCurrentQr(userId, username) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .query('SELECT SecretEncrypted, Enabled FROM dbo.AdminTwoFactor WHERE UserId = @userId');
+  const row = result.recordset[0];
+  if (!row || !row.Enabled) {
+    throw badRequest('Tai khoan nay chua bat xac thuc hai yeu to.');
+  }
+
+  const secret = decrypt(row.SecretEncrypted);
+  const otpauthUri = authenticator.keyuri(username, ISSUER, secret);
+  const qrCodeDataUrl = await QRCode.toDataURL(otpauthUri);
+  return { qrCodeDataUrl, manualEntryKey: secret };
+}
+
+/**
  * Mot admin GO xac thuc hai yeu to cua mot admin KHAC (vd: admin do bi mat thiet bi) - de
  * lan dang nhap sau cua nguoi do quay lai trang thai "bat buoc thiet lap lai tu dau". Khong
  * cho phep tu go 2FA cua chinh minh - kiem tra actorUserId !== targetUserId o tang controller.
@@ -142,4 +165,12 @@ async function listAdminStatus() {
   return result.recordset;
 }
 
-module.exports = { getStatus, startSetup, verifySetup, verifyLogin, adminResetOther, listAdminStatus };
+module.exports = {
+  getStatus,
+  startSetup,
+  verifySetup,
+  verifyLogin,
+  showCurrentQr,
+  adminResetOther,
+  listAdminStatus,
+};

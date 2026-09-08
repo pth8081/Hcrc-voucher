@@ -38,6 +38,12 @@
         <input id="username" required autocomplete="username" placeholder="vd: nhanvien1" />
         <label>Mat khau</label>
         <input id="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
+        <label>Ma xac thuc</label>
+        <div class="captcha-row">
+          <img id="captchaImg" class="captcha-img" alt="Ma xac thuc" />
+          <button type="button" id="captchaRefresh" class="btn-secondary captcha-refresh" aria-label="Doi ma khac">⟳</button>
+        </div>
+        <input id="captchaText" class="captcha-input" required maxlength="4" autocomplete="off" placeholder="Nhap 4 ky tu trong hinh" />
         <button class="btn-primary btn-block mt-6" type="submit">Dang nhap</button>
       </form>
 

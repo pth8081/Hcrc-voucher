@@ -1,10 +1,21 @@
 const authService = require('../services/authService');
+const captcha = require('../utils/captcha');
+
+function getCaptcha(req, res) {
+  res.json({ success: true, data: captcha.generate() });
+}
 
 async function login(req, res, next) {
   try {
-    const { username, password } = req.body;
+    const { username, password, captchaToken, captchaText } = req.body;
     if (!username || !password) {
       return res.status(400).json({ success: false, message: 'Thieu username hoac password' });
+    }
+    if (!captcha.verify(captchaToken, captchaText)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ma xac thuc hinh anh khong dung hoac da het han, vui long thu lai.',
+      });
     }
     const result = await authService.login(username, password);
     return res.json({ success: true, data: result });
@@ -29,4 +40,4 @@ async function changePassword(req, res, next) {
   }
 }
 
-module.exports = { login, changePassword };
+module.exports = { getCaptcha, login, changePassword };

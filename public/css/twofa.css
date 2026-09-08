@@ -35,3 +35,15 @@
 /* ===== Trang "Bao mat" (danh sach admin + trang thai 2FA) ===== */
 .security-note { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 .self-row { opacity: 0.75; }
+
+.passkey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+.passkey-name { font-weight: 600; font-size: 13.5px; color: var(--ink-900); }
