@@ -13,7 +13,7 @@ function buildLocationCodeFilter(request, codes) {
     request.input(`locCode${i}`, sql.NVarChar(100), code);
     return `@locCode${i}`;
   });
-  return ` AND Locations_Detail IN (${placeholders.join(', ')})`;
+  return ` AND LTRIM(RTRIM(Locations_Detail)) IN (${placeholders.join(', ')})`;
 }
 
 /**
