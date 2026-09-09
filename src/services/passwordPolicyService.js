@@ -73,4 +73,31 @@ async function setNewPassword(userId, newPassword) {
     `);
 }
 
-module.exports = { checkComplexity, assertComplexity, mustChangePassword, setNewPassword };
+/** Quan tri DAT LAI mat khau ho 1 tai khoan khac (nut "Sua" o man hinh Tai khoan) - khac
+ * setNewPassword() o cho: BUOC tai khoan do phai doi lai mat khau (cua admin dat) trong lan
+ * dang nhap tiep theo, thay vi coi nhu da "chinh chu" doi xong. */
+async function adminResetPassword(userId, newPassword) {
+  assertComplexity(newPassword);
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('password', sql.NVarChar(200), passwordHash)
+    .query('UPDATE dbo.Users SET Password = @password WHERE UserID = @userId');
+
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .query(`
+      MERGE dbo.UserPasswordPolicy AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET MustChangePassword = 1, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT (UserId, MustChangePassword, UpdatedDate)
+        VALUES (@userId, 1, GETDATE());
+    `);
+}
+
+module.exports = { checkComplexity, assertComplexity, mustChangePassword, setNewPassword, adminResetPassword };

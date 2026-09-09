@@ -30,11 +30,13 @@ let companiesCache = [];
 let redemptionUnitsCache = [];
 
 const PERM_FIELDS = ['canRedeemVoucher', 'canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'];
+const showDeletedCheckbox = document.getElementById('showDeletedCheckbox');
 
 async function load() {
   try {
+    const includeDeleted = showDeletedCheckbox.checked ? 'true' : 'false';
     const [users, groups, companies, units] = await Promise.all([
-      apiFetch('/users'),
+      apiFetch(`/users?includeDeleted=${includeDeleted}`),
       apiFetch('/access-groups').catch(() => []),
       apiFetch('/companies').catch(() => []),
       apiFetch('/redemption-units').catch(() => []),
@@ -49,6 +51,7 @@ async function load() {
     usersCard.classList.add('hidden');
   }
 }
+showDeletedCheckbox.addEventListener('change', load);
 
 /** Nhan dien nhanh: "CompanyName - PartnerName (LocationCode)" - du de phan biet cac diem tieu
  * trung ten o cong ty khac nhau, ma van gon trong 1 dropdown. */
@@ -98,10 +101,11 @@ function renderUsers(users) {
     .map((u) => {
       const isAdmin = Number(u.role) === 1;
       const perms = u.permissions || {};
+      const deleted = !!u.isDeleted;
       return `
-      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}">
-        <td>${escapeHtmlLayout(u.username)}</td>
-        <td>${escapeHtmlLayout(u.fullName || '-')}</td>
+      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" class="${deleted ? 'row-deleted' : ''}">
+        <td>${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">DA XOA</span>' : ''}</td>
+        <td><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
         <td>${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
         <td class="perm-cell">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
         <td class="perm-cell">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
@@ -122,7 +126,14 @@ function renderUsers(users) {
             ${groupOptions}
           </select>
         </td>
-        <td><button class="btn-secondary save-btn" type="button">Luu</button></td>
+        <td><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-secondary save-btn" type="button">Luu</button>
+            <button class="btn-secondary lock-btn" type="button"></button>
+            <button class="btn-danger delete-btn" type="button"></button>
+          </div>
+        </td>
       </tr>`;
     })
     .join('');
@@ -137,8 +148,56 @@ function renderUsers(users) {
       const matchedUnit = redemptionUnitsCache.find((u) => u.LocationCode === user.locationsDetail);
       if (matchedUnit) tr.querySelector('.redemption-unit').value = String(matchedUnit.Id);
     }
+
+    const lockBtn = tr.querySelector('.lock-btn');
+    const isLocked = user && user.state === 'expired';
+    lockBtn.textContent = isLocked ? 'Mo khoa' : 'Khoa';
+    lockBtn.addEventListener('click', () => toggleLockFields(tr, !isLocked));
+
+    const deleteBtn = tr.querySelector('.delete-btn');
+    const deleted = user && user.isDeleted;
+    deleteBtn.textContent = deleted ? 'Khoi phuc' : 'Xoa';
+    deleteBtn.classList.toggle('btn-danger', !deleted);
+    deleteBtn.classList.toggle('btn-secondary', !!deleted);
+    deleteBtn.addEventListener('click', () => deleteUser(tr, !deleted));
+
     tr.querySelector('.save-btn').addEventListener('click', () => saveUser(tr));
   });
+}
+
+/** Nut "Khoa"/"Mo khoa" chi DIEN SAN gia tri vao 2 o Kich hoat tu/Het han - PHAI bam "Luu" moi
+ * that su co hieu luc, giong het cach cac truong khac trong dong nay hoat dong (xem lai truoc
+ * khi luu, khong am tham doi ngay). */
+function toggleLockFields(tr, lock) {
+  const activeFromInput = tr.querySelector('.active-from');
+  const activeUntilInput = tr.querySelector('.active-until');
+  activeFromInput.value = '';
+  activeUntilInput.value = lock ? toLocalInputValue(new Date().toISOString()) : '';
+  const lockBtn = tr.querySelector('.lock-btn');
+  lockBtn.textContent = lock ? 'Mo khoa' : 'Khoa';
+  showToast(lock ? 'Da dien "Het han" = bay gio - bam Luu de khoa that su' : 'Da xoa gioi han - bam Luu de mo khoa that su');
+}
+
+async function deleteUser(tr, isDeleted) {
+  const username = tr.dataset.username;
+  const confirmMsg = isDeleted
+    ? `Xoa tai khoan "${username}"? Tai khoan se khong dang nhap duoc nua va an khoi danh sach - co the khoi phuc lai sau.`
+    : `Khoi phuc tai khoan "${username}"?`;
+  if (!confirm(confirmMsg)) return;
+
+  const deleteBtn = tr.querySelector('.delete-btn');
+  deleteBtn.disabled = true;
+  try {
+    await apiFetch(`/users/${encodeURIComponent(tr.dataset.userId)}/delete-status`, {
+      method: 'PUT',
+      body: JSON.stringify({ isDeleted, username }),
+    });
+    showToast(isDeleted ? `Da xoa tai khoan "${username}"` : `Da khoi phuc tai khoan "${username}"`);
+    load();
+  } catch (err) {
+    showToast(err.message);
+    deleteBtn.disabled = false;
+  }
 }
 
 async function saveUser(tr) {
@@ -150,6 +209,13 @@ async function saveUser(tr) {
   const groupId = groupIdRaw ? Number(groupIdRaw) : null;
   const redemptionUnitIdRaw = tr.querySelector('.redemption-unit').value;
   const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
+  const fullName = tr.querySelector('.edit-fullname').value.trim();
+  const passwordInput = tr.querySelector('.edit-password');
+  const password = passwordInput.value || null;
+  if (!fullName) {
+    showToast('Ho ten khong duoc de trong');
+    return;
+  }
   const permissions = {};
   PERM_FIELDS.forEach((field) => {
     const el = tr.querySelector(`.perm-${field}`);
@@ -186,6 +252,13 @@ async function saveUser(tr) {
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId, username }),
+      }),
+    },
+    {
+      label: 'Ho so (ho ten/mat khau)',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({ fullName, password, username }),
       }),
     },
   ];

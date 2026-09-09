@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { sql, getPool } = require('../config/db');
 const permissionService = require('./permissionService');
+const passwordPolicyService = require('./passwordPolicyService');
 
 function badRequest(message) {
   const err = new Error(message);
@@ -70,4 +71,24 @@ async function updateLocation(userId, locationsDetail) {
     .query('UPDATE dbo.Users SET Locations_Detail = @locationsDetail WHERE UserID = @userId');
 }
 
-module.exports = { createUser, updateLocation };
+/** Sua ho ten va/hoac dat lai mat khau cho 1 tai khoan DA CO SAN (nut "Sua" o man hinh Tai
+ * khoan). password de trong/khong truyen = giu nguyen mat khau cu. */
+async function updateProfile(userId, { fullName, password }) {
+  const trimmedFullName = fullName != null ? String(fullName).trim() : null;
+  if (trimmedFullName !== null && !trimmedFullName) throw badRequest('Ho ten khong duoc de trong');
+
+  const pool = await getPool();
+  if (trimmedFullName !== null) {
+    await pool
+      .request()
+      .input('userId', sql.Int, userId)
+      .input('fullName', sql.NVarChar(200), trimmedFullName)
+      .query('UPDATE dbo.Users SET FullName = @fullName WHERE UserID = @userId');
+  }
+
+  if (password) {
+    await passwordPolicyService.adminResetPassword(userId, password);
+  }
+}
+
+module.exports = { createUser, updateLocation, updateProfile };
