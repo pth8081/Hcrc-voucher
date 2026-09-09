@@ -1007,6 +1007,13 @@ tra chi chan duoc **lan dang nhap moi**, khong thu hoi phien dang dung do he tho
 session phia server (stateless JWT). Neu can khoa tuc thi ca phien dang mo, giam `JWT_EXPIRES_IN`
 xuong ngan hon.
 
+> **Luu y khi doi `JWT_EXPIRES_IN`**: luon dat kem don vi ro rang (`"8h"`, `"30m"`, `"7d"`...).
+> Neu dat 1 con so tran khong co don vi (vd `JWT_EXPIRES_IN=3600` dinh y la 3600 GIAY), tu ban
+> v2.1 app se tu hieu do la GIAY (dung nhu mong doi). Truoc do (hoac neu ban dang chay ban cu
+> hon v2.1), gia tri tran se bi thu vien JWT hieu nham thanh MILI-GIAY (3600 = 3.6 giay), khien
+> MOI nguoi bi dang xuat gan nhu ngay sau khi dang nhap - day chinh la nguyen nhan cua loi "vua
+> dang nhap xong thao tac la bi van ra".
+
 ## 12. Cong ty, diem tieu & bao cao tong hop
 
 Ung dung cap tai khoan cho **nhieu doi tac** su dung, moi doi tac co the co **nhieu diem tieu**
