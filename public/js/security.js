@@ -144,12 +144,12 @@ function renderAdmins(admins) {
         : `<button class="btn-danger" data-user-id="${a.userId}" data-username="${escapeHtmlLayout(a.username)}" ${a.twoFactorEnabled ? '' : 'disabled'}>Go 2FA</button>`;
       return `
         <tr class="${isSelf ? 'self-row' : ''}">
-          <td>${escapeHtmlLayout(a.username)}</td>
-          <td>${escapeHtmlLayout(a.fullName || '-')}</td>
-          <td>${statusBadge}</td>
-          <td>${fmtDate(a.enabledDate)}</td>
-          <td>${fmtDate(a.lastUsedDate)}</td>
-          <td>${actionCell}</td>
+          <td data-label="Ten dang nhap">${escapeHtmlLayout(a.username)}</td>
+          <td data-label="Ho ten">${escapeHtmlLayout(a.fullName || '-')}</td>
+          <td data-label="Trang thai 2FA">${statusBadge}</td>
+          <td data-label="Kich hoat luc">${fmtDate(a.enabledDate)}</td>
+          <td data-label="Dung gan nhat">${fmtDate(a.lastUsedDate)}</td>
+          <td data-label="Hanh dong">${actionCell}</td>
         </tr>`;
     })
     .join('');
