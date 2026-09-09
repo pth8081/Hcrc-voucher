@@ -17,7 +17,7 @@ async function getSchedule(userId) {
   const result = await pool
     .request()
     .input('userId', sql.Int, userId)
-    .query('SELECT ActiveFrom, ActiveUntil, UpdatedBy, UpdatedDate FROM dbo.UserAccountSchedule WHERE UserId = @userId');
+    .query('SELECT ActiveFrom, ActiveUntil, IsDeleted, UpdatedBy, UpdatedDate FROM dbo.UserAccountSchedule WHERE UserId = @userId');
   return result.recordset[0] || null;
 }
 
@@ -36,10 +36,14 @@ function evaluate(schedule, now = new Date()) {
   return { state: 'active' };
 }
 
-/** Chan dang nhap neu tai khoan chua den han hoac da het han - goi SAU KHI da xac minh danh
- * tinh (mat khau/van tay) dung, KHONG tinh vao bo dem loginGuard vi day khong phai go sai. */
+/** Chan dang nhap neu tai khoan chua den han, da het han, hoac da bi XOA MEM (nut "Xoa" o man
+ * hinh Tai khoan) - goi SAU KHI da xac minh danh tinh (mat khau/van tay) dung, KHONG tinh vao
+ * bo dem loginGuard vi day khong phai go sai. */
 async function assertAccountActive(userId) {
   const schedule = await getSchedule(userId);
+  if (schedule && schedule.IsDeleted) {
+    throw forbidden('Tai khoan nay da bi xoa. Vui long lien he quan tri vien.');
+  }
   const result = evaluate(schedule);
   if (result.state === 'not_yet_active') {
     throw forbidden(`Tai khoan chua den thoi gian duoc kich hoat (co hieu luc tu ${fmtVn(result.activeFrom)}).`);
@@ -49,23 +53,28 @@ async function assertAccountActive(userId) {
   }
 }
 
-/** Danh sach toan bo tai khoan kem lich hieu luc + trang thai hien tai - phuc vu man hinh quan tri. */
-async function listAllWithSchedule() {
+/** Danh sach toan bo tai khoan kem lich hieu luc + trang thai hien tai - phuc vu man hinh quan
+ * tri. Mac dinh (includeDeleted=false) AN cac tai khoan da bi xoa mem, dung cho man hinh
+ * thuong ngay; dat includeDeleted=true de xem lai/khoi phuc. */
+async function listAllWithSchedule(includeDeleted = false) {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT u.UserID AS userId, u.Username AS username, u.FullName AS fullName, u.status AS role,
            LTRIM(RTRIM(u.Locations_Detail)) AS locationsDetail,
            s.ActiveFrom AS activeFrom, s.ActiveUntil AS activeUntil,
+           ISNULL(s.IsDeleted, 0) AS isDeleted,
            s.UpdatedBy AS updatedBy, s.UpdatedDate AS updatedDate
     FROM dbo.Users u
     LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
     ORDER BY u.Username ASC
   `);
   const now = new Date();
-  return result.recordset.map((row) => ({
-    ...row,
-    state: evaluate({ ActiveFrom: row.activeFrom, ActiveUntil: row.activeUntil }, now).state,
-  }));
+  return result.recordset
+    .filter((row) => includeDeleted || !row.isDeleted)
+    .map((row) => ({
+      ...row,
+      state: evaluate({ ActiveFrom: row.activeFrom, ActiveUntil: row.activeUntil }, now).state,
+    }));
 }
 
 /** activeFrom/activeUntil: chuoi ISO hoac null (null = go gioi han o moc do). */
@@ -88,4 +97,25 @@ async function upsertSchedule(userId, { activeFrom, activeUntil }, updatedBy) {
     `);
 }
 
-module.exports = { getSchedule, evaluate, assertAccountActive, listAllWithSchedule, upsertSchedule };
+/** Xoa mem / khoi phuc 1 tai khoan (nut "Xoa"/"Khoi phuc" o man hinh Tai khoan) - chi danh
+ * dau co, KHONG xoa dong nao trong dbo.Users (bang dung chung voi Core/vpdt-dms). */
+async function setDeleted(userId, isDeleted, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('isDeleted', sql.Bit, isDeleted ? 1 : 0)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.UserAccountSchedule AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET IsDeleted = @isDeleted,
+        DeletedDate = CASE WHEN @isDeleted = 1 THEN GETDATE() ELSE NULL END,
+        UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT (UserId, IsDeleted, DeletedDate, UpdatedBy, UpdatedDate)
+        VALUES (@userId, @isDeleted, CASE WHEN @isDeleted = 1 THEN GETDATE() ELSE NULL END, @updatedBy, GETDATE());
+    `);
+}
+
+module.exports = { getSchedule, evaluate, assertAccountActive, listAllWithSchedule, upsertSchedule, setDeleted };

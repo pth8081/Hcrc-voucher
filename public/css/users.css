@@ -4,6 +4,10 @@
 #usersBody td.perm-cell { text-align: center; }
 #usersBody input[type="checkbox"] { width: 17px; height: 17px; margin: 0; cursor: pointer; }
 #usersBody select { min-width: 190px; }
+#usersBody .edit-fullname { min-width: 160px; }
+#usersBody .edit-password { min-width: 150px; }
+.actions-cell { display: flex; flex-direction: column; gap: 6px; min-width: 100px; }
+#usersBody tr.row-deleted { opacity: 0.6; }
 .table-wrap { overflow-x: auto; }
 
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; }

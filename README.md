@@ -171,6 +171,9 @@ sequenceDiagram
   da dung) cho tai khoan nhan vien — xem muc 15b.
 - `AdminAuditLog` (015): nhat ky thao tac quan tri (tao tai khoan, doi quyen, go 2FA nguoi
   khac...) — xem muc 15c.
+- Them cot `IsDeleted`/`DeletedDate` vao `UserAccountSchedule` (016): "xoa mem" tai khoan (nut
+  "Xoa"/"Khoi phuc" o man hinh Tai khoan) — an khoi danh sach mac dinh va chan dang nhap, khong
+  mat du lieu, khoi phuc lai duoc bat ky luc nao — xem muc 11.
 
 Chay migration:
 

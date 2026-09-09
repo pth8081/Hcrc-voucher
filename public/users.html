@@ -87,6 +87,16 @@
           cua minh. Chon 1 nhom da tao o trang "Don vi thu hoi" de cap quyen xem cheo/xem nhieu
           cong ty, hoac xem toan bo.
         </p>
+        <p class="security-note">
+          <strong>Khoa</strong>: dien san "Het han" = ngay bay gio, bam "Luu" de co hieu luc -
+          tai khoan khong dang nhap moi duoc nua nhung phien dang mo van dung toi khi tu het han
+          (JWT). <strong>Xoa</strong>: xoa mem, an khoi danh sach nay - bat "Hien tai khoan da xoa"
+          de xem lai/khoi phuc, khong mat du lieu.
+        </p>
+        <label class="checkbox-inline mb-10">
+          <input type="checkbox" id="showDeletedCheckbox" />
+          Hien ca tai khoan da xoa
+        </label>
         <div class="table-wrap">
           <table>
             <thead>
@@ -95,10 +105,12 @@
                 <th>Thu hoi</th><th>Doi soat</th><th>Tong hop</th><th>Voucher da dung</th>
                 <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
                 <th>Don vi thu hoi</th>
-                <th>Nhom quyen xem bao cao</th><th></th>
+                <th>Nhom quyen xem bao cao</th>
+                <th>Mat khau moi</th>
+                <th>Hanh dong</th>
               </tr>
             </thead>
-            <tbody id="usersBody"><tr><td colspan="13" class="text-muted">Dang tai...</td></tr></tbody>
+            <tbody id="usersBody"><tr><td colspan="14" class="text-muted">Dang tai...</td></tr></tbody>
           </table>
         </div>
       </div>
