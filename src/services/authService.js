@@ -7,6 +7,21 @@ const userScheduleService = require('./userScheduleService');
 const passwordPolicyService = require('./passwordPolicyService');
 const permissionService = require('./permissionService');
 
+/**
+ * Doc JWT_EXPIRES_IN tu .env an toan - TRANH 1 "bay" thuong gap cua jsonwebtoken: bien .env
+ * LUON la CHUOI (vd "3600"), va khi truyen 1 chuoi THUAN SO cho tuy chon `expiresIn`, thu vien
+ * hieu do la MILI-GIAY (dung goi "ms") chu KHONG PHAI giay nhu da tuong - "3600" bi hieu thanh
+ * 3.6 GIAY thay vi 1 gio, khien token het han ngay lap tuc, moi tai khoan dang nhap xong thao
+ * tac gi cung bi dang xuat. O day: neu gia tri chi toan chu so, tu ep sang KIEU SO (luc do
+ * jsonwebtoken hieu dung la GIAY) - neu co don vi ro rang (vd "8h", "30m") thi giu nguyen chuoi.
+ */
+function resolveJwtExpiresIn() {
+  const raw = process.env.JWT_EXPIRES_IN;
+  if (!raw) return '8h';
+  const trimmed = String(raw).trim();
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
+}
+
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
 
@@ -133,7 +148,7 @@ async function issueSession(user) {
       role: user.status,
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+    { expiresIn: resolveJwtExpiresIn() }
   );
 
   return {
