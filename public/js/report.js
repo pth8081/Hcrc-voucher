@@ -37,9 +37,9 @@ function renderSummary(rows, unassignedLocation) {
     .map(
       (r) => `
       <tr>
-        <td>${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
-        <td>${r.VoucherCount}</td>
-        <td>${fmtMoney(r.TotalAmount)}</td>
+        <td data-label="Dia diem">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="So luong">${r.VoucherCount}</td>
+        <td data-label="Tong tien">${fmtMoney(r.TotalAmount)}</td>
       </tr>`
     )
     .join('');
@@ -58,12 +58,12 @@ function renderDetails(rows, unassignedLocation) {
     .map(
       (r) => `
       <tr>
-        <td>${fmtDate(r.Created_Date)}</td>
-        <td>${escapeHtml(r.TRANS_NUM || '-')}</td>
-        <td>${escapeHtml(r.Voucher_Code)}</td>
-        <td>${escapeHtml(r.User_Name || '-')}</td>
-        <td>${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
-        <td>${fmtMoney(r.VALUE_AMT)}</td>
+        <td data-label="Gio">${fmtDate(r.Created_Date)}</td>
+        <td data-label="Ma giao dich">${escapeHtml(r.TRANS_NUM || '-')}</td>
+        <td data-label="Ma voucher">${escapeHtml(r.Voucher_Code)}</td>
+        <td data-label="Nguoi thu hoi">${escapeHtml(r.User_Name || '-')}</td>
+        <td data-label="Dia diem">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="Menh gia">${fmtMoney(r.VALUE_AMT)}</td>
       </tr>`
     )
     .join('');

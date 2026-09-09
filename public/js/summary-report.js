@@ -41,31 +41,31 @@ function render(data) {
   data.companies.forEach((company) => {
     rowsHtml.push(`
       <tr class="company-row">
-        <td>${escapeHtml(company.companyName)}</td>
+        <td data-label="Cong ty">${escapeHtml(company.companyName)}</td>
         <td></td><td></td><td></td><td></td>
-        <td>${company.count}</td>
-        <td>${fmtMoney(company.amount)}</td>
+        <td data-label="So voucher">${company.count}</td>
+        <td data-label="Menh gia">${fmtMoney(company.amount)}</td>
       </tr>`);
 
     company.points.forEach((point) => {
       rowsHtml.push(`
         <tr class="point-row">
-          <td>${escapeHtml(point.pointName)}</td>
+          <td data-label="Diem tieu">${escapeHtml(point.pointName)}</td>
           <td></td><td></td><td></td><td></td>
-          <td>${point.count}</td>
-          <td>${fmtMoney(point.amount)}</td>
+          <td data-label="So voucher">${point.count}</td>
+          <td data-label="Menh gia">${fmtMoney(point.amount)}</td>
         </tr>`);
 
       point.rows.forEach((row) => {
         rowsHtml.push(`
           <tr class="detail-row">
             <td></td>
-            <td>${fmtDate(row.createdDate)}</td>
-            <td>${escapeHtml(row.userName || '-')}</td>
-            <td>${escapeHtml(row.transNum || '-')}</td>
-            <td>${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(cho dong bo)</span>'}</td>
+            <td data-label="Ngay tieu">${fmtDate(row.createdDate)}</td>
+            <td data-label="Nguoi tieu">${escapeHtml(row.userName || '-')}</td>
+            <td data-label="Ma giao dich">${escapeHtml(row.transNum || '-')}</td>
+            <td data-label="Ma voucher">${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(cho dong bo)</span>'}</td>
             <td></td>
-            <td>${fmtMoney(row.valueAmt)}</td>
+            <td data-label="Menh gia">${fmtMoney(row.valueAmt)}</td>
           </tr>`);
       });
     });
@@ -73,10 +73,10 @@ function render(data) {
 
   rowsHtml.push(`
     <tr class="grand-total-row">
-      <td>TONG TOAN BO CONG TY</td>
+      <td data-label="Tong">TONG TOAN BO CONG TY</td>
       <td></td><td></td><td></td><td></td>
-      <td>${data.grandTotal.count}</td>
-      <td>${fmtMoney(data.grandTotal.amount)}</td>
+      <td data-label="So voucher">${data.grandTotal.count}</td>
+      <td data-label="Menh gia">${fmtMoney(data.grandTotal.amount)}</td>
     </tr>`);
 
   reportBody.innerHTML = rowsHtml.join('');

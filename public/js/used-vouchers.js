@@ -42,14 +42,14 @@ function render(rows, unassignedLocation) {
     .map(
       (row) => `
       <tr>
-        <td>${fmtDate(row.createdDate)}</td>
-        <td>${escapeHtml(row.transNum || '-')}</td>
-        <td>${escapeHtml(row.voucherCode)}</td>
-        <td>${escapeHtml(row.userName || '-')}</td>
-        <td>${escapeHtml(row.companyName)}</td>
-        <td>${escapeHtml(row.pointName)}</td>
-        <td>${fmtMoney(row.valueAmt)}</td>
-        <td>${row.synced ? 'Da dong bo' : '<span class="text-muted">Cho dong bo</span>'}</td>
+        <td data-label="Ngay tieu">${fmtDate(row.createdDate)}</td>
+        <td data-label="Ma giao dich">${escapeHtml(row.transNum || '-')}</td>
+        <td data-label="Ma voucher">${escapeHtml(row.voucherCode)}</td>
+        <td data-label="Nguoi tieu">${escapeHtml(row.userName || '-')}</td>
+        <td data-label="Cong ty">${escapeHtml(row.companyName)}</td>
+        <td data-label="Diem tieu">${escapeHtml(row.pointName)}</td>
+        <td data-label="So tien">${fmtMoney(row.valueAmt)}</td>
+        <td data-label="Dong bo">${row.synced ? 'Da dong bo' : '<span class="text-muted">Cho dong bo</span>'}</td>
       </tr>`
     )
     .join('');

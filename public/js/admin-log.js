@@ -40,11 +40,11 @@ async function loadAudit() {
           .map(
             (r) => `
         <tr>
-          <td>${fmtDate(r.CreatedDate)}</td>
-          <td>${escapeHtml(r.ActorUsername)}</td>
-          <td>${escapeHtml(ACTION_LABEL[r.Action] || r.Action)}</td>
-          <td>${escapeHtml(r.TargetUsername || '-')}</td>
-          <td class="fs-13 text-muted">${escapeHtml(detailText(r.Detail))}</td>
+          <td data-label="Thoi gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Nguoi thuc hien">${escapeHtml(r.ActorUsername)}</td>
+          <td data-label="Hanh dong">${escapeHtml(ACTION_LABEL[r.Action] || r.Action)}</td>
+          <td data-label="Doi tuong">${escapeHtml(r.TargetUsername || '-')}</td>
+          <td class="fs-13 text-muted" data-label="Chi tiet">${escapeHtml(detailText(r.Detail))}</td>
         </tr>`
           )
           .join('')
@@ -72,13 +72,13 @@ async function loadScan() {
           .map(
             (r) => `
         <tr>
-          <td>${fmtDate(r.CreatedDate)}</td>
-          <td>${escapeHtml(r.UserName || '-')}</td>
-          <td>${escapeHtml(r.LocationsDetail || '-')}</td>
-          <td>${escapeHtml(r.VoucherCode)}</td>
-          <td>${escapeHtml(r.ScanMethod)}</td>
-          <td>${escapeHtml(r.Action)}</td>
-          <td>${escapeHtml(r.ResultStatus)}</td>
+          <td data-label="Thoi gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Nguoi quet">${escapeHtml(r.UserName || '-')}</td>
+          <td data-label="Dia diem">${escapeHtml(r.LocationsDetail || '-')}</td>
+          <td data-label="Ma voucher">${escapeHtml(r.VoucherCode)}</td>
+          <td data-label="Cach quet">${escapeHtml(r.ScanMethod)}</td>
+          <td data-label="Hanh dong">${escapeHtml(r.Action)}</td>
+          <td data-label="Ket qua">${escapeHtml(r.ResultStatus)}</td>
         </tr>`
           )
           .join('')

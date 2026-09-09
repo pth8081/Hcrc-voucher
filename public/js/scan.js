@@ -197,11 +197,11 @@ function addRecentRow(row) {
     .map(
       (r) => `
       <tr>
-        <td>${r.time.toLocaleTimeString('vi-VN')}</td>
-        <td>${escapeHtml(r.voucherCode)}</td>
-        <td>${fmtMoney(r.valueAmt)}</td>
-        <td>${escapeHtml(r.transNum || '-')}</td>
-        <td>${r.pendingSync ? '<span class="status-badge status-other">CHO DONG BO</span>' : '<span class="status-badge status-unused">DA DONG BO</span>'}</td>
+        <td data-label="Gio">${r.time.toLocaleTimeString('vi-VN')}</td>
+        <td data-label="Ma voucher">${escapeHtml(r.voucherCode)}</td>
+        <td data-label="Menh gia">${fmtMoney(r.valueAmt)}</td>
+        <td data-label="TRANS_NUM">${escapeHtml(r.transNum || '-')}</td>
+        <td data-label="Dong bo">${r.pendingSync ? '<span class="status-badge status-other">CHO DONG BO</span>' : '<span class="status-badge status-unused">DA DONG BO</span>'}</td>
       </tr>`
     )
     .join('');
