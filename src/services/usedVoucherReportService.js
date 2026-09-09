@@ -55,7 +55,11 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, maxRow
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
       ru.PartnerName, rc.CompanyName
     FROM dbo.VOUCHER_SYNC vs
-    LEFT JOIN dbo.Locations_Detail ld ON LTRIM(RTRIM(ld.LocationCode)) = LTRIM(RTRIM(vs.Locations_Detail))
+    LEFT JOIN (
+      SELECT id, LTRIM(RTRIM(LocationCode)) AS LocationCode,
+        ROW_NUMBER() OVER (PARTITION BY LTRIM(RTRIM(LocationCode)) ORDER BY id) AS rn
+      FROM dbo.Locations_Detail
+    ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
     LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
     LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
     WHERE 1 = 1${dateFilter}${locationFilter}
