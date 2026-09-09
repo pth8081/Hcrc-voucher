@@ -31,9 +31,10 @@
         <h2>Tao tai khoan moi</h2>
         <p class="security-note">
           Tai khoan tao o day doc lap voi he thong Core (Core chi dung de kiem tra/cap nhat
-          voucher, khong quan ly dang nhap). Gan <strong>Ma nhom dia diem/Ma dia diem</strong>
-          (LocationCode co san o trang "Don vi thu hoi") de sau nay quan ly viec thu hoi theo
-          dung don vi cua tai khoan nay.
+          voucher, khong quan ly dang nhap). Gan truc tiep <strong>Cong ty</strong> va
+          <strong>Don vi thu hoi (diem tieu)</strong> (chon tu danh sach da tao o trang "Don vi
+          thu hoi") de tai khoan nay chi thay/duoc tinh vao dung bao cao cua diem do - khong can
+          go tay ma dia diem nua.
         </p>
         <div class="form-grid">
           <div>
@@ -56,12 +57,16 @@
             </select>
           </div>
           <div>
-            <label>Ma nhom dia diem (tuy chon)</label>
-            <input id="newLocationsGroup" placeholder="vd: GRP01" />
+            <label>Cong ty (tuy chon)</label>
+            <select id="newCompanyId">
+              <option value="">-- Chua gan cong ty --</option>
+            </select>
           </div>
           <div>
-            <label>Ma dia diem (tuy chon)</label>
-            <input id="newLocationsDetail" placeholder="vd: LOC01" />
+            <label>Don vi thu hoi / diem tieu (tuy chon)</label>
+            <select id="newRedemptionUnitId">
+              <option value="">-- Chon cong ty truoc --</option>
+            </select>
           </div>
         </div>
         <button id="createUserBtn" class="btn-primary mt-6" type="button">Tao tai khoan</button>
@@ -89,10 +94,11 @@
                 <th>Ten dang nhap</th><th>Ho ten</th><th>Vai tro</th>
                 <th>Thu hoi</th><th>Doi soat</th><th>Tong hop</th><th>Voucher da dung</th>
                 <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
+                <th>Don vi thu hoi</th>
                 <th>Nhom quyen xem bao cao</th><th></th>
               </tr>
             </thead>
-            <tbody id="usersBody"><tr><td colspan="12" class="text-muted">Dang tai...</td></tr></tbody>
+            <tbody id="usersBody"><tr><td colspan="13" class="text-muted">Dang tai...</td></tr></tbody>
           </table>
         </div>
       </div>

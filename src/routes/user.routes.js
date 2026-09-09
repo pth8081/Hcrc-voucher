@@ -11,5 +11,6 @@ router.post('/', controller.create);
 router.put('/:userId/permissions', controller.updatePermissions);
 router.put('/:userId/schedule', controller.updateSchedule);
 router.put('/:userId/report-access', controller.updateReportAccess);
+router.put('/:userId/location', controller.updateLocation);
 
 module.exports = router;

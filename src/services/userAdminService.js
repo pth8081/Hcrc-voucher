@@ -57,4 +57,17 @@ async function createUser({ username, password, fullName, locationsGroup, locati
   return { userId, username: trimmedUsername };
 }
 
-module.exports = { createUser };
+/** Gan/doi diem tieu cua 1 tai khoan DA CO SAN - chi ghi cot Locations_Detail (co san tren
+ * Users, dung chung voi Core) bang LocationCode da tra tu Don vi thu hoi da chon (xem
+ * redemptionUnitService.js#getLocationCodeById) - khong go tay ma nua, tranh sai/thieu khien
+ * tai khoan khong duoc tinh vao dung bao cao cua diem/cong ty minh phu trach. */
+async function updateLocation(userId, locationsDetail) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('locationsDetail', sql.NVarChar(20), locationsDetail || null)
+    .query('UPDATE dbo.Users SET Locations_Detail = @locationsDetail WHERE UserID = @userId');
+}
+
+module.exports = { createUser, updateLocation };
