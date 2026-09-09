@@ -37,7 +37,11 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
         vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
         ru.PartnerName, ru.CompanyId, rc.CompanyName
       FROM dbo.VOUCHER_SYNC vs
-      LEFT JOIN dbo.Locations_Detail ld ON LTRIM(RTRIM(ld.LocationCode)) = LTRIM(RTRIM(vs.Locations_Detail))
+      LEFT JOIN (
+        SELECT id, LTRIM(RTRIM(LocationCode)) AS LocationCode,
+          ROW_NUMBER() OVER (PARTITION BY LTRIM(RTRIM(LocationCode)) ORDER BY id) AS rn
+        FROM dbo.Locations_Detail
+      ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
       WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}
