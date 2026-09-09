@@ -2,7 +2,22 @@ const userScheduleService = require('../services/userScheduleService');
 const reportAccessService = require('../services/reportAccessService');
 const permissionService = require('../services/permissionService');
 const userAdminService = require('../services/userAdminService');
+const redemptionUnitService = require('../services/redemptionUnitService');
 const auditLogService = require('../services/auditLogService');
+
+/** redemptionUnitId (neu co) luon uu tien - tra ve LocationCode that cua Don vi thu hoi da
+ * chon, thay the moi gia tri locationsDetail go tay. Nem loi 400 neu chon 1 id khong ton tai. */
+async function resolveLocationsDetail({ redemptionUnitId, locationsDetail }) {
+  if (!redemptionUnitId) return locationsDetail || null;
+  const code = await redemptionUnitService.getLocationCodeById(Number(redemptionUnitId));
+  if (!code) {
+    const err = new Error('Khong tim thay Don vi thu hoi da chon');
+    err.statusCode = 400;
+    err.publicMessage = 'Don vi thu hoi da chon khong ton tai, vui long chon lai';
+    throw err;
+  }
+  return code;
+}
 
 async function list(req, res, next) {
   try {
@@ -31,7 +46,8 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName, locationsGroup, locationsDetail, role } = req.body;
+    const { username, password, fullName, locationsGroup, redemptionUnitId, role } = req.body;
+    const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: req.body.locationsDetail });
     const created = await userAdminService.createUser(
       { username, password, fullName, locationsGroup, locationsDetail, role },
       req.user.username
@@ -40,9 +56,26 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_USER',
       targetUsername: created.username,
-      detail: { role: Number(role) === 1 ? 'admin' : 'staff', locationsGroup, locationsDetail },
+      detail: { role: Number(role) === 1 ? 'admin' : 'staff', redemptionUnitId: redemptionUnitId || null, locationsDetail },
     });
     res.json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateLocation(req, res, next) {
+  try {
+    const { redemptionUnitId, username } = req.body;
+    const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: null });
+    await userAdminService.updateLocation(Number(req.params.userId), locationsDetail);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_USER_LOCATION',
+      targetUsername: username || String(req.params.userId),
+      detail: { redemptionUnitId: redemptionUnitId || null, locationsDetail },
+    });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -105,4 +138,4 @@ async function updateReportAccess(req, res, next) {
   }
 }
 
-module.exports = { list, create, updatePermissions, updateSchedule, updateReportAccess };
+module.exports = { list, create, updatePermissions, updateSchedule, updateReportAccess, updateLocation };

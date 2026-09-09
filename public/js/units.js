@@ -16,6 +16,7 @@ const groupCompaniesField = document.getElementById('groupCompaniesField');
 const groupCompaniesList = document.getElementById('groupCompaniesList');
 
 let companiesCache = [];
+let locationsCache = [];
 
 (async function init() {
   try {
@@ -32,11 +33,24 @@ let companiesCache = [];
 })();
 
 async function loadLocations() {
-  const data = await apiFetch('/locations/details');
-  locationSelect.innerHTML = data
+  locationsCache = await apiFetch('/locations/details');
+  locationSelect.innerHTML = locationsCache
     .map((d) => `<option value="${d.id}">${escapeHtml(d.LocationName)} (${escapeHtml(d.LocationCode)})</option>`)
     .join('');
 }
+
+/** Goi y Ma diem (PartnerCode) = Ma cong ty-Ma dia diem (vd "123-LOC01") ngay khi chon du ca 2 -
+ * chi dien khi o Ma diem con DANG TRONG, khong ghi de neu admin da tu go tay truoc do. */
+function suggestPartnerCode() {
+  const partnerCodeInput = document.getElementById('partnerCode');
+  if (partnerCodeInput.value.trim()) return;
+  const company = companiesCache.find((c) => String(c.Id) === companySelect.value);
+  const location = locationsCache.find((d) => String(d.id) === locationSelect.value);
+  if (!company || !location) return;
+  partnerCodeInput.value = `${company.CompanyCode}-${location.LocationCode}`;
+}
+companySelect.addEventListener('change', suggestPartnerCode);
+locationSelect.addEventListener('change', suggestPartnerCode);
 
 async function loadCompanies() {
   try {

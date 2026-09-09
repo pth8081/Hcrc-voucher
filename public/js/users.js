@@ -26,22 +26,64 @@ function fromLocalInputValue(value) {
 }
 
 let accessGroupsCache = [];
+let companiesCache = [];
+let redemptionUnitsCache = [];
 
 const PERM_FIELDS = ['canRedeemVoucher', 'canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'];
 
 async function load() {
   try {
-    const [users, groups] = await Promise.all([
+    const [users, groups, companies, units] = await Promise.all([
       apiFetch('/users'),
       apiFetch('/access-groups').catch(() => []),
+      apiFetch('/companies').catch(() => []),
+      apiFetch('/redemption-units').catch(() => []),
     ]);
     accessGroupsCache = groups;
+    companiesCache = companies;
+    redemptionUnitsCache = units;
+    renderNewCompanyOptions();
     renderUsers(users);
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
     usersCard.classList.add('hidden');
   }
 }
+
+/** Nhan dien nhanh: "CompanyName - PartnerName (LocationCode)" - du de phan biet cac diem tieu
+ * trung ten o cong ty khac nhau, ma van gon trong 1 dropdown. */
+function unitLabel(u) {
+  const company = u.CompanyName ? escapeHtmlLayout(u.CompanyName) : 'Chua gan cong ty';
+  return `${company} - ${escapeHtmlLayout(u.PartnerName)} (${escapeHtmlLayout(u.LocationCode)})`;
+}
+
+function redemptionUnitOptions(filterCompanyId) {
+  const list = filterCompanyId
+    ? redemptionUnitsCache.filter((u) => String(u.CompanyId) === String(filterCompanyId))
+    : redemptionUnitsCache;
+  return list.map((u) => `<option value="${u.Id}">${unitLabel(u)}</option>`).join('');
+}
+
+function renderNewCompanyOptions() {
+  const select = document.getElementById('newCompanyId');
+  select.innerHTML =
+    '<option value="">-- Chua gan cong ty --</option>' +
+    companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
+}
+
+function refreshNewRedemptionUnitOptions() {
+  const companyId = document.getElementById('newCompanyId').value;
+  const select = document.getElementById('newRedemptionUnitId');
+  if (!companyId) {
+    select.innerHTML = '<option value="">-- Chon cong ty truoc --</option>';
+    return;
+  }
+  const opts = redemptionUnitOptions(companyId);
+  select.innerHTML = opts
+    ? `<option value="">-- Khong gan diem tieu --</option>${opts}`
+    : '<option value="">-- Cong ty nay chua co diem tieu nao --</option>';
+}
+document.getElementById('newCompanyId').addEventListener('change', refreshNewRedemptionUnitOptions);
 
 function permCheckbox(field, checked, isAdmin) {
   return `<input type="checkbox" class="perm-${field}" ${checked ? 'checked' : ''} ${isAdmin ? 'disabled' : ''} />`;
@@ -69,6 +111,12 @@ function renderUsers(users) {
         <td><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell">${STATE_CHIP[u.state] || ''}</td>
         <td>
+          <select class="redemption-unit">
+            <option value="">-- Chua gan diem tieu --</option>
+            ${redemptionUnitOptions()}
+          </select>
+        </td>
+        <td>
           <select class="report-access-group">
             <option value="">Mac dinh (chi cong ty cua minh)</option>
             ${groupOptions}
@@ -85,6 +133,10 @@ function renderUsers(users) {
     if (user && user.reportAccessGroupId) {
       tr.querySelector('.report-access-group').value = String(user.reportAccessGroupId);
     }
+    if (user && user.locationsDetail) {
+      const matchedUnit = redemptionUnitsCache.find((u) => u.LocationCode === user.locationsDetail);
+      if (matchedUnit) tr.querySelector('.redemption-unit').value = String(matchedUnit.Id);
+    }
     tr.querySelector('.save-btn').addEventListener('click', () => saveUser(tr));
   });
 }
@@ -96,6 +148,8 @@ async function saveUser(tr) {
   const activeUntil = fromLocalInputValue(tr.querySelector('.active-until').value);
   const groupIdRaw = tr.querySelector('.report-access-group').value;
   const groupId = groupIdRaw ? Number(groupIdRaw) : null;
+  const redemptionUnitIdRaw = tr.querySelector('.redemption-unit').value;
+  const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
   const permissions = {};
   PERM_FIELDS.forEach((field) => {
     const el = tr.querySelector(`.perm-${field}`);
@@ -127,6 +181,13 @@ async function saveUser(tr) {
         body: JSON.stringify({ ...permissions, username }),
       }),
     },
+    {
+      label: 'Don vi thu hoi',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
+        method: 'PUT',
+        body: JSON.stringify({ redemptionUnitId, username }),
+      }),
+    },
   ];
 
   try {
@@ -155,21 +216,21 @@ createUserBtn.addEventListener('click', async () => {
   const password = document.getElementById('newPassword').value;
   const fullName = document.getElementById('newFullName').value.trim();
   const role = document.getElementById('newRole').value;
-  const locationsGroup = document.getElementById('newLocationsGroup').value.trim() || null;
-  const locationsDetail = document.getElementById('newLocationsDetail').value.trim() || null;
+  const redemptionUnitIdRaw = document.getElementById('newRedemptionUnitId').value;
+  const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
 
   createUserBtn.disabled = true;
   try {
     await apiFetch('/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName, role: Number(role), locationsGroup, locationsDetail }),
+      body: JSON.stringify({ username, password, fullName, role: Number(role), redemptionUnitId }),
     });
     showToast(`Da tao tai khoan "${username}"`);
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
     document.getElementById('newFullName').value = '';
-    document.getElementById('newLocationsGroup').value = '';
-    document.getElementById('newLocationsDetail').value = '';
+    document.getElementById('newCompanyId').value = '';
+    refreshNewRedemptionUnitOptions();
     load();
   } catch (err) {
     showToast(err.message);

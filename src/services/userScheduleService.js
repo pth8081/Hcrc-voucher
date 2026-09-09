@@ -54,6 +54,7 @@ async function listAllWithSchedule() {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT u.UserID AS userId, u.Username AS username, u.FullName AS fullName, u.status AS role,
+           LTRIM(RTRIM(u.Locations_Detail)) AS locationsDetail,
            s.ActiveFrom AS activeFrom, s.ActiveUntil AS activeUntil,
            s.UpdatedBy AS updatedBy, s.UpdatedDate AS updatedDate
     FROM dbo.Users u

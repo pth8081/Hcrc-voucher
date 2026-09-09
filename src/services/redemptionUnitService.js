@@ -18,6 +18,22 @@ async function list() {
   return result.recordset;
 }
 
+/** Tra ve LocationCode (Locations_Detail.LocationCode, da trim) cua 1 Don vi thu hoi - dung de
+ * gan tai khoan truc tiep vao dung diem tieu (xem userAdminService.js), tranh phai go tay ma. */
+async function getLocationCodeById(id) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .query(`
+      SELECT LTRIM(RTRIM(d.LocationCode)) AS LocationCode
+      FROM dbo.RedemptionUnits ru
+      INNER JOIN dbo.Locations_Detail d ON d.id = ru.LocationDetailId
+      WHERE ru.Id = @id
+    `);
+  return result.recordset[0]?.LocationCode || null;
+}
+
 async function create(data) {
   const pool = await getPool();
 
@@ -96,4 +112,4 @@ async function update(id, data) {
     `);
 }
 
-module.exports = { list, create, update };
+module.exports = { list, create, update, getLocationCodeById };
