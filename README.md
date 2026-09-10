@@ -898,11 +898,18 @@ dung "Them vao man hinh chinh" trong Safari) va **mo lai gan nhu tuc thi** ngay 
 nho:
 - `public/manifest.webmanifest`: ten, icon (`public/icons/`), mau thuong hieu, che do `standalone`.
 - `public/sw.js` (Service Worker, dang ky boi `public/js/pwa.js`): **chi cache "vo" ung dung**
-  (cac file HTML/CSS/JS tinh) theo chien luoc cache-truoc-lam-moi-sau — **khong bao gio cache hay
-  cho phep chay ngoai mang bat ky request nao toi `/api/`** (kiem tra/thu hoi voucher luon phai
-  di mang that toi Core), tranh mo lai tinh trang tieu voucher trung (double-spend) khi mat mang.
-  Doi `CACHE_NAME` (vd `v2` -> `v3`) trong `sw.js` moi khi doi danh sach file tinh can cache, de
-  trinh duyet nguoi dung tu dong lay ban moi.
+  (cac file HTML/CSS/JS tinh) theo chien luoc **mang-truoc, cache-du-phong** (network-first) —
+  khi con mang thi luon lay ban MOI NHAT tu server (chi dung ban cache khi mat mang hoan toan) —
+  **khong bao gio cache hay cho phep chay ngoai mang bat ky request nao toi `/api/`** (kiem
+  tra/thu hoi voucher luon phai di mang that toi Core), tranh mo lai tinh trang tieu voucher
+  trung (double-spend) khi mat mang.
+  Doi `CACHE_NAME` (vd `v8` -> `v9`) trong `sw.js` moi khi doi danh sach file tinh can cache
+  (them/bot trang), de trinh duyet nguoi dung don dep cache cu; ke ca quen doi so nay, nguoi
+  dung van luon thay ban moi nhat khi con mang nho chien luoc network-first o tren.
+  `public/js/pwa.js` con tu dong **bao + tai lai trang 1 lan** ngay khi ban Service Worker moi
+  vua kich hoat va nam quyen kiem soat trang dang mo san (deploy ban moi trong luc nguoi dung
+  dang dung app) — truoc day dung cache-first nen nguoi dung phai tu dong/mo lai app 2 lan moi
+  thay duoc tinh nang moi, day chinh la loi da gap va da sua.
 
 ### 9b. Dang nhap bang van tay/Face ID
 

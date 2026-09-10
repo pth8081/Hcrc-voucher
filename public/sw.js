@@ -3,7 +3,7 @@
 // luon phai qua mang that de xac minh voi Core, tranh mo lai dung rui ro double-spend
 // da duoc chan o tang nghiep vu (xem voucherService.js).
 
-const CACHE_NAME = 'hcrc-shell-v7';
+const CACHE_NAME = 'hcrc-shell-v8';
 
 const PRECACHE_URLS = [
   '/login.html',
@@ -15,6 +15,7 @@ const PRECACHE_URLS = [
   '/api-connection.html',
   '/security.html',
   '/users.html',
+  '/admin-log.html',
   '/2fa-setup.html',
   '/2fa-verify.html',
   '/change-password.html',
@@ -34,6 +35,7 @@ const PRECACHE_URLS = [
   '/js/api-connection.js',
   '/js/security.js',
   '/js/users.js',
+  '/js/admin-log.js',
   '/js/twofa.js',
   '/js/twofa-setup.js',
   '/js/twofa-verify.js',
@@ -45,6 +47,7 @@ const PRECACHE_URLS = [
   '/icons/icon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -79,18 +82,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-first: luon uu tien lay ban MOI NHAT tu mang khi con ket noi (nguoi dung dang mo
+  // app thi hau nhu luon co mang, vi con can goi API kiem tra/thu hoi voucher) - cache chi
+  // dung lam phuong an du phong khi mat mang. Truoc day dung cache-first (tra cache ngay, cap
+  // nhat cache ngam cho LAN SAU) khien nguoi dung phai mo lai app 2 lan moi thay tinh nang moi
+  // sau khi deploy ban moi - day chinh la nguyen nhan da gap.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response && response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(request)
+      .then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
