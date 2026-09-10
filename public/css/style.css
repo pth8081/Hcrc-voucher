@@ -309,8 +309,15 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
   padding: 16px;
   border-width: 1.5px;
   border-style: dashed;
+  text-overflow: ellipsis;
 }
 .scan-input:focus { border-style: solid; }
+
+/* Man hinh hep: co chu 21px cua o quet qua to khien placeholder bi cat cut giua chu (khong co
+   dau "...") - giam co chu tren dien thoai de placeholder hien du, khong bi vo bo cuc. */
+@media (max-width: 400px) {
+  .scan-input { font-size: 16px; letter-spacing: 0.01em; padding: 14px 10px; }
+}
 
 .status-badge {
   display: inline-block;
@@ -380,6 +387,19 @@ tbody tr:hover { background: var(--ink-100); }
   }
   .table-responsive td[data-label=""]::before,
   .table-responsive td:not([data-label])::before { content: none; }
+
+  /* O co chua o nhap/select/nhom nut (bang co the sua duoc, VD trang Tai khoan): nhan xep
+     TREN, gia tri xep DUOI toan chieu rong - thay vi nhan-trai/gia-tri-phai nhu bang chi doc,
+     vi input/select can du cho rong de khong bi bop chu (tung xay ra voi "Nhom quyen xem bao
+     cao"). */
+  .table-responsive td:has(input, select, .actions-cell) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .table-responsive td:has(input, select, .actions-cell)::before {
+    text-align: left;
+  }
 }
 
 .toast {
@@ -446,7 +466,11 @@ tbody tr:hover { background: var(--ink-100); }
   background: var(--ink-100);
 }
 .captcha-refresh { flex: 0 0 auto; width: 40px; height: 40px; padding: 0; font-size: 17px; line-height: 1; }
-.captcha-input { text-transform: uppercase; letter-spacing: 0.35em; text-align: center; font-weight: 700; }
+.captcha-input { text-transform: uppercase; letter-spacing: 0.35em; text-align: center; font-weight: 700; text-overflow: ellipsis; }
+/* Letter-spacing 0.35em chi hop khi da go 4 chu so (de doc ro tung so) - ap dung nguyen vao
+   ca placeholder se khien dong chu huong dan dai bi day tran/cat cut. Khi o con trong (dang
+   hien placeholder), dung letter-spacing binh thuong cho vua khung. */
+.captcha-input:placeholder-shown { letter-spacing: 0.01em; font-weight: 500; font-size: 12.5px; text-transform: none; }
 
 /* ===== Utility classes =====
    Thay the cho style="..." inline (bat buoc de bat CSP khong co unsafe-inline). */

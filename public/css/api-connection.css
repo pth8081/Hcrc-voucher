@@ -1,8 +1,20 @@
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+/* Man hinh hep: 2 cot canh nhau lam select/input bi bop qua nho, chu bi cat cut (VD "Vi tri ma
+   voucher" - cac lua chon co ten dai nhu "Trong duong dan (path) - dung {code}") - xep doc
+   thanh 1 cot cho du cho hien day du. */
+@media (max-width: 560px) {
+  .grid2 { grid-template-columns: 1fr; }
+}
 .section-title { font-size: 12.5px; font-weight: 700; color: var(--primary-dark); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 8px; border-bottom: 1px solid var(--ink-100); }
 .hint { font-size: 12.5px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; }
 .conn-row-url { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; }
 .maprow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+/* Man hinh hep: 3 cot (2 o nhap + nut Xoa) canh nhau lam gia tri dai (VD "CANCELLED") bi cat
+   cut trong o nhap - giu 2 o nhap canh nhau (van du rong) nhung cho nut Xoa xuong dong rieng. */
+@media (max-width: 480px) {
+  .maprow { grid-template-columns: 1fr 1fr; }
+  .maprow button { grid-column: 1 / -1; }
+}
 .maprow input { margin-bottom: 0; }
 textarea.code { width: 100%; min-height: 90px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; border: 1px solid var(--ink-300); border-radius: var(--radius-md); padding: 12px; }
 pre.result { background: var(--ink-900); color: #d7ead0; padding: 14px; border-radius: var(--radius-md); overflow: auto; font-size: 12px; max-height: 260px; }

@@ -104,30 +104,30 @@ function renderUsers(users) {
       const deleted = !!u.isDeleted;
       return `
       <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" class="${deleted ? 'row-deleted' : ''}">
-        <td>${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">DA XOA</span>' : ''}</td>
-        <td><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
-        <td>${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
-        <td class="perm-cell">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
-        <td class="perm-cell">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
-        <td class="perm-cell">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
-        <td class="perm-cell">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
-        <td><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
-        <td><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
-        <td class="state-cell">${STATE_CHIP[u.state] || ''}</td>
-        <td>
+        <td data-label="Ten dang nhap">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">DA XOA</span>' : ''}</td>
+        <td data-label="Ho ten"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
+        <td data-label="Vai tro">${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
+        <td class="perm-cell" data-label="Thu hoi">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
+        <td class="perm-cell" data-label="Doi soat">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
+        <td class="perm-cell" data-label="Tong hop">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
+        <td class="perm-cell" data-label="Voucher da dung">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
+        <td data-label="Kich hoat tu"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
+        <td data-label="Het han"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
+        <td class="state-cell" data-label="Trang thai">${STATE_CHIP[u.state] || ''}</td>
+        <td data-label="Don vi thu hoi">
           <select class="redemption-unit">
             <option value="">-- Chua gan diem tieu --</option>
             ${redemptionUnitOptions()}
           </select>
         </td>
-        <td>
+        <td data-label="Nhom quyen xem bao cao">
           <select class="report-access-group">
             <option value="">Mac dinh (chi cong ty cua minh)</option>
             ${groupOptions}
           </select>
         </td>
-        <td><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
-        <td>
+        <td data-label="Mat khau moi"><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
+        <td data-label="Hanh dong">
           <div class="actions-cell">
             <button class="btn-secondary save-btn" type="button">Luu</button>
             <button class="btn-secondary lock-btn" type="button"></button>

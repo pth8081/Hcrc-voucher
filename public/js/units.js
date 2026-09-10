@@ -74,11 +74,11 @@ function renderCompanies() {
     .map(
       (c) => `
       <tr>
-        <td>${escapeHtml(c.CompanyCode)}</td>
-        <td>${escapeHtml(c.CompanyName)}</td>
-        <td>${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
-        <td id="unit-count-${c.Id}">-</td>
-        <td>${c.Status ? 'Hoat dong' : 'Ngung'}</td>
+        <td data-label="Ma">${escapeHtml(c.CompanyCode)}</td>
+        <td data-label="Ten cong ty">${escapeHtml(c.CompanyName)}</td>
+        <td data-label="Lien he">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
+        <td data-label="So diem tieu" id="unit-count-${c.Id}">-</td>
+        <td data-label="Trang thai">${c.Status ? 'Hoat dong' : 'Ngung'}</td>
       </tr>`
     )
     .join('');
@@ -94,12 +94,12 @@ async function loadUnits() {
         .map(
           (u) => `
           <tr>
-            <td>${escapeHtml(u.PartnerCode)}</td>
-            <td>${escapeHtml(u.PartnerName)}</td>
-            <td>${escapeHtml(u.CompanyName || '-')}</td>
-            <td>${escapeHtml(u.LocationName || '-')}</td>
-            <td>${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
-            <td>${u.Status ? 'Hoat dong' : 'Ngung'}</td>
+            <td data-label="Ma diem">${escapeHtml(u.PartnerCode)}</td>
+            <td data-label="Ten diem tieu">${escapeHtml(u.PartnerName)}</td>
+            <td data-label="Cong ty">${escapeHtml(u.CompanyName || '-')}</td>
+            <td data-label="Dia diem">${escapeHtml(u.LocationName || '-')}</td>
+            <td data-label="Lien he">${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
+            <td data-label="Trang thai">${u.Status ? 'Hoat dong' : 'Ngung'}</td>
           </tr>`
         )
         .join('');
@@ -158,9 +158,9 @@ function renderAccessGroups(data) {
     .map(
       (g) => `
       <tr>
-        <td>${escapeHtml(g.GroupName)}</td>
-        <td>${g.ScopeType === 'ALL' ? 'Toan bo cong ty' : 'Chi dinh cong ty'}</td>
-        <td>${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
+        <td data-label="Ten nhom">${escapeHtml(g.GroupName)}</td>
+        <td data-label="Pham vi">${g.ScopeType === 'ALL' ? 'Toan bo cong ty' : 'Chi dinh cong ty'}</td>
+        <td data-label="Cong ty duoc xem them">${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
       </tr>`
     )
     .join('');
