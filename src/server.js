@@ -5,9 +5,21 @@ const logger = require('./utils/logger');
 const { getPool } = require('./config/db');
 const { startSyncScheduler } = require('./utils/syncScheduler');
 const { resolveWorkerCount } = require('./utils/clusterConfig');
+const { assertSecretsStrong } = require('./config/env');
 const { version: APP_VERSION } = require('../package.json');
 
 const PORT = process.env.PORT || 3000;
+
+// L4: kiem tra do manh cua JWT_SECRET/ENCRYPTION_KEY NGAY luc khoi dong, truoc khi mo cong
+// HTTP hay ket noi DB - dung lai voi thong bao ro rang thay vi chay "binh thuong" voi 1 diem
+// yeu am tham (xem chi tiet trong config/env.js). Chay o MOI tien trinh (ca worker HTTP lan
+// tien trinh chinh chi chay job nen) vi ca 2 deu doc cac bien nay.
+try {
+  assertSecretsStrong();
+} catch (err) {
+  logger.error(err.message);
+  process.exit(1);
+}
 
 /** Ket noi MSSQL + xu ly HTTP - phan viec cua tung worker khi CHAY CLUSTER, hoac cua tien
  * trinh duy nhat khi KHONG chay cluster (CLUSTER_WORKERS=1). */

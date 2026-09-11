@@ -243,7 +243,12 @@ DB_NAME=<ten-database-hien-co-cua-Core>
 DB_USER=<user-co-quyen-doc/ghi-db-nay>
 DB_PASSWORD=<mat-khau>
 DB_ENCRYPT=true                 # giu true neu SQL Server co cau hinh SSL (khuyen nghi)
-DB_TRUST_SERVER_CERT=true       # true neu dung chung cert noi bo/tu ky; doi false neu da co CA hop le
+DB_TRUST_SERVER_CERT=true       # CANH BAO: true = TAT xac thuc chung chi TLS khi ket noi DB, de
+                                 # trien khai duoc ngay voi cert noi bo/tu ky pho bien o SQL Server
+                                 # noi bo. Neu may chu SQL da co chung chi tu 1 CA hop le (kha
+                                 # thi neu host tren cloud/co ha tang PKI rieng), DOI SANG false -
+                                 # giu true vinh vien tren 1 he thong co the truy cap tu ben ngoai
+                                 # mang noi bo se de lo ket noi DB truoc tan cong xen giua (MITM).
 DB_POOL_MAX=20                  # so ket noi toi da trong pool DB - xem ghi chu ve khoa thu hoi ben duoi
 ```
 

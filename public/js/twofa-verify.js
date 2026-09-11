@@ -6,13 +6,16 @@ document.getElementById('cancelLink').addEventListener('click', () => clearPendi
 
 document.getElementById('verifyForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const code = document.getElementById('code').value.trim();
-  try {
-    const data = await twoFaLoginVerify(code);
-    clearPendingTwoFactorToken();
-    setSession(data.token, data.user);
-    window.location.href = '/index.html';
-  } catch (err) {
-    showToast(err.message);
-  }
+  const form = e.target;
+  await withSubmitLock(form, async () => {
+    const code = document.getElementById('code').value.trim();
+    try {
+      const data = await twoFaLoginVerify(code);
+      clearPendingTwoFactorToken();
+      setSession(data.token, data.user);
+      window.location.href = '/index.html';
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
 });

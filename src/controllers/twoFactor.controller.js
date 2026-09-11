@@ -151,6 +151,16 @@ async function adminReset(req, res, next) {
         message: 'Khong the tu go xac thuc hai yeu to cua chinh minh - can mot quan tri vien khac thuc hien.',
       });
     }
+    // M3: truoc day khong kiem tra targetUserId co ton tai/co phai admin khong - goi voi 1 id
+    // rac (userId khong ton tai, hoac cua 1 nhan vien khong bao gio bat 2FA) van tra ve
+    // success:true va ghi vao Nhat ky quan tri "da go 2FA" du KHONG co gi thuc su xay ra.
+    const targetUser = await authService.findUserById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay tai khoan can go xac thuc hai yeu to' });
+    }
+    if (Number(targetUser.status) !== 1) {
+      return res.status(400).json({ success: false, message: 'Tai khoan nay khong phai quan tri vien, khong ap dung xac thuc hai yeu to' });
+    }
     await twoFactorService.adminResetOther(targetUserId, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,

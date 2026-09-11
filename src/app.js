@@ -47,10 +47,43 @@ function createApp() {
       // header Cross-Origin-Resource-Policy phu hop, bat COEP se lam gian doan viec
       // tai font/thu vien camera. Cac header bao mat khac cua helmet van giu nguyen.
       crossOriginEmbedderPolicy: false,
+      // L3: khai bao ro rang thay vi de mac dinh cua helmet (co the doi giua cac phien ban) -
+      // 1 nam + includeSubDomains, ep trinh duyet LUON goi qua HTTPS voi domain nay sau lan
+      // truy cap dau, chan duoc kieu tan cong ha cap giao thuc (SSL stripping / MITM tren
+      // mang khong tin cay, vd wifi cong cong). preload=false vi domain noi bo, khong dang ky
+      // vao danh sach preload cua trinh duyet cong khai.
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: false,
+      },
     })
   );
 
-  app.use(cors());
+  // L2: Permissions-Policy - tat cac quyen trinh duyet KHONG dung toi (dinh vi, micro, thanh
+  // toan, usb, cam bien chuyen dong...) cho ca trang nay LAN moi iframe con (neu co), chi giu
+  // lai camera=(self) vi trang quet.html dung camera de quet QR. Giam be mat tan cong neu 1
+  // trang bi chen script doc hai (XSS) co gang lam dung cac API trinh duyet nhay cam nay.
+  app.use((req, res, next) => {
+    res.setHeader(
+      'Permissions-Policy',
+      'geolocation=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), camera=(self)'
+    );
+    next();
+  });
+
+  // M10: cors() mac dinh (khong tham so) phan xa lai Access-Control-Allow-Origin dung BANG
+  // origin cua request goi len - nghia la BAT KY trang web nao cung duoc trinh duyet cho phep
+  // doc phan hoi JSON tu API nay. App nay chi chay 1 domain noi bo duy nhat (frontend tinh +
+  // API cung 1 origin, xem README muc 3f) nen khong can mo CORS - thu hep theo nguyen tac it
+  // dac quyen nhat. Khong dung cookie de xac thuc (Bearer token trong header, trinh duyet
+  // KHONG tu dong gui kem nhu cookie) nen rui ro thuc te thap, day la phong ho dinh huong dung
+  // (defense-in-depth) hon la 1 lo hong da khai thac duoc. CORS_ORIGIN (phan cach dau phay,
+  // vd "https://a.example.com,https://b.example.com") de mo them cho domain khac neu can (vd
+  // 1 ung dung/portal rieng goi thang API nay sau nay) - khong dat = chi same-origin (trinh
+  // duyet luon cho goi same-origin binh thuong, khong phu thuoc cau hinh CORS).
+  const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
+  app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : { origin: false }));
   // Nen gzip/brotli cho response (JSON API + static JS/CSS/HTML) - giam bang thong,
   // quan trong voi cac diem thu hoi co duong truyen yeu.
   app.use(compression());

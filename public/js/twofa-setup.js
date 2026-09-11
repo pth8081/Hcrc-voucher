@@ -33,13 +33,19 @@ async function loadQrCode(password) {
 // chua co phien) -> khong can, tai QR ngay.
 if (hasFullSession) {
   passwordGate.classList.remove('hidden');
-  document.getElementById('confirmPasswordBtn').addEventListener('click', () => {
+  const confirmPasswordBtn = document.getElementById('confirmPasswordBtn');
+  confirmPasswordBtn.addEventListener('click', async () => {
     const password = document.getElementById('confirmPassword').value;
     if (!password) {
       showToast('Vui long nhap mat khau');
       return;
     }
-    loadQrCode(password);
+    confirmPasswordBtn.disabled = true;
+    try {
+      await loadQrCode(password);
+    } finally {
+      confirmPasswordBtn.disabled = false;
+    }
   });
 } else {
   loadQrCode();
@@ -47,18 +53,21 @@ if (hasFullSession) {
 
 document.getElementById('setupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const code = document.getElementById('code').value.trim();
-  try {
-    const data = await twoFaSetupVerify(code);
-    if (data.token) {
-      clearPendingTwoFactorToken();
-      setSession(data.token, data.user);
-      window.location.href = '/index.html';
-      return;
+  const form = e.target;
+  await withSubmitLock(form, async () => {
+    const code = document.getElementById('code').value.trim();
+    try {
+      const data = await twoFaSetupVerify(code);
+      if (data.token) {
+        clearPendingTwoFactorToken();
+        setSession(data.token, data.user);
+        window.location.href = '/index.html';
+        return;
+      }
+      showToast('Da cap nhat thiet bi xac thuc hai yeu to');
+      window.location.href = '/security.html';
+    } catch (err) {
+      showToast(err.message);
     }
-    showToast('Da cap nhat thiet bi xac thuc hai yeu to');
-    window.location.href = '/security.html';
-  } catch (err) {
-    showToast(err.message);
-  }
+  });
 });

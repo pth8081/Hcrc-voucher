@@ -62,6 +62,21 @@ function showToast(message) {
   toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+// M2: cac form xac thuc (dang nhap, 2FA, doi mat khau) truoc day khong khoa nut trong luc dang
+// cho phan hoi - bam nhanh 2 lan (mang cham, hoac vo y) gui 2 request song song, co the tinh
+// nham 2 lan sai vao bo dem khoa (loginGuard/guessGuard) hoac dot 1 ma 2FA/captcha dung lan
+// 2 truoc khi lan 1 kip xu ly xong. Khoa nut submit ngay khi bam, chi mo lai sau khi xong
+// (thanh cong hay loi deu mo lai, tru khi dang chuyen trang).
+async function withSubmitLock(form, fn) {
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    await fn();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function fmtMoney(v) {
   if (v === null || v === undefined) return '-';
   return Number(v).toLocaleString('vi-VN') + ' d';
