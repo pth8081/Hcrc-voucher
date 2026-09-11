@@ -3,6 +3,19 @@ const { encrypt, decrypt } = require('../utils/crypto');
 
 const KEEP_SECRET = '__KEEP__'; // gia tri dac biet FE gui len khi khong doi secret da luu
 
+// Tu dot ra soat sau merge PR #31: khoa sp_getapplock luc thu hoi (voucherService.js) gio giu 1
+// ket noi/transaction trong pool DB XUYEN SUOT thoi gian cho Core phan hoi (H5). Neu admin cau
+// hinh 1 timeoutMs qua lon, 1 Core cham/treo co the giu 1 ket noi pool rat lau, de can kiet pool
+// khi co nhieu luot thu hoi dong thoi. Chan tran o day de LockTimeout (15000ms, voucherService.js)
+// luon lon hon timeoutMs thuc te cua BAT KY connection nao, va gioi han ro thoi gian toi da 1 ket
+// noi pool co the bi giu boi 1 lan goi Core.
+const MIN_TIMEOUT_MS = 1000;
+const MAX_TIMEOUT_MS = 10000;
+function clampTimeoutMs(raw) {
+  const n = Number(raw) || 8000;
+  return Math.min(Math.max(n, MIN_TIMEOUT_MS), MAX_TIMEOUT_MS);
+}
+
 const DEFAULT_CHECK_MAPPING = {
   foundPath: 'found',
   statusPath: 'status',
@@ -46,7 +59,7 @@ function toRow(data) {
     authType: data.authType || 'NONE',
     apiKeyHeaderName: data.apiKeyHeaderName || null,
     basicUsername: data.basicUsername || null,
-    timeoutMs: Number(data.timeoutMs) || 8000,
+    timeoutMs: clampTimeoutMs(data.timeoutMs),
 
     checkMethod: data.checkMethod || 'GET',
     checkPath: data.checkPath,
@@ -261,7 +274,7 @@ function resolveDraftConfig(data) {
     apiKeyHeaderName: data.apiKeyHeaderName || null,
     basicUsername: data.basicUsername || null,
     basicPassword: data.basicPassword || null,
-    timeoutMs: Number(data.timeoutMs) || 8000,
+    timeoutMs: clampTimeoutMs(data.timeoutMs),
 
     checkMethod: data.checkMethod || 'GET',
     checkPath: data.checkPath,
