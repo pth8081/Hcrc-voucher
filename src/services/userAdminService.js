@@ -10,6 +10,19 @@ function badRequest(message) {
   return err;
 }
 
+/** M7: vai API quan tri (doi diem tieu, sua ho ten, gan quyen...) truoc day chi UPDATE thang
+ * theo userId ma khong kiem tra tai khoan do co that su ton tai khong - go nham/gia mao 1
+ * userId khong ton tai se khien UPDATE anh huong 0 dong nhung API van bao thanh cong binh
+ * thuong (Nhat ky quan tri ghi nham "da cap nhat" cho 1 tai khoan khong co that). Goi ham nay
+ * o dau moi thao tac quan tri theo userId de bao loi ro rang thay vi "thanh cong" gia. */
+async function assertUserExists(userId) {
+  const pool = await getPool();
+  const result = await pool.request().input('userId', sql.Int, userId).query('SELECT 1 FROM dbo.Users WHERE UserID = @userId');
+  if (!result.recordset.length) {
+    throw badRequest('Khong tim thay tai khoan nay (co the da bi xoa hoac id khong dung)');
+  }
+}
+
 /**
  * Tao 1 tai khoan MOI tren dbo.Users - CHI ghi 6 cot app nay hieu (giong het cach
  * scripts/create-admin.js da lam tu truoc), de trong cac cot rieng cua he thong Core
@@ -19,7 +32,11 @@ function badRequest(message) {
 async function createUser({ username, password, fullName, locationsGroup, locationsDetail, role }, createdBy) {
   const trimmedUsername = String(username || '').trim();
   if (!trimmedUsername) throw badRequest('Thieu ten dang nhap');
-  if (!password || password.length < 8) throw badRequest('Mat khau phai co it nhat 8 ky tu');
+  // M6: truoc day chi kiem tra do dai (>=8 ky tu) luc TAO tai khoan moi, trong khi dat lai mat
+  // khau cho tai khoan da co (updateProfile -> passwordPolicyService.adminResetPassword) da ap
+  // dung day du (chu+so+ky tu dac biet). Dung CHUNG 1 chinh sach cho ca 2 duong, tranh tao ra 1
+  // tai khoan moi voi mat khau yeu hon muc chap nhan duoc khi sua sau nay.
+  passwordPolicyService.assertComplexity(password);
   if (!fullName || !String(fullName).trim()) throw badRequest('Thieu ho ten');
 
   const pool = await getPool();
@@ -91,4 +108,4 @@ async function updateProfile(userId, { fullName, password }) {
   }
 }
 
-module.exports = { createUser, updateLocation, updateProfile };
+module.exports = { createUser, updateLocation, updateProfile, assertUserExists };

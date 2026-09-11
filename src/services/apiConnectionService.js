@@ -260,6 +260,18 @@ async function activate(id) {
 
 async function remove(id) {
   const pool = await getPool();
+  // M5: truoc day xoa duoc ca ket noi DANG ACTIVE - xoa xong, apiConnectionService.getActiveDecrypted()
+  // khong con tra ve gi (khong con dong nao IsActive=1), voucherService/coreVoucherService.js roi
+  // ve nhanh fallback .env cu (co the CHUA cau hinh, hoac tro toi 1 Core KHAC) - sap toan bo
+  // luong kiem tra/thu hoi voucher ngay lap tuc ma khong co canh bao truoc. Bat buoc phai
+  // KICH HOAT 1 ket noi khac (hoac chu dong tat active) truoc khi xoa.
+  const check = await pool.request().input('id', sql.Int, id).query('SELECT IsActive FROM dbo.ApiConnections WHERE Id = @id');
+  if (check.recordset.length && check.recordset[0].IsActive) {
+    const err = new Error('Khong the xoa ket noi dang duoc kich hoat (active)');
+    err.statusCode = 400;
+    err.publicMessage = 'Ket noi nay dang duoc su dung (active) cho luong kiem tra/thu hoi voucher. Vui long kich hoat 1 ket noi khac truoc khi xoa ket noi nay, de tranh lam gian doan nghiep vu.';
+    throw err;
+  }
   await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.ApiConnections WHERE Id = @id');
 }
 

@@ -16,6 +16,7 @@ function clientPasswordProblems(password) {
 
 document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const form = e.target;
   const newPassword = document.getElementById('newPassword').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -29,13 +30,15 @@ document.getElementById('changePasswordForm').addEventListener('submit', async (
     return;
   }
 
-  try {
-    const data = await twoFaFetch('/auth/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ newPassword }),
-    });
-    continueAfterPrimaryAuth(data);
-  } catch (err) {
-    showToast(err.message);
-  }
+  await withSubmitLock(form, async () => {
+    try {
+      const data = await twoFaFetch('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ newPassword }),
+      });
+      continueAfterPrimaryAuth(data);
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
 });

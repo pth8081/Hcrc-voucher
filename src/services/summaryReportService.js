@@ -38,9 +38,18 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
         ru.PartnerName, ru.CompanyId, rc.CompanyName
       FROM dbo.VOUCHER_SYNC vs
       LEFT JOIN (
+        -- M8: khi 1 LocationCode bi trung nhieu dong (du lieu Locations_Detail dung chung voi
+        -- Core), truoc day chon dai dien "dau tien theo id" bat ke dong do co duoc gan Don vi
+        -- thu hoi/Cong ty hay khong - neu dong duoc chon lai khong co anh xa, voucher se hien
+        -- "chua gan cong ty" du that ra 1 dong trung khac CO gan. Uu tien dong DA CO anh xa
+        -- RedemptionUnits truoc (CASE 0 truoc 1), chi lay dong khong co anh xa khi khong con
+        -- lua chon nao khac.
         SELECT id, LTRIM(RTRIM(LocationCode)) AS LocationCode,
-          ROW_NUMBER() OVER (PARTITION BY LTRIM(RTRIM(LocationCode)) ORDER BY id) AS rn
-        FROM dbo.Locations_Detail
+          ROW_NUMBER() OVER (
+            PARTITION BY LTRIM(RTRIM(LocationCode))
+            ORDER BY CASE WHEN EXISTS (SELECT 1 FROM dbo.RedemptionUnits ru0 WHERE ru0.LocationDetailId = d.id) THEN 0 ELSE 1 END, id
+          ) AS rn
+        FROM dbo.Locations_Detail d
       ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId

@@ -68,9 +68,11 @@ async function create(req, res, next) {
 
 async function updateLocation(req, res, next) {
   try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
     const { redemptionUnitId, username } = req.body;
     const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: null });
-    await userAdminService.updateLocation(Number(req.params.userId), locationsDetail);
+    await userAdminService.updateLocation(userId, locationsDetail);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_USER_LOCATION',
@@ -85,8 +87,10 @@ async function updateLocation(req, res, next) {
 
 async function updateProfile(req, res, next) {
   try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
     const { fullName, password, username } = req.body;
-    await userAdminService.updateProfile(Number(req.params.userId), { fullName, password });
+    await userAdminService.updateProfile(userId, { fullName, password });
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_USER_PROFILE',
@@ -106,6 +110,7 @@ async function updateDeleteStatus(req, res, next) {
     if (isDeleted && userId === req.user.userId) {
       return res.status(400).json({ success: false, message: 'Khong the tu xoa chinh tai khoan dang dang nhap' });
     }
+    await userAdminService.assertUserExists(userId);
     await userScheduleService.setDeleted(userId, !!isDeleted, req.user.username);
     sessionRevalidation.invalidate(userId); // H1: co hieu luc ngay, khong cho token cu qua 30s cache
     await auditLogService.log({
@@ -122,6 +127,8 @@ async function updateDeleteStatus(req, res, next) {
 
 async function updatePermissions(req, res, next) {
   try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
     const { canRedeemVoucher, canViewReconciliation, canViewSummary, canViewUsedVouchers } = req.body;
     const perms = {
       canRedeemVoucher: !!canRedeemVoucher,
@@ -129,7 +136,7 @@ async function updatePermissions(req, res, next) {
       canViewSummary: !!canViewSummary,
       canViewUsedVouchers: !!canViewUsedVouchers,
     };
-    await permissionService.setPermissions(Number(req.params.userId), perms, req.user.username);
+    await permissionService.setPermissions(userId, perms, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_PERMISSIONS',
@@ -145,11 +152,24 @@ async function updatePermissions(req, res, next) {
 async function updateSchedule(req, res, next) {
   try {
     const { activeFrom, activeUntil, username } = req.body;
+    const userId = Number(req.params.userId);
     if (activeFrom && activeUntil && new Date(activeFrom) > new Date(activeUntil)) {
       return res.status(400).json({ success: false, message: 'Thoi gian kich hoat phai truoc thoi gian het han' });
     }
-    await userScheduleService.upsertSchedule(Number(req.params.userId), { activeFrom, activeUntil }, req.user.username);
-    sessionRevalidation.invalidate(Number(req.params.userId)); // H1: khoa/mo khoa co hieu luc ngay
+    // M4: nut "Khoa" tren giao dien (users.js#toggleLockFields) chi dien san gia tri vao 2 o
+    // Kich hoat tu/Het han cua CHINH endpoint nay - khac voi nut "Xoa" (updateDeleteStatus) da co
+    // check tu bao ve, endpoint nay truoc day KHONG co, 1 admin co the vo tinh (hoac bi du) tu
+    // dat lich khoa chinh minh, khong ai khac dang nhap duoc de mo lai (phai nho DBA can thiep
+    // thang vao CSDL).
+    if (userId === req.user.userId) {
+      const newState = userScheduleService.evaluate({ ActiveFrom: activeFrom, ActiveUntil: activeUntil }).state;
+      if (newState !== 'active') {
+        return res.status(400).json({ success: false, message: 'Khong the tu dat lich lam khoa chinh tai khoan dang dang nhap' });
+      }
+    }
+    await userAdminService.assertUserExists(userId);
+    await userScheduleService.upsertSchedule(userId, { activeFrom, activeUntil }, req.user.username);
+    sessionRevalidation.invalidate(userId); // H1: khoa/mo khoa co hieu luc ngay
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_SCHEDULE',
@@ -164,8 +184,10 @@ async function updateSchedule(req, res, next) {
 
 async function updateReportAccess(req, res, next) {
   try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
     const { groupId, username } = req.body;
-    await reportAccessService.setUserGroup(Number(req.params.userId), groupId ? Number(groupId) : null, req.user.username);
+    await reportAccessService.setUserGroup(userId, groupId ? Number(groupId) : null, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_REPORT_ACCESS',

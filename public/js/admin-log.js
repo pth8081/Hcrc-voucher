@@ -6,12 +6,29 @@ const logCard = document.getElementById('logCard');
 const auditBody = document.getElementById('auditBody');
 const scanBody = document.getElementById('scanBody');
 
+// L5: truoc day thieu nhieu ma hanh dong (cac controller khac da ghi log tu lau nhung chua bao
+// gio duoc them vao day) - Nhat ky quan tri hien thang ma tieng Anh vd "UPDATE_USER_LOCATION"
+// thay vi nhan tieng Viet de nguoi xem hieu ngay.
 const ACTION_LABEL = {
   CREATE_USER: 'Tao tai khoan',
+  UPDATE_USER_LOCATION: 'Doi diem tieu tai khoan',
+  UPDATE_USER_PROFILE: 'Sua ho ten/dat lai mat khau',
+  DELETE_USER: 'Xoa tai khoan',
+  RESTORE_USER: 'Khoi phuc tai khoan',
   UPDATE_PERMISSIONS: 'Doi quyen tinh nang',
   UPDATE_SCHEDULE: 'Doi lich hieu luc',
   UPDATE_REPORT_ACCESS: 'Doi nhom quyen bao cao',
   RESET_2FA: 'Go xac thuc hai yeu to',
+  CREATE_ACCESS_GROUP: 'Tao nhom quyen bao cao',
+  UPDATE_ACCESS_GROUP: 'Sua nhom quyen bao cao',
+  CREATE_REDEMPTION_UNIT: 'Tao don vi thu hoi',
+  UPDATE_REDEMPTION_UNIT: 'Sua don vi thu hoi',
+  CREATE_COMPANY: 'Tao cong ty',
+  UPDATE_COMPANY: 'Sua cong ty',
+  CREATE_API_CONNECTION: 'Tao ket noi API',
+  UPDATE_API_CONNECTION: 'Sua ket noi API',
+  ACTIVATE_API_CONNECTION: 'Kich hoat ket noi API',
+  DELETE_API_CONNECTION: 'Xoa ket noi API',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {

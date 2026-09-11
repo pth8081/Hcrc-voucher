@@ -15,6 +15,28 @@ function badRequest(message) {
   return err;
 }
 
+/**
+ * M1: otplib.authenticator.check() chi kiem tra 1 ma con hop le trong window (+-1 buoc, 30s/
+ * buoc) - KHONG tu chan viec dung LAI cung 1 ma nhieu lan trong luc con hop le. Ai chan duoc 1
+ * ma dung that (qua vai nguoi go, camera giam sat, log...) co the tai su dung trong toi da ~90
+ * giay ma khong can biet bi mat TOTP. Dung checkDelta() de biet CHINH XAC buoc thoi gian (counter)
+ * ma da khop, luu vao DB (LastUsedCounter, migration 017) va chi cho phep counter TANG (khong
+ * lui/dung lai) giua cac lan xac minh cua CUNG 1 tai khoan.
+ */
+function verifyTotpAndGetCounter(secret, code, lastUsedCounter) {
+  if (!secret) throw badRequest('Ma xac thuc khong dung, vui long thu lai.');
+  const delta = authenticator.checkDelta(String(code || '').trim(), secret);
+  if (delta === null || delta === undefined) {
+    throw badRequest('Ma xac thuc khong dung, vui long thu lai.');
+  }
+  const step = authenticator.options.step || 30;
+  const counter = Math.floor(Date.now() / 1000 / step) + delta;
+  if (lastUsedCounter != null && counter <= Number(lastUsedCounter)) {
+    throw badRequest('Ma xac thuc nay vua duoc su dung, vui long doi sang ma moi tren ung dung xac thuc.');
+  }
+  return counter;
+}
+
 /** Trang thai 2FA cua 1 tai khoan - dung de quyet dinh luong dang nhap (buoc thiet lap hay xac minh). */
 async function getStatus(userId) {
   const pool = await getPool();
@@ -64,23 +86,22 @@ async function verifySetup(userId, code) {
   const result = await pool
     .request()
     .input('userId', sql.Int, userId)
-    .query('SELECT SecretEncrypted FROM dbo.AdminTwoFactor WHERE UserId = @userId');
+    .query('SELECT SecretEncrypted, LastUsedCounter FROM dbo.AdminTwoFactor WHERE UserId = @userId');
   const row = result.recordset[0];
   if (!row) {
     throw badRequest('Chua bat dau thiet lap xac thuc hai yeu to, vui long tai lai trang.');
   }
 
   const secret = decrypt(row.SecretEncrypted);
-  if (!secret || !authenticator.check(String(code || '').trim(), secret)) {
-    throw badRequest('Ma xac thuc khong dung, vui long thu lai.');
-  }
+  const counter = verifyTotpAndGetCounter(secret, code, row.LastUsedCounter);
 
   await pool
     .request()
     .input('userId', sql.Int, userId)
+    .input('counter', sql.BigInt, counter)
     .query(`
       UPDATE dbo.AdminTwoFactor
-      SET Enabled = 1, EnabledDate = GETDATE(), LastUsedDate = GETDATE()
+      SET Enabled = 1, EnabledDate = GETDATE(), LastUsedDate = GETDATE(), LastUsedCounter = @counter
       WHERE UserId = @userId
     `);
 }
@@ -91,21 +112,20 @@ async function verifyLogin(userId, code) {
   const result = await pool
     .request()
     .input('userId', sql.Int, userId)
-    .query('SELECT SecretEncrypted, Enabled FROM dbo.AdminTwoFactor WHERE UserId = @userId');
+    .query('SELECT SecretEncrypted, Enabled, LastUsedCounter FROM dbo.AdminTwoFactor WHERE UserId = @userId');
   const row = result.recordset[0];
   if (!row || !row.Enabled) {
     throw badRequest('Tai khoan nay chua thiet lap xac thuc hai yeu to.');
   }
 
   const secret = decrypt(row.SecretEncrypted);
-  if (!secret || !authenticator.check(String(code || '').trim(), secret)) {
-    throw badRequest('Ma xac thuc khong dung, vui long thu lai.');
-  }
+  const counter = verifyTotpAndGetCounter(secret, code, row.LastUsedCounter);
 
   await pool
     .request()
     .input('userId', sql.Int, userId)
-    .query('UPDATE dbo.AdminTwoFactor SET LastUsedDate = GETDATE() WHERE UserId = @userId');
+    .input('counter', sql.BigInt, counter)
+    .query('UPDATE dbo.AdminTwoFactor SET LastUsedDate = GETDATE(), LastUsedCounter = @counter WHERE UserId = @userId');
 }
 
 /**
@@ -147,7 +167,13 @@ async function adminResetOther(targetUserId, resetByUsername) {
       SET Enabled = 0, EnabledDate = NULL, ResetByUsername = @resetBy, ResetDate = GETDATE()
       WHERE UserId = @userId
     `);
-  return result.rowsAffected[0] > 0;
+  // M3: truoc day tra ve boolean nhung controller khong doc gia tri nay - goi voi 1 admin CHUA
+  // TUNG bat 2FA (chua co dong nao trong AdminTwoFactor) van bao thanh cong du khong co gi de
+  // go, ghi nham vao Nhat ky quan tri.
+  if (result.rowsAffected[0] === 0) {
+    throw badRequest('Tai khoan nay chua thiet lap xac thuc hai yeu to, khong co gi de go.');
+  }
+  return true;
 }
 
 /** Danh sach toan bo tai khoan quan tri kem trang thai 2FA - phuc vu man hinh "Bao mat". */

@@ -17,19 +17,22 @@ loadCaptcha();
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value;
-  const captchaText = document.getElementById('captchaText').value.trim();
-  try {
-    const data = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password, captchaToken, captchaText }),
-    });
-    continueAfterPrimaryAuth(data);
-  } catch (err) {
-    showToast(err.message);
-    loadCaptcha();
-  }
+  const form = e.target;
+  await withSubmitLock(form, async () => {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const captchaText = document.getElementById('captchaText').value.trim();
+    try {
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password, captchaToken, captchaText }),
+      });
+      continueAfterPrimaryAuth(data);
+    } catch (err) {
+      showToast(err.message);
+      loadCaptcha();
+    }
+  });
 });
 
 const webauthnBtn = document.getElementById('webauthnLoginBtn');
