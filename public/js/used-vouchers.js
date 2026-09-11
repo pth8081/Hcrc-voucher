@@ -22,6 +22,9 @@ async function loadReport() {
     reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Dang tai...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
     render(data.rows, data.unassignedLocation);
+    if (data.truncated) {
+      showToast(`Danh sach dang qua nhieu, chi hien ${data.rows.length.toLocaleString('vi-VN')} dong dau. Thu hep khoang ngay hoac dung "Xuat Excel" de xem day du.`);
+    }
   } catch (err) {
     showToast(err.message);
     reportBody.innerHTML = `<tr><td colspan="8" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;

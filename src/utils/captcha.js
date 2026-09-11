@@ -62,18 +62,40 @@ function generate() {
   return { token, imageDataUrl: renderSvg(text) };
 }
 
-/** Xac minh ma nguoi dung nhap khop voi token da phat (con han, dung chu ky). Khong phan biet
- * hoa/thuong de de nhap tren dien thoai. */
+// H3: token captcha tu ky (HMAC) KHONG luu server-side nen truoc day dung LAI duoc nhieu lan
+// trong het han 3 phut - giai 1 lan roi script spam dang nhap khong gioi han lan captcha nua.
+// Danh dau CHU KY da dung 1 lan (khong luu ca token/dap an) trong bo nho tien trien, cung
+// kieu voi loginGuard/guessGuard da co san - chap nhan cung 1 gioi han (chi dung dung khi
+// CLUSTER_WORKERS=1, da ghi trong README) thay vi doi lai toan bo kien truc stateless.
+const usedSignatures = new Map(); // sig -> expiresAt (de don dep, khong can giu qua TTL captcha)
+
+function cleanupUsedSignatures() {
+  const now = Date.now();
+  for (const [sig, expiresAt] of usedSignatures) {
+    if (expiresAt < now) usedSignatures.delete(sig);
+  }
+}
+
+/** Xac minh ma nguoi dung nhap khop voi token da phat (con han, dung chu ky, CHUA TUNG DUOC
+ * DUNG truoc do). Khong phan biet hoa/thuong de de nhap tren dien thoai. Danh dau da dung khi
+ * xac minh dung - goi 2 lan lien tiep voi cung 1 token dung se lan 2 tra ve false. */
 function verify(token, userInput) {
   if (!token || !userInput) return false;
   const [expiresAtRaw, sig] = String(token).split('.');
   const expiresAt = Number(expiresAtRaw);
   if (!expiresAt || !sig || Date.now() > expiresAt) return false;
 
+  if (usedSignatures.has(sig)) return false;
+
   const expectedSig = sign(String(userInput).trim().toUpperCase(), expiresAt);
   const a = Buffer.from(expectedSig);
   const b = Buffer.from(sig);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (ok) {
+    usedSignatures.set(sig, expiresAt);
+    if (usedSignatures.size % 200 === 0) cleanupUsedSignatures();
+  }
+  return ok;
 }
 
 module.exports = { generate, verify };

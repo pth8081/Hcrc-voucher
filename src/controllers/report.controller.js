@@ -55,8 +55,18 @@ async function usedVouchers(req, res, next) {
   try {
     const { fromDate, toDate } = parseDateRange(req.query);
     const { codes, unassigned } = await resolveScope(req);
-    const rows = await usedVoucherReportService.listUsedVouchers({ fromDate, toDate, visibleLocationCodes: codes });
-    res.json({ success: true, data: { rows, unassignedLocation: !!unassigned } });
+    // H11: truoc day khong gioi han gi ca - goi khong tham so co the keo ve toan bo lich su
+    // nhieu nam roi render thang vao 1 bang HTML, rui ro treo trinh duyet/qua tai server. Xem
+    // MAX_LIST_ROWS trong usedVoucherReportService.js. `truncated` bao cho giao dien biet de
+    // nhac nguoi dung thu hep khoang ngay/dung Xuat Excel neu can day du hon.
+    const rows = await usedVoucherReportService.listUsedVouchers({
+      fromDate,
+      toDate,
+      visibleLocationCodes: codes,
+      maxRows: usedVoucherReportService.MAX_LIST_ROWS,
+    });
+    const truncated = rows.length >= usedVoucherReportService.MAX_LIST_ROWS;
+    res.json({ success: true, data: { rows, unassignedLocation: !!unassigned, truncated } });
   } catch (err) {
     next(err);
   }

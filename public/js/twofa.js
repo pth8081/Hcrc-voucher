@@ -35,8 +35,10 @@ async function twoFaFetch(path, options = {}) {
   return body.data;
 }
 
-function twoFaSetupInit() {
-  return twoFaFetch('/auth/2fa/setup-init', { method: 'POST' });
+/** password: BAT BUOC khi doi thiet bi tu 1 phien day du da co san (server se tu choi neu
+ * thieu) - khong can khi thiet lap lan dau (token tam, nguoi dung vua xac minh mat khau xong). */
+function twoFaSetupInit(password) {
+  return twoFaFetch('/auth/2fa/setup-init', { method: 'POST', body: JSON.stringify({ password }) });
 }
 function twoFaSetupVerify(code) {
   return twoFaFetch('/auth/2fa/setup-verify', { method: 'POST', body: JSON.stringify({ code }) });

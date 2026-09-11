@@ -24,7 +24,7 @@ async function fetchPendingBatch() {
     .input('maxAttempts', sql.Int, MAX_ATTEMPTS)
     .query(`
       SELECT TOP (@batchSize) v.Id, v.TRANS_NUM, v.Voucher_Code, v.User_Name,
-             v.Locations_Group, v.Locations_Detail
+             v.Locations_Group, v.Locations_Detail, v.Created_Date
       FROM dbo.VOUCHER_SYNC v
       WHERE v.Sync = 'N'
         AND (
@@ -86,7 +86,40 @@ async function processPendingSyncs() {
 
       const alreadyReflected = !result.success && result.status === VOUCHER_STATUS.USED;
 
-      if (result.success || alreadyReflected) {
+      // C2: khi Core bao USED, TRUOC DAY luon coi la "chinh request cua minh, chi la phan hoi
+      // bi mat" - nhung co the la 1 vu trung thu hoi THAT (voucher bi tieu qua kenh khac trong
+      // luc app nay mat ket noi Core). Doi chieu thoi diem Core noi da tieu (redeemedAt, neu
+      // mapping co cau hinh) voi thoi diem CHINH app nay ghi nhan cuc bo (Created_Date): neu
+      // Core noi da tieu TRUOC ca luc app nay moi ghi nhan (co du bu sai lech dong ho), chac
+      // chan KHONG PHAI la phan hoi cua chinh request nay - danh dau CONFLICT de admin doi
+      // soat thu cong, khong am tham dong ho so.
+      let conflict = false;
+      if (alreadyReflected && result.redeemedAt) {
+        const coreRedeemedAt = new Date(result.redeemedAt);
+        const localCreatedAt = new Date(row.Created_Date);
+        const CLOCK_SKEW_TOLERANCE_MS = 60 * 1000;
+        if (!Number.isNaN(coreRedeemedAt.getTime()) && coreRedeemedAt.getTime() < localCreatedAt.getTime() - CLOCK_SKEW_TOLERANCE_MS) {
+          conflict = true;
+        }
+      }
+
+      if (conflict) {
+        // Log voi status='FAILED' (khong phai 1 gia tri moi) de van duoc tinh vao
+        // countFailedAttempts/MAX_ATTEMPTS nhu cac ban ghi loi khac - tranh 1 xung dot chua xu
+        // ly bi thu lai vo han moi lan chay job (chiem cho dau hang doi mai mai). Tien to
+        // "XUNG DOT" trong message de admin phan biet duoc voi loi ket noi thong thuong khi
+        // xem lai Voucher_Exelogs.
+        // eslint-disable-next-line no-await-in-loop
+        await systemLogService.logExecution({
+          proName: SYNC_PROC_NAME,
+          pKey,
+          uniqueIdGroup: row.Voucher_Code,
+          status: 'FAILED',
+          message: `XUNG DOT (CONFLICT): Core bao voucher da USED tu ${result.redeemedAt} - TRUOC ca thoi diem app nay ghi nhan cuc bo (${row.Created_Date}), co the la 1 vu trung thu hoi THAT qua kenh khac. GIU Sync='N', CAN QUAN TRI VIEN DOI SOAT THU CONG, khong tu dong danh dau da dong bo.`,
+          syncRecord: 0,
+        });
+        failed += 1;
+      } else if (result.success || alreadyReflected) {
         // eslint-disable-next-line no-await-in-loop
         await markSynced(row.Id);
         // eslint-disable-next-line no-await-in-loop
@@ -96,7 +129,7 @@ async function processPendingSyncs() {
           uniqueIdGroup: row.Voucher_Code,
           status: 'SUCCESS',
           message: alreadyReflected
-            ? 'Core da o trang thai USED (co the tu chinh request lan truoc bi mat phan hoi) - coi nhu da dong bo'
+            ? `Core da o trang thai USED${result.redeemedAt ? ` (redeemedAt=${result.redeemedAt})` : ' (Core khong tra ve thoi diem tieu de doi chieu)'} - da so sanh thoi diem, phu hop voi gia thiet chinh request lan truoc bi mat phan hoi - coi nhu da dong bo`
             : 'Da dong bo lai thanh cong voi Core API',
           syncRecord: 1,
         });

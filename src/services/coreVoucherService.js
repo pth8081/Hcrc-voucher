@@ -137,10 +137,22 @@ async function redeemVoucherLegacyEnv(voucherCode, context) {
 function wrapConnError(err) {
   const wrapped = new Error('Khong the ket noi Core Voucher API');
   wrapped.statusCode = 502;
+  // H7: giu lai co phan biet "khong co phan hoi tu Core" (mat mang that su) voi "Core co phan
+  // hoi nhung xu ly loi" (dynamicCoreApiClient.js da tinh san) de cac tang tren dung log ro
+  // rang hon cho admin, xem ghi chu chi tiet o do.
+  wrapped.coreUnreachable = err ? err.coreUnreachable !== false : true;
   // Noi ro day la loi KET NOI toi Core API (khong phai loi du lieu voucher) de nguoi dung/quan
   // tri phan biet duoc voi cac loi nghiep vu khac (voucher het han, da tieu...) va biet huong
   // xu ly dung (kiem tra mang/Core, khong phai kiem tra lai ma voucher).
   wrapped.publicMessage = 'Khong ket noi duoc den Core API de kiem tra/thu hoi voucher. Vui long kiem tra ket noi mang hoac bao quan tri vien neu tinh trang keo dai.';
+  // H9: xoa header xac thuc (co the chua Bearer token/API key cua ket noi .env fallback) truoc
+  // khi giu lai loi goc lam .cause - tranh secret bi ghi ra log dang chu thuong khi Core loi
+  // (dynamicCoreApiClient.js da tu redact truong hop chinh, day la phong ho them cho nhanh
+  // fallback .env cu).
+  if (err && err.config) {
+    err.config = { ...err.config, headers: '[REDACTED]' };
+  }
+  if (err) delete err.request;
   wrapped.cause = err;
   return wrapped;
 }

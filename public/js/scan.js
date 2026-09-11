@@ -121,8 +121,8 @@ function renderResult(voucherCode, data) {
       <div class="info-row"><span class="k">Ma voucher</span><span class="v">${escapeHtml(voucherCode)}</span></div>
       <div class="info-row"><span class="k">So serial</span><span class="v">${escapeHtml(data.voucherSerial || '-')}</span></div>
       <div class="info-row"><span class="k">Menh gia</span><span class="v">${fmtMoney(data.valueAmt)}</span></div>
-      <div class="info-row"><span class="k">Ngay cap</span><span class="v">${fmtDate(data.issueDate)}</span></div>
-      <div class="info-row"><span class="k">Han su dung</span><span class="v">${fmtDate(data.expiryDate)}</span></div>
+      <div class="info-row"><span class="k">Ngay cap</span><span class="v">${escapeHtml(fmtDate(data.issueDate))}</span></div>
+      <div class="info-row"><span class="k">Han su dung</span><span class="v">${escapeHtml(fmtDate(data.expiryDate))}</span></div>
     `;
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-success';

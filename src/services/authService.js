@@ -22,11 +22,21 @@ function resolveJwtExpiresIn() {
   return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
 }
 
+// H4: bcrypt.compare co chu dich cham (~50-100ms tuy cost factor) - neu username KHONG TON
+// TAI thi login() truoc day tra loi NGAY (bo qua hoan toan bcrypt), con username CO TON TAI
+// thi luon mat them ngan do bcrypt.compare that su chay, du mat khau dung hay sai. Ke tan cong
+// do THOI GIAN PHAN HOI co the suy ra 1 ten dang nhap co ton tai hay khong (du thong bao loi
+// tra ve GIONG HET NHAU), phuc vu do quet danh sach tai khoan that truoc khi tan cong mat khau.
+// Hash "gia" nay khong dung de xac thuc bat ky ai - chi de ton thoi gian TUONG DUONG 1 lan
+// bcrypt.compare that khi username khong ton tai, xoa bo chenh lech thoi gian giua 2 nhanh.
+const DUMMY_HASH_FOR_TIMING = bcrypt.hashSync('khong-dung-de-xac-thuc-chi-de-can-bang-thoi-gian', 10);
+
 async function login(username, password) {
   loginGuard.assertNotLocked(username);
 
   const user = await findUserByUsername(username);
   if (!user) {
+    await bcrypt.compare(password, DUMMY_HASH_FOR_TIMING);
     loginGuard.recordResult(username, false);
     throw unauthorized();
   }
