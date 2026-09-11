@@ -161,11 +161,14 @@ async function adminReset(req, res, next) {
     if (Number(targetUser.status) !== 1) {
       return res.status(400).json({ success: false, message: 'Tai khoan nay khong phai quan tri vien, khong ap dung xac thuc hai yeu to' });
     }
+    // L6: lay trang thai TRUOC KHI go de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    const beforeStatus = await twoFactorService.getStatus(targetUserId);
     await twoFactorService.adminResetOther(targetUserId, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'RESET_2FA',
       targetUsername: req.body.username || String(targetUserId),
+      detail: { before: { enabled: beforeStatus.enabled }, after: { enabled: false } },
     });
     res.json({ success: true });
   } catch (err) {

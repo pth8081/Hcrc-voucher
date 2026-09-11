@@ -11,6 +11,22 @@ async function list() {
   return result.recordset;
 }
 
+/** 1 cong ty theo id - dung de lay trang thai TRUOC KHI sua (audit log ghi ca before/after,
+ * xem auditLogService.js). */
+async function getById(id) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .query(`
+      SELECT Id, CompanyCode, CompanyName, ContactName, ContactPhone, ContactEmail,
+             Address, TaxCode, BankAccount, BankName, Status
+      FROM dbo.RedemptionCompanies
+      WHERE Id = @id
+    `);
+  return result.recordset[0] || null;
+}
+
 async function create(data) {
   const pool = await getPool();
   const result = await pool
@@ -66,4 +82,4 @@ async function update(id, data) {
     `);
 }
 
-module.exports = { list, create, update };
+module.exports = { list, create, update, getById };

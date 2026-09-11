@@ -30,7 +30,7 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_ACCESS_GROUP',
       targetUsername: req.body.groupName,
-      detail: { id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
+      detail: { before: null, after: { id, scopeType: req.body.scopeType, companyIds: req.body.companyIds } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -42,12 +42,18 @@ async function update(req, res, next) {
   try {
     const error = validate(req.body);
     if (error) return res.status(400).json({ success: false, message: error });
-    await reportAccessService.updateGroup(Number(req.params.id), req.body);
+    const groupId = Number(req.params.id);
+    // L6: lay trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    const before = await reportAccessService.getGroupById(groupId);
+    await reportAccessService.updateGroup(groupId, req.body);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_ACCESS_GROUP',
       targetUsername: req.body.groupName || String(req.params.id),
-      detail: { id: req.params.id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
+      detail: {
+        before: before ? { groupName: before.groupName, scopeType: before.scopeType, companyIds: before.companyIds } : null,
+        after: { id: req.params.id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
+      },
     });
     res.json({ success: true });
   } catch (err) {
