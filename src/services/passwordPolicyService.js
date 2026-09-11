@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { sql, getPool } = require('../config/db');
+const sessionRevalidation = require('../utils/sessionRevalidation');
 
 /**
  * Bat buoc doi mat khau trong LAN DANG NHAP DAU TIEN vao ung dung nay - ap dung cho MOI tai
@@ -71,6 +72,14 @@ async function setNewPassword(userId, newPassword) {
       WHEN NOT MATCHED THEN INSERT (UserId, MustChangePassword, PasswordChangedDate, UpdatedDate)
         VALUES (@userId, 0, GETDATE(), GETDATE());
     `);
+  // H1-noi rong (dot ra soat sau phat hien): PasswordChangedDate o tren gio duoc doi chieu voi
+  // "iat" (thoi diem token duoc cap) cua JWT trong middleware/auth.js - bat ky token nao cap
+  // TRUOC lan doi mat khau gan nhat se bi tu choi trong toi da 30s (TTL cua sessionRevalidation).
+  // Truoc day PasswordChangedDate chi de hien thi, khong duoc dung de vo hieu hoa token cu - 1
+  // token dang nhap DA BI LO (thiet bi dung chung, ro ri qua log, XSS...) van dung duoc binh
+  // thuong toi het han (8h mac dinh) du mat khau da duoc doi de "khoa" ke gia mao. Xoa cache
+  // ngay lap tuc (khong doi den TTL het han) de token cu bi tu choi cang som cang tot.
+  sessionRevalidation.invalidate(userId);
 }
 
 /** Quan tri DAT LAI mat khau ho 1 tai khoan khac (nut "Sua" o man hinh Tai khoan) - khac
@@ -94,10 +103,16 @@ async function adminResetPassword(userId, newPassword) {
       MERGE dbo.UserPasswordPolicy AS target
       USING (SELECT @userId AS UserId) AS src
       ON target.UserId = src.UserId
-      WHEN MATCHED THEN UPDATE SET MustChangePassword = 1, UpdatedDate = GETDATE()
-      WHEN NOT MATCHED THEN INSERT (UserId, MustChangePassword, UpdatedDate)
-        VALUES (@userId, 1, GETDATE());
+      WHEN MATCHED THEN UPDATE SET MustChangePassword = 1, PasswordChangedDate = GETDATE(), UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT (UserId, MustChangePassword, PasswordChangedDate, UpdatedDate)
+        VALUES (@userId, 1, GETDATE(), GETDATE());
     `);
+  // Dot ra soat sau phat hien: mat khau THAT SU da doi tai day (admin dat lai ho) nhung truoc day
+  // KHONG ghi PasswordChangedDate (chi setNewPassword co) va KHONG lam mat hieu luc token cu -
+  // token dang nhap DA CAP TRUOC do (vd bi lo, ly do chinh admin phai dat lai mat khau ho) van
+  // dung duoc binh thuong toi het han. Ghi PasswordChangedDate (de middleware/auth.js doi chieu
+  // voi "iat" cua JWT) va xoa cache ngay, cung 1 co che voi setNewPassword() o tren.
+  sessionRevalidation.invalidate(userId);
 }
 
 module.exports = { checkComplexity, assertComplexity, mustChangePassword, setNewPassword, adminResetPassword };

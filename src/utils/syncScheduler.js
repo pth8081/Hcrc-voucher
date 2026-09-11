@@ -19,7 +19,12 @@ function startSyncScheduler() {
     return;
   }
 
-  const intervalMinutes = Number(process.env.SYNC_RETRY_INTERVAL_MINUTES || 5);
+  // Dot ra soat sau phat hien: truoc day neu bien env nay dat 1 gia tri khong phai so (vd go
+  // nham chu), Number(...) tra ve NaN va Math.max(1, NaN) van la NaN - setInterval voi delay
+  // NaN chay gan nhu lien tuc (khong cho ro rang), lang phi CPU du guard "running" o duoi khien
+  // no khong gay loi chuc nang. Ep ve so hop le, mac dinh lai 5 phut neu gia tri khong doc duoc.
+  const rawIntervalMinutes = Number(process.env.SYNC_RETRY_INTERVAL_MINUTES);
+  const intervalMinutes = Number.isFinite(rawIntervalMinutes) && rawIntervalMinutes > 0 ? rawIntervalMinutes : 5;
   const intervalMs = Math.max(1, intervalMinutes) * 60 * 1000;
 
   logger.info(`Sync retry job bat dau, chay moi ${intervalMinutes} phut`);
