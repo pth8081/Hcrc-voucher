@@ -414,8 +414,8 @@ function renderTestResult(data) {
     ${n.found !== undefined ? `<div class="info-row"><span class="k">found</span><span class="v">${n.found}</span></div>` : ''}
     ${n.voucherSerial ? `<div class="info-row"><span class="k">So serial</span><span class="v">${escapeHtml(n.voucherSerial)}</span></div>` : ''}
     ${n.valueAmt != null ? `<div class="info-row"><span class="k">Menh gia</span><span class="v">${fmtMoney(n.valueAmt)}</span></div>` : ''}
-    ${n.issueDate ? `<div class="info-row"><span class="k">Ngay cap</span><span class="v">${fmtDate(n.issueDate)}</span></div>` : ''}
-    ${n.expiryDate ? `<div class="info-row"><span class="k">Han su dung</span><span class="v">${fmtDate(n.expiryDate)}</span></div>` : ''}
+    ${n.issueDate ? `<div class="info-row"><span class="k">Ngay cap</span><span class="v">${escapeHtml(fmtDate(n.issueDate))}</span></div>` : ''}
+    ${n.expiryDate ? `<div class="info-row"><span class="k">Han su dung</span><span class="v">${escapeHtml(fmtDate(n.expiryDate))}</span></div>` : ''}
     ${n.success !== undefined ? `<div class="info-row"><span class="k">success</span><span class="v">${n.success}</span></div>` : ''}
     ${n.transRef ? `<div class="info-row"><span class="k">Ma giao dich (transRef)</span><span class="v">${escapeHtml(n.transRef)}</span></div>` : ''}
     ${n.message ? `<div class="info-row"><span class="k">Thong bao</span><span class="v">${escapeHtml(n.message)}</span></div>` : ''}

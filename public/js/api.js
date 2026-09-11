@@ -70,6 +70,10 @@ function fmtMoney(v) {
 function fmtDate(v) {
   if (!v) return '-';
   const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return v;
+  // H10: KHONG duoc tra ve nguyen van gia tri tho khi khong parse duoc ngay - gia tri nay co
+  // the den tu Core API (issueDate/expiryDate, qua mapping do admin tu cau hinh) va bi chen
+  // thang vao innerHTML o vai noi (scan.js, api-connection.js) ma khong qua escapeHtml, tao
+  // XSS neu Core (hoac 1 ket noi bi cau hinh sai/gia mao) tra ve chuoi chua the HTML.
+  if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleString('vi-VN');
 }

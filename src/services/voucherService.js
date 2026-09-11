@@ -96,6 +96,14 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
  *   tai cho (vi da xac nhan UNUSED it giay truoc do), luu vao VOUCHER_SYNC voi Sync='N'
  *   de coi nhu "hang doi cho dong bo", job tu dong (syncRetryService) se gui lai sau.
  *   Day la loi ha tang, khong nen lam gian doan giao dich thuc te voi khach hang.
+ *
+ * QUAN TRONG (chong 2 nguoi quet trung ma gan nhu cung luc): lay khoa sp_getapplock TRUOC
+ * khi goi Core, giu khoa xuyen suot ca lenh goi Core LAN ghi VOUCHER_SYNC, chi nha khoa khi
+ * commit/rollback. Truoc day khoa chi bao quanh buoc ghi DB (sau khi da goi Core xong) nen 2
+ * request trung ma van goi Core DONG THOI duoc - request "thua" trong buoc ghi DB co giao
+ * dich Core THAT SU da thanh cong nhung bi mat dau vet hoan toan. Gio khoa bao truoc ca buoc
+ * goi Core nen 2 request trung ma se tu dong xep hang, request thu 2 se thay ngay o buoc
+ * kiem tra "da co ban ghi" ma KHONG can goi Core nua.
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
   guessGuard.assertNotLocked(user.userId);
@@ -124,52 +132,43 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
   }
 
   const transNum = generateTransNum();
-  let redeemResult;
-  let pendingSync = false;
-  let syncErrorMessage = null;
 
+  let outcome;
   try {
-    redeemResult = await coreVoucherService.redeemVoucher(voucherCode, {
-      username: user.username,
-      locationsGroup: user.locationsGroup,
-      locationsDetail: user.locationsDetail,
-      transNum,
-    });
+    outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck });
   } catch (err) {
-    pendingSync = true;
-    syncErrorMessage = err.message;
-    redeemResult = { success: true, status: 'REDEEMED', transRef: null, redeemedAt: new Date().toISOString() };
+    // C1: neu Core DA XAC NHAN thu hoi thanh cong (khong phai do Core loi ket noi - truong hop
+    // do da duoc gan pendingSync=true va van ghi DB binh thuong) nhung buoc ghi VOUCHER_SYNC
+    // van that bai vi ly do khac (het gio cho khoa, tran so valueAmt, mat ket noi DB giua
+    // chung...), day la 1 giao dich CO THAT nhung co nguy co mat dau vet hoan toan - PHAI ghi
+    // canh bao muc CRITICAL de quan tri doi soat thu cong, KHONG duoc de loi troi qua am tham.
+    if (err.coreConfirmedSuccess) {
+      await systemLogService.logExecution({
+        proName: SYNC_PROC_NAME,
+        pKey: transNum,
+        uniqueIdGroup: voucherCode,
+        status: 'FAILED_CRITICAL',
+        message: `Core da xac nhan thu hoi thanh cong (transRef=${err.coreTransRef || 'khong co'}) nhung ghi VOUCHER_SYNC that bai: ${err.message}. CAN DOI SOAT THU CONG NGAY - khong duoc quet lai ma nay qua app.`,
+        syncRecord: 0,
+      });
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: 'ERROR_UNRECORDED',
+        clientIp,
+        message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
+      });
+      const critErr = new Error('Core da xac nhan thu hoi thanh cong nhung he thong ghi nhan cuc bo bi loi.');
+      critErr.statusCode = 500;
+      critErr.publicMessage = 'Core da xac nhan thu hoi THANH CONG nhung he thong ghi nhan cuc bo bi loi. KHONG quet lai ma nay - vui long bao quan tri vien NGAY de doi soat thu cong.';
+      throw critErr;
+    }
+    throw err;
   }
 
-  if (!pendingSync && !redeemResult.success) {
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'REDEEM',
-      resultStatus: redeemResult.status || 'ERROR',
-      clientIp,
-      message: redeemResult.message,
-    });
-    return {
-      success: false,
-      status: redeemResult.status,
-      message: redeemResult.message || 'Thu hoi voucher that bai, vui long quet ma khac.',
-    };
-  }
-
-  const inserted = await insertVoucherSyncGuarded({
-    user,
-    transNum,
-    voucherCode,
-    voucherSerial: precheck.voucherSerial,
-    valueAmt: precheck.valueAmt,
-    synced: !pendingSync,
-  });
-
-  if (!inserted) {
-    // Mot request khac (vd quet trung 2 quay, hoac goi lai do mang lag) da ghi VOUCHER_SYNC cho
-    // dung ma nay trong luc request nay dang cho Core tra loi - khong ghi trung, tu choi o day.
+  if (outcome.duplicate) {
     await logScan({
       user,
       voucherCode,
@@ -185,6 +184,25 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
       message: 'Voucher nay vua duoc thu hoi (co the tu thiet bi/quay khac). Vui long quet ma khac.',
     };
   }
+
+  if (!outcome.pendingSync && !outcome.redeemResult.success) {
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'REDEEM',
+      resultStatus: outcome.redeemResult.status || 'ERROR',
+      clientIp,
+      message: outcome.redeemResult.message,
+    });
+    return {
+      success: false,
+      status: outcome.redeemResult.status,
+      message: outcome.redeemResult.message || 'Thu hoi voucher that bai, vui long quet ma khac.',
+    };
+  }
+
+  const { pendingSync, redeemResult, syncErrorMessage } = outcome;
 
   await systemLogService.logExecution({
     proName: SYNC_PROC_NAME,
@@ -236,20 +254,40 @@ async function findLocalRedemption(voucherCode) {
   return result.recordset[0] || null;
 }
 
+/** Ep valueAmt ve 1 so hop le, an toan de ghi vao cot Numeric(18,2) - Core la he thong ngoai
+ * khong do app nay kiem soat, phan hoi co the thieu/sai kieu/qua lon (VD tran so gay loi
+ * INSERT, chinh la 1 nguyen nhan khien buoc ghi VOUCHER_SYNC that bai sau khi Core da xac
+ * nhan thanh cong - xem C1). Gia tri khong hop le -> coi la 0 va ghi log canh bao, KHONG de
+ * loi troi ra ngoai lam mat ca giao dich. */
+function sanitizeValueAmt(rawValueAmt, { voucherCode, transNum } = {}) {
+  const n = Number(rawValueAmt);
+  const MAX_SAFE_AMT = 9999999999999999.99; // gioi han cua Numeric(18,2)
+  if (!Number.isFinite(n) || n < 0 || n > MAX_SAFE_AMT) {
+    // eslint-disable-next-line no-console
+    console.warn(`[voucherService] valueAmt tra ve tu Core khong hop le (${rawValueAmt}) cho voucher ${voucherCode} (transNum ${transNum}) - da ghi la 0, can kiem tra lai mapping/du lieu Core.`);
+    return 0;
+  }
+  return n;
+}
+
 /**
- * Ghi VOUCHER_SYNC cho 1 lan thu hoi, nhung CO KHOA de chan 2 request cung ma voucher ghi
- * trung nhau khi den gan nhu cung luc (vd Core API cham/chap chon khien nhieu request cung
- * roi vao nhanh "khong ket noi duoc Core -> van thu hoi tai cho").
+ * Goi Core API thu hoi VA ghi VOUCHER_SYNC trong CUNG 1 khoa (sp_getapplock, theo dung ma
+ * voucher, pham vi 1 transaction) - xem ghi chu H5 o redeemVoucher() phia tren ve ly do gop
+ * lai. KHONG can doi schema VOUCHER_SYNC (bang dung chung voi he thong Core, khong duoc phep
+ * sua cau truc).
  *
- * Dung sp_getapplock (khoa ung dung cua SQL Server, khong dung ban ghi/bang) khoa theo dung
- * ma voucher trong pham vi 1 transaction - KHONG can doi schema VOUCHER_SYNC (bang dung chung
- * voi he thong Core, khong duoc phep sua cau truc). Trong luc giu khoa, tra cuu lai xem da co
- * ban ghi nao cho ma nay chua (phong truong hop request kia ghi xong truoc) - neu co roi thi
- * KHONG ghi them, tra ve false de goi noi bao tu choi thu hoi.
+ * Tra ve:
+ *  - { duplicate: true } neu da co ban ghi VOUCHER_SYNC khac cho ma nay (phat hien ben trong
+ *    khoa, truoc khi goi Core - tranh goi Core mot cach thua thai khi da chac chan trung).
+ *  - { duplicate: false, pendingSync, redeemResult, syncErrorMessage } cho moi truong hop con
+ *    lai (thanh cong, cho dong bo, hoac Core tu choi nghiep vu - redeemVoucher() o tren tu
+ *    doc outcome.redeemResult.success de biet co ghi DB hay khong).
  *
- * Tra ve true neu da ghi thanh cong, false neu phat hien trung (khong ghi).
+ * Neu buoc INSERT that bai SAU KHI Core da xac nhan thanh cong that su (khong phai do bat
+ * loi ket noi Core), loi nem ra duoc gan them err.coreConfirmedSuccess=true de ham goi (C1)
+ * biet day la 1 giao dich CO THAT can canh bao khan, khong phai loi thong thuong.
  */
-async function insertVoucherSyncGuarded({ user, transNum, voucherCode, voucherSerial, valueAmt, synced }) {
+async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck }) {
   const pool = await getPool();
   // Location_DetailName: tra ten theo LocationCode (Locations_Detail co cot ma ro rang de
   // doi chieu). Location_GroupName KHONG dien duoc tuong tu vi Locations_Group khong co cot
@@ -259,14 +297,21 @@ async function insertVoucherSyncGuarded({ user, transNum, voucherCode, voucherSe
 
   const transaction = new sql.Transaction(pool);
   await transaction.begin();
+
+  let redeemResult = null;
+  let pendingSync = false;
+  let syncErrorMessage = null;
+
   try {
+    // Gioi han thoi gian cho khoa lon hon timeout goi Core (mac dinh 8s, xem CORE_API_TIMEOUT_MS)
+    // vi gio khoa nay phai bao trum ca thoi gian cho Core phan hoi, khong chi buoc ghi DB.
     const lockResult = await transaction
       .request()
       .input('resource', sql.NVarChar(255), `voucher-redeem:${voucherCode}`)
       .query(`
         DECLARE @lockResult INT;
         EXEC @lockResult = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive',
-          @LockOwner = 'Transaction', @LockTimeout = 5000;
+          @LockOwner = 'Transaction', @LockTimeout = 15000;
         SELECT @lockResult AS lockResult;
       `);
     if ((lockResult.recordset[0] || {}).lockResult < 0) {
@@ -280,36 +325,74 @@ async function insertVoucherSyncGuarded({ user, transNum, voucherCode, voucherSe
 
     if (existing.recordset[0]) {
       await transaction.rollback();
-      return false;
+      return { duplicate: true };
     }
 
-    await transaction
-      .request()
-      .input('userid', sql.Int, user.userId)
-      .input('userName', sql.NChar(60), user.fullName || user.username)
-      .input('transNum', sql.Char(18), transNum)
-      .input('voucherSerial', sql.NVarChar(100), voucherSerial || '')
-      .input('voucherCode', sql.NVarChar(24), voucherCode)
-      .input('status', sql.NVarChar(240), 'REDEEMED')
-      .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
-      .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
-      .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
-      .input('locationDetailName', sql.NVarChar(200), locationDetailName)
-      .input('valueAmt', sql.Numeric(18, 2), valueAmt || 0)
-      .input('sync', sql.NVarChar(2), synced ? 'Y' : 'N')
-      .query(`
-        INSERT INTO dbo.VOUCHER_SYNC
-          (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
-           Status, Computer_name, Locations_Group, Locations_Detail, Location_DetailName, VALUE_AMT,
-           Last_update, Sync, Sync_update)
-        VALUES
-          (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
-           @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
-           GETDATE(), @sync, @sync)
-      `);
+    // Goi Core NGAY TRONG khoa (H5) - request thu 2 cung ma se cho o buoc lay khoa phia tren,
+    // khong bao gio goi Core dong thoi voi request nay.
+    try {
+      redeemResult = await coreVoucherService.redeemVoucher(voucherCode, {
+        username: user.username,
+        locationsGroup: user.locationsGroup,
+        locationsDetail: user.locationsDetail,
+        transNum,
+      });
+    } catch (err) {
+      pendingSync = true;
+      // H7: neu Core THAT SU co phan hoi (chi la xu ly loi, vd sai cau hinh mapping) thay vi
+      // hoan toan khong ket noi duoc, ghi ro trong message de admin kiem tra dung huong (cau
+      // hinh ket noi) thay vi tuong nham la su co mang tam thoi.
+      syncErrorMessage = err.coreUnreachable === false
+        ? `${err.message} (Core CO PHAN HOI nhung khong xu ly duoc - kiem tra lai cau hinh ket noi/mapping, khong chi la su co mang)`
+        : err.message;
+      redeemResult = { success: true, status: 'REDEEMED', transRef: null, redeemedAt: new Date().toISOString() };
+    }
+
+    if (!pendingSync && !redeemResult.success) {
+      // Core tu choi nghiep vu that su - khong ghi gi ca.
+      await transaction.rollback();
+      return { duplicate: false, pendingSync, redeemResult, syncErrorMessage };
+    }
+
+    const safeValueAmt = sanitizeValueAmt(precheck.valueAmt, { voucherCode, transNum });
+
+    try {
+      await transaction
+        .request()
+        .input('userid', sql.Int, user.userId)
+        .input('userName', sql.NChar(60), user.fullName || user.username)
+        .input('transNum', sql.Char(18), transNum)
+        .input('voucherSerial', sql.NVarChar(100), precheck.voucherSerial || '')
+        .input('voucherCode', sql.NVarChar(24), voucherCode)
+        .input('status', sql.NVarChar(240), 'REDEEMED')
+        .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
+        .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
+        .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
+        .input('locationDetailName', sql.NVarChar(200), locationDetailName)
+        .input('valueAmt', sql.Numeric(18, 2), safeValueAmt)
+        .input('sync', sql.NVarChar(2), pendingSync ? 'N' : 'Y')
+        .query(`
+          INSERT INTO dbo.VOUCHER_SYNC
+            (userid, User_Name, TRANS_NUM, Voucher_Serial, Voucher_Code, Created_Date,
+             Status, Computer_name, Locations_Group, Locations_Detail, Location_DetailName, VALUE_AMT,
+             Last_update, Sync, Sync_update)
+          VALUES
+            (@userid, @userName, @transNum, @voucherSerial, @voucherCode, GETDATE(),
+             @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
+             GETDATE(), @sync, @sync)
+        `);
+    } catch (insertErr) {
+      // C1: Core CO THE da xac nhan that su (khong phai qua nhanh "pendingSync" do loi ket
+      // noi) nhung ghi DB van that bai - danh dau ro de ham goi biet day la giao dich CO THAT.
+      if (!pendingSync && redeemResult.success) {
+        insertErr.coreConfirmedSuccess = true;
+        insertErr.coreTransRef = redeemResult.transRef;
+      }
+      throw insertErr;
+    }
 
     await transaction.commit();
-    return true;
+    return { duplicate: false, pendingSync, redeemResult, syncErrorMessage };
   } catch (err) {
     try {
       await transaction.rollback();

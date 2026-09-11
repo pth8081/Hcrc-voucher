@@ -52,6 +52,35 @@ async function create(data) {
     throw err;
   }
 
+  // C4: bang Locations_Detail (dung chung voi Core, KHONG duoc sua cau truc) co the co nhieu
+  // dong TRUNG LocationCode (da gap that o du lieu that - xem migration/fix bao cao trung
+  // dong truoc day). Neu 2 dong trung ma nay bi gan cho 2 CONG TY khac nhau qua 2 Don vi thu
+  // hoi khac nhau, thi resolveVisibleLocationCodes (reportAccessService.js) se tra ve CUNG 1
+  // ma cho ca 2 cong ty -> tai khoan cong ty A nhin thay duoc du lieu VOUCHER_SYNC cua cong ty
+  // B va nguoc lai (ro ri du lieu tai chinh xuyen cong ty). Chan tu luc tao/gan de khong bao
+  // gio xay ra tinh huong nay qua giao dien app.
+  const conflictCheck = await pool
+    .request()
+    .input('locationDetailId', sql.Int, data.locationDetailId)
+    .input('companyId', sql.Int, data.companyId)
+    .query(`
+      SELECT TOP 1 c.CompanyName
+      FROM dbo.RedemptionUnits ru2
+      INNER JOIN dbo.Locations_Detail d1 ON d1.id = ru2.LocationDetailId
+      LEFT JOIN dbo.RedemptionCompanies c ON c.Id = ru2.CompanyId
+      WHERE LTRIM(RTRIM(d1.LocationCode)) = (
+              SELECT LTRIM(RTRIM(LocationCode)) FROM dbo.Locations_Detail WHERE id = @locationDetailId
+            )
+        AND (ru2.CompanyId <> @companyId OR (ru2.CompanyId IS NULL) <> (@companyId IS NULL))
+    `);
+  if (conflictCheck.recordset.length) {
+    const conflictCompany = conflictCheck.recordset[0].CompanyName || '(chua gan cong ty)';
+    const err = new Error('LocationCode trung voi don vi thu hoi cua cong ty khac');
+    err.statusCode = 400;
+    err.publicMessage = `Dia diem nay dang trung ma voi 1 dia diem khac da gan cho cong ty "${conflictCompany}" (du lieu Locations_Detail bi trung ma). De tranh cac tai khoan cua 2 cong ty nhin thay bao cao cua nhau, vui long chon dung dia diem cua cong ty hien tai, hoac lien he IT kiem tra du lieu Locations_Detail bi trung.`;
+    throw err;
+  }
+
   const result = await pool
     .request()
     .input('locationDetailId', sql.Int, data.locationDetailId)
@@ -80,6 +109,36 @@ async function create(data) {
 
 async function update(id, data) {
   const pool = await getPool();
+
+  // C4 (xem giai thich chi tiet o create() phia tren): khi doi cong ty cua 1 don vi thu hoi
+  // co san, kiem tra lai cung dieu kien - LocationCode cua don vi nay khong duoc trung voi
+  // don vi cua 1 cong ty KHAC.
+  const conflictCheck = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .input('companyId', sql.Int, data.companyId)
+    .query(`
+      SELECT TOP 1 c.CompanyName
+      FROM dbo.RedemptionUnits ru2
+      INNER JOIN dbo.Locations_Detail d1 ON d1.id = ru2.LocationDetailId
+      LEFT JOIN dbo.RedemptionCompanies c ON c.Id = ru2.CompanyId
+      WHERE ru2.Id <> @id
+        AND LTRIM(RTRIM(d1.LocationCode)) = (
+              SELECT LTRIM(RTRIM(d0.LocationCode))
+              FROM dbo.RedemptionUnits ru0
+              INNER JOIN dbo.Locations_Detail d0 ON d0.id = ru0.LocationDetailId
+              WHERE ru0.Id = @id
+            )
+        AND (ru2.CompanyId <> @companyId OR (ru2.CompanyId IS NULL) <> (@companyId IS NULL))
+    `);
+  if (conflictCheck.recordset.length) {
+    const conflictCompany = conflictCheck.recordset[0].CompanyName || '(chua gan cong ty)';
+    const err = new Error('LocationCode trung voi don vi thu hoi cua cong ty khac');
+    err.statusCode = 400;
+    err.publicMessage = `Dia diem cua don vi nay dang trung ma voi 1 dia diem khac da gan cho cong ty "${conflictCompany}". De tranh cac tai khoan cua 2 cong ty nhin thay bao cao cua nhau, vui long kiem tra lai truoc khi doi cong ty.`;
+    throw err;
+  }
+
   await pool
     .request()
     .input('id', sql.Int, id)

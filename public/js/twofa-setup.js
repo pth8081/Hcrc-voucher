@@ -13,15 +13,37 @@ if (hasFullSession) {
   }
 }
 
-(async function loadQrCode() {
+const passwordGate = document.getElementById('passwordGate');
+const setupContent = document.getElementById('setupContent');
+
+async function loadQrCode(password) {
   try {
-    const data = await twoFaSetupInit();
+    const data = await twoFaSetupInit(password);
     document.getElementById('qrImage').src = data.qrCodeDataUrl;
     document.getElementById('manualKey').textContent = data.manualEntryKey;
+    passwordGate.classList.add('hidden');
+    setupContent.classList.remove('hidden');
   } catch (err) {
     showToast(err.message);
   }
-})();
+}
+
+// Doi thiet bi tu 1 phien day du da co san -> bat buoc xac nhan lai mat khau truoc (server
+// cung tu choi neu thieu/sai, day chi la buoc UI tuong ung). Thiet lap lan dau (token tam,
+// chua co phien) -> khong can, tai QR ngay.
+if (hasFullSession) {
+  passwordGate.classList.remove('hidden');
+  document.getElementById('confirmPasswordBtn').addEventListener('click', () => {
+    const password = document.getElementById('confirmPassword').value;
+    if (!password) {
+      showToast('Vui long nhap mat khau');
+      return;
+    }
+    loadQrCode(password);
+  });
+} else {
+  loadQrCode();
+}
 
 document.getElementById('setupForm').addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -545,6 +545,7 @@ server {
         proxy_pass http://127.0.0.1:3000;      # cong noi bo app dang lang nghe
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # QUAN TRONG: de app biet dung IP nguoi dung that (chan brute-force/dang nhap theo IP, ghi log)
         proxy_set_header X-Forwarded-Proto $scheme;   # QUAN TRONG: giup app biet request goc la https
     }
 }

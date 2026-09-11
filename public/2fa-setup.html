@@ -35,15 +35,24 @@
       <p class="login-title">Thiet lap xac thuc hai yeu to</p>
       <p class="twofa-lead">Tai khoan quan tri bat buoc bat xac thuc hai yeu to (TOTP) de bao ve cau hinh he thong.</p>
 
-      <div id="qrWrap" class="twofa-qr"><img id="qrImage" src="" alt="Ma QR thiet lap xac thuc hai yeu to" /></div>
-      <p class="twofa-key-label">Khong quet duoc? Nhap ma thu cong nay vao ung dung xac thuc:</p>
-      <p id="manualKey" class="twofa-key">...</p>
-      <p class="hint mb-10">Dung ung dung xac thuc (Google Authenticator, Microsoft Authenticator, Authy...) quet ma QR o tren, roi nhap ma 6 so ung dung do hien ra:</p>
+      <div id="passwordGate" class="hidden">
+        <p class="hint mb-10">Ban dang doi thiet bi xac thuc hai yeu to trong luc van con dang nhap - nhap lai mat khau de xac nhan chinh ban truoc khi tao ma QR moi (thiet bi cu se ngung hoat dong).</p>
+        <label>Mat khau</label>
+        <input id="confirmPassword" type="password" autocomplete="current-password" required />
+        <button id="confirmPasswordBtn" class="btn-primary btn-block mt-10" type="button">Xac nhan mat khau</button>
+      </div>
 
-      <form id="setupForm">
-        <input id="code" class="twofa-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required />
-        <button class="btn-primary btn-block mt-10" type="submit">Xac nhan &amp; bat dau su dung</button>
-      </form>
+      <div id="setupContent" class="hidden">
+        <div id="qrWrap" class="twofa-qr"><img id="qrImage" src="" alt="Ma QR thiet lap xac thuc hai yeu to" /></div>
+        <p class="twofa-key-label">Khong quet duoc? Nhap ma thu cong nay vao ung dung xac thuc:</p>
+        <p id="manualKey" class="twofa-key">...</p>
+        <p class="hint mb-10">Dung ung dung xac thuc (Google Authenticator, Microsoft Authenticator, Authy...) quet ma QR o tren, roi nhap ma 6 so ung dung do hien ra:</p>
+
+        <form id="setupForm">
+          <input id="code" class="twofa-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required />
+          <button class="btn-primary btn-block mt-10" type="submit">Xac nhan &amp; bat dau su dung</button>
+        </form>
+      </div>
       <a id="cancelLink" class="twofa-cancel" href="/login.html">Huy, quay lai dang nhap</a>
     </div>
   </div>

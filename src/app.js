@@ -11,6 +11,14 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 function createApp() {
   const app = express();
 
+  // H2: app luon chay sau 1 reverse proxy (nginx tren CUNG may, proxy_pass toi 127.0.0.1 -
+  // xem README muc 3f) nen ket noi TCP thuc su luon den tu localhost. Khai bao "loopback" de
+  // Express tin tuong header X-Forwarded-For DO nginx forward (dia chi IP that cua trinh
+  // duyet) va tra ve dung trong req.ip - can thiet de rate-limit theo IP (ipRateLimit.js) va
+  // ghi log (VoucherScanLogs.ClientIp) phan anh dung nguoi dung that, khong phai luon la
+  // 127.0.0.1. KHONG anh huong gi neu chua chay sau proxy (dev/local).
+  app.set('trust proxy', 'loopback');
+
   // CSP nghiem ngat: KHONG unsafe-inline / unsafe-eval o bat ky directive nao.
   // Moi CSS/JS deu nam trong file rieng (khong con <style>/<script> inline hay
   // thuoc tinh style="..."), chi allowlist dung cac host ben ngoai thuc su can:

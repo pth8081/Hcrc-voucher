@@ -4,6 +4,7 @@ const permissionService = require('../services/permissionService');
 const userAdminService = require('../services/userAdminService');
 const redemptionUnitService = require('../services/redemptionUnitService');
 const auditLogService = require('../services/auditLogService');
+const sessionRevalidation = require('../utils/sessionRevalidation');
 
 /** redemptionUnitId (neu co) luon uu tien - tra ve LocationCode that cua Don vi thu hoi da
  * chon, thay the moi gia tri locationsDetail go tay. Nem loi 400 neu chon 1 id khong ton tai. */
@@ -106,6 +107,7 @@ async function updateDeleteStatus(req, res, next) {
       return res.status(400).json({ success: false, message: 'Khong the tu xoa chinh tai khoan dang dang nhap' });
     }
     await userScheduleService.setDeleted(userId, !!isDeleted, req.user.username);
+    sessionRevalidation.invalidate(userId); // H1: co hieu luc ngay, khong cho token cu qua 30s cache
     await auditLogService.log({
       actorUsername: req.user.username,
       action: isDeleted ? 'DELETE_USER' : 'RESTORE_USER',
@@ -147,6 +149,7 @@ async function updateSchedule(req, res, next) {
       return res.status(400).json({ success: false, message: 'Thoi gian kich hoat phai truoc thoi gian het han' });
     }
     await userScheduleService.upsertSchedule(Number(req.params.userId), { activeFrom, activeUntil }, req.user.username);
+    sessionRevalidation.invalidate(Number(req.params.userId)); // H1: khoa/mo khoa co hieu luc ngay
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_SCHEDULE',

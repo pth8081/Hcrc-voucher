@@ -8,6 +8,14 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
 // ngay cang lon) khong bi treo/qua tai server neu ai do bam xuat nhieu lan lien tuc.
 const MAX_EXPORT_ROWS = 20000;
 
+// H11: gioi han so dong toi da khi XEM (khong phai xuat Excel) - truoc day API nay khong gioi
+// han gi ca va khong bat buoc chon khoang ngay, nen 1 nhan vien binh thuong goi khong tham so
+// co the keo ve TOAN BO lich su nhieu nam roi render thang vao 1 bang HTML khong ao (khong
+// phan trang) - rui ro treo trinh duyet/qua tai server. Nho hon nhieu so voi MAX_EXPORT_ROWS
+// vi day la de HIEN THI (nguoi dung khong doc noi vai chuc nghin dong tren man hinh), khong
+// phai de doi soat day du (viec do da co nut Xuat Excel voi gioi han rieng, cao hon).
+const MAX_LIST_ROWS = 3000;
+
 /**
  * Danh sach PHANG (khong cong don) toan bo voucher DA SU DUNG - moi dong trong VOUCHER_SYNC la
  * 1 voucher da duoc redeem qua app nay, nen bao cao nay chinh la "SELECT * FROM VOUCHER_SYNC"
@@ -113,4 +121,4 @@ async function buildExcelBuffer(rows) {
   return workbook.xlsx.writeBuffer();
 }
 
-module.exports = { listUsedVouchers, buildExcelBuffer, MAX_EXPORT_ROWS };
+module.exports = { listUsedVouchers, buildExcelBuffer, MAX_EXPORT_ROWS, MAX_LIST_ROWS };

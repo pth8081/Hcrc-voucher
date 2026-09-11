@@ -3,9 +3,35 @@ const authService = require('../services/authService');
 const loginGuard = require('../utils/loginGuard');
 const auditLogService = require('../services/auditLogService');
 
+/**
+ * C3: khi goi tu 1 PHIEN DAY DU da co san (context='session' - nghia la "doi thiet bi 2FA"
+ * trong luc van con dang nhap binh thuong, KHAC voi lan thiet lap dau tien luc chua co phien),
+ * bat buoc nhap lai mat khau truoc khi cho phep sinh secret TOTP moi (ghi de thiet bi cu) -
+ * cung 1 nguyen tac voi showQr ben duoi. Neu khong co buoc nay, ai lay duoc token phien (XSS,
+ * may dung chung, token ro ri qua log...) co the tu dang ky lai thiet bi 2FA cua chinh minh
+ * ma khong can biet mat khau, chiem quyen 2FA vinh vien.
+ * Truong hop context='pending' (token TAM ngay sau khi dang nhap lan dau, CHUA co 2FA) khong
+ * can buoc nay vi nguoi dung vua xac minh mat khau xong de co duoc token tam do roi.
+ */
 async function setupInit(req, res, next) {
   try {
     const { userId, username } = req.twoFactorSubject;
+
+    if (req.twoFactorContext === 'session') {
+      const { password } = req.body;
+      if (!password) {
+        return res.status(400).json({ success: false, message: 'Can nhap lai mat khau de doi thiet bi xac thuc hai yeu to' });
+      }
+      loginGuard.assertNotLocked(username);
+      const user = await authService.findUserByUsername(username);
+      const passwordOk = user && (await authService.comparePassword(password, user.Password));
+      if (!passwordOk) {
+        loginGuard.recordResult(username, false, 'admin');
+        return res.status(401).json({ success: false, message: 'Mat khau khong dung' });
+      }
+      loginGuard.recordResult(username, true, 'admin');
+    }
+
     const data = await twoFactorService.startSetup(userId, username);
     res.json({ success: true, data });
   } catch (err) {
