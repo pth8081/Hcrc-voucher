@@ -104,8 +104,15 @@ async function assertHostAllowed(urlString) {
     return records;
   } catch (err) {
     if (err.message && err.message.includes('bi chan')) throw err;
-    // Loi DNS khac (khong phan giai duoc, timeout...) - de axios tu bao loi ket noi binh thuong.
-    return null;
+    // Dot ra soat doi khang sau phat hien: truoc day BAT KY loi DNS nao khac (timeout, khong
+    // phan giai duoc...) deu duoc coi la "khong sao, de axios tu thu ket noi binh thuong" - vo
+    // tinh MO LAI dung khe ho DNS-rebinding ma buoc "ghim" o duoi sinh ra de chan: neu ke tan
+    // cong lam CHINH lan resolve kiem tra nay (co timeout rieng, ngan hon connection.timeoutMs
+    // cua axios) bi cham/that bai co chu dich, request se roi vao nhanh KHONG GHIM/KHONG KIEM
+    // TRA LAI nay, axios tu resolve doc lap va co the ket noi thang toi 1 dia chi bi chan - da
+    // chung minh khai thac duoc that su (khong chi ly thuyet). FAIL CLOSED: bat ky loi xac minh
+    // nao (khong phai do bi chan) cung TU CHOI thang request, khong con nhanh "de axios tu thu".
+    throw new Error(`Khong the xac minh dia chi ket noi de chong SSRF (loi DNS: ${err.message}). Tu choi ket noi de an toan - vui long kiem tra lai hostname/DNS cua ket noi Core nay.`);
   }
 }
 

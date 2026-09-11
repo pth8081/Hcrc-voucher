@@ -1,4 +1,5 @@
 const { sql, getPool } = require('../config/db');
+const { runWithUniqueConstraintMessage } = require('../utils/sqlErrors');
 
 async function list() {
   const pool = await getPool();
@@ -101,30 +102,34 @@ async function create(data) {
     throw err;
   }
 
-  const result = await pool
-    .request()
-    .input('locationDetailId', sql.Int, data.locationDetailId)
-    .input('companyId', sql.Int, data.companyId)
-    .input('partnerCode', sql.NVarChar(50), data.partnerCode)
-    .input('partnerName', sql.NVarChar(300), data.partnerName)
-    .input('contactName', sql.NVarChar(200), data.contactName || null)
-    .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
-    .input('contactEmail', sql.NVarChar(200), data.contactEmail || null)
-    .input('address', sql.NVarChar(500), data.address || null)
-    .input('taxCode', sql.NVarChar(50), data.taxCode || null)
-    .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
-    .input('bankName', sql.NVarChar(200), data.bankName || null)
-    .input('dailyLimitAmount', sql.Numeric(18, 2), data.dailyLimitAmount || null)
-    .query(`
-      INSERT INTO dbo.RedemptionUnits
-        (LocationDetailId, CompanyId, PartnerCode, PartnerName, ContactName, ContactPhone,
-         ContactEmail, Address, TaxCode, BankAccount, BankName, DailyLimitAmount, Status, CreatedDate)
-      OUTPUT INSERTED.Id
-      VALUES
-        (@locationDetailId, @companyId, @partnerCode, @partnerName, @contactName, @contactPhone,
-         @contactEmail, @address, @taxCode, @bankAccount, @bankName, @dailyLimitAmount, 1, GETDATE())
-    `);
-  return result.recordset[0].Id;
+  // Dot ra soat sau phat hien: PartnerCode co rang buoc UNIQUE nhung truoc day khong duoc kiem
+  // tra o tang ung dung - nhap trung ma se bao loi 500 chung chung thay vi 1 thong bao ro rang.
+  return runWithUniqueConstraintMessage(async () => {
+    const result = await pool
+      .request()
+      .input('locationDetailId', sql.Int, data.locationDetailId)
+      .input('companyId', sql.Int, data.companyId)
+      .input('partnerCode', sql.NVarChar(50), data.partnerCode)
+      .input('partnerName', sql.NVarChar(300), data.partnerName)
+      .input('contactName', sql.NVarChar(200), data.contactName || null)
+      .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
+      .input('contactEmail', sql.NVarChar(200), data.contactEmail || null)
+      .input('address', sql.NVarChar(500), data.address || null)
+      .input('taxCode', sql.NVarChar(50), data.taxCode || null)
+      .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
+      .input('bankName', sql.NVarChar(200), data.bankName || null)
+      .input('dailyLimitAmount', sql.Numeric(18, 2), data.dailyLimitAmount || null)
+      .query(`
+        INSERT INTO dbo.RedemptionUnits
+          (LocationDetailId, CompanyId, PartnerCode, PartnerName, ContactName, ContactPhone,
+           ContactEmail, Address, TaxCode, BankAccount, BankName, DailyLimitAmount, Status, CreatedDate)
+        OUTPUT INSERTED.Id
+        VALUES
+          (@locationDetailId, @companyId, @partnerCode, @partnerName, @contactName, @contactPhone,
+           @contactEmail, @address, @taxCode, @bankAccount, @bankName, @dailyLimitAmount, 1, GETDATE())
+      `);
+    return result.recordset[0].Id;
+  }, 'Ma doi tac (PartnerCode)');
 }
 
 async function update(id, data) {
@@ -163,24 +168,27 @@ async function update(id, data) {
     throw err;
   }
 
-  await pool
-    .request()
-    .input('id', sql.Int, id)
-    .input('companyId', sql.Int, data.companyId)
-    // Dot ra soat sau phat hien: truoc day thieu PartnerCode trong SET - sua "ma doi tac" tren
-    // giao dien bao thanh cong nhung du lieu that KHONG doi (chi cac truong khac duoc luu).
-    .input('partnerCode', sql.NVarChar(50), data.partnerCode)
-    .input('partnerName', sql.NVarChar(300), data.partnerName)
-    .input('contactName', sql.NVarChar(200), data.contactName || null)
-    .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
-    .input('contactEmail', sql.NVarChar(200), data.contactEmail || null)
-    .input('address', sql.NVarChar(500), data.address || null)
-    .input('taxCode', sql.NVarChar(50), data.taxCode || null)
-    .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
-    .input('bankName', sql.NVarChar(200), data.bankName || null)
-    .input('dailyLimitAmount', sql.Numeric(18, 2), data.dailyLimitAmount || null)
-    .input('status', sql.Bit, data.status === undefined ? 1 : data.status)
-    .query(`
+  // Dot ra soat sau phat hien: truoc day thieu PartnerCode trong SET - sua "ma doi tac" tren
+  // giao dien bao thanh cong nhung du lieu that KHONG doi. Bat loi vi pham UNIQUE (doi ma trung
+  // voi 1 don vi khac) va doi thanh 1 thong bao 409 de hieu.
+  await runWithUniqueConstraintMessage(
+    () =>
+      pool
+        .request()
+        .input('id', sql.Int, id)
+        .input('companyId', sql.Int, data.companyId)
+        .input('partnerCode', sql.NVarChar(50), data.partnerCode)
+        .input('partnerName', sql.NVarChar(300), data.partnerName)
+        .input('contactName', sql.NVarChar(200), data.contactName || null)
+        .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
+        .input('contactEmail', sql.NVarChar(200), data.contactEmail || null)
+        .input('address', sql.NVarChar(500), data.address || null)
+        .input('taxCode', sql.NVarChar(50), data.taxCode || null)
+        .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
+        .input('bankName', sql.NVarChar(200), data.bankName || null)
+        .input('dailyLimitAmount', sql.Numeric(18, 2), data.dailyLimitAmount || null)
+        .input('status', sql.Bit, data.status === undefined ? 1 : data.status)
+        .query(`
       UPDATE dbo.RedemptionUnits SET
         CompanyId = @companyId,
         PartnerCode = @partnerCode,
@@ -196,7 +204,9 @@ async function update(id, data) {
         Status = @status,
         UpdatedDate = GETDATE()
       WHERE Id = @id
-    `);
+    `),
+    'Ma doi tac (PartnerCode)'
+  );
 }
 
 module.exports = { list, create, update, getLocationCodeById, getById };
