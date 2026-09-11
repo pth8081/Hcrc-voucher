@@ -18,7 +18,13 @@ function getDbConfig() {
       trustServerCertificate: (process.env.DB_TRUST_SERVER_CERT || 'true') === 'true',
     },
     pool: {
-      max: 10,
+      // Tu dot ra soat sau merge PR #31: khoa sp_getapplock cho thu hoi voucher (C1/H5, xem
+      // voucherService.js#redeemAndInsertGuarded) gio giu 1 transaction/ket noi trong pool nay
+      // XUYEN SUOT ca thoi gian cho Core API phan hoi (toi da MAX_TIMEOUT_MS = 10s, xem
+      // apiConnectionService.js), khong chi buoc ghi DB nhanh nhu truoc - nen pool can du lon de
+      // chiu duoc nhieu luot thu hoi dong thoi ma khong lam "doi" ca cac truy van khac (bao cao,
+      // dang nhap...). Co the tang them qua DB_POOL_MAX neu luu luong thu hoi dong thoi cao.
+      max: Number(process.env.DB_POOL_MAX || 20),
       min: 0,
       idleTimeoutMillis: 30000,
     },

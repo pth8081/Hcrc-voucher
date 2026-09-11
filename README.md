@@ -244,7 +244,17 @@ DB_USER=<user-co-quyen-doc/ghi-db-nay>
 DB_PASSWORD=<mat-khau>
 DB_ENCRYPT=true                 # giu true neu SQL Server co cau hinh SSL (khuyen nghi)
 DB_TRUST_SERVER_CERT=true       # true neu dung chung cert noi bo/tu ky; doi false neu da co CA hop le
+DB_POOL_MAX=20                  # so ket noi toi da trong pool DB - xem ghi chu ve khoa thu hoi ben duoi
 ```
+
+> **Vi sao `DB_POOL_MAX` quan trong hon truoc**: de chan 2 nguoi quet trung 1 ma voucher gan nhu
+> cung luc (xem muc "Nghiep vu thu hoi voucher"), app giu 1 khoa CSDL (`sp_getapplock`) XUYEN
+> SUOT ca thoi gian cho Core API phan hoi khi thu hoi, khong chi buoc ghi DB nhanh nhu truoc -
+> nghia la 1 ket noi trong pool nay bi "chiem" trong toi da vai giay moi luot thu hoi (gioi han
+> boi Timeout cua tung ket noi Core, toi da 10 giay - xem man hinh "Ket noi API"). Neu nhieu quay
+> thu hoi dong thoi vuot qua `DB_POOL_MAX`, cac request khac (bao cao, dang nhap...) se phai cho
+> toi khi co ket noi ranh. Mac dinh 20 du dung cho vai chuc quay thu hoi dong thoi; tang len neu
+> trien khai quy mo lon hon.
 
 > **Luu y**: tai khoan `DB_USER` toi thieu can quyen `SELECT` tren `Users`/`Locations_Group`/
 > `Locations_Detail`, va `SELECT/INSERT/UPDATE` tren `VOUCHER_SYNC`/`Voucher_Exelogs`, cong them
@@ -515,17 +525,25 @@ request nao ca** — chi giu 1 ket noi DB rieng de chay **DUY NHAT 1 lan** job n
 loi (muc 4c). Neu de moi worker tu chay job nay se bi lap lai N lan song song, gay goi trung
 Core API — app da tu xu ly de tranh dieu nay, khong can cau hinh gi them.
 
-> **Luu y quan trong ve bao mat khi dung nhieu worker**: co che khoa tam dang nhap sai nhieu lan
-> (`loginGuard`/`guessGuard`, muc 8) dang dem so lan sai **trong bo nho cua tung tien trinh**.
-> Voi N worker, 1 nguoi dang go sai lien tuc co the roi vao worker khac nhau moi lan (Node chia
-> request theo kieu xoay vong) — nguong khoa tren thuc te co the long hon toi da khoang N lan
-> so voi con so cong bo (vd nguong 5 lan/khoa cua nhan vien co the thanh ~5×N lan neu chia deu
-> qua N worker). Day la danh doi da can nhac: voi vai worker (2-4), muc do long hon nay van con
-> chap nhan duoc; neu can dem chinh xac tuyet doi bat ke bao nhieu worker, phai chuyen bo dem
-> nay sang luu o DB thay vi bo nho (chua trien khai — lien he neu can). Rieng challenge dang
-> nhap van tay/Face ID (WebAuthn) **da luu san trong DB** (`dbo.WebAuthnChallenges`, migration
-> 013) nen KHONG bi anh huong boi so worker — dang ky/dang nhap van tay hoat dong binh thuong
-> du chay bao nhieu worker.
+> **Luu y quan trong ve bao mat khi dung nhieu worker**: MOT SO co che phong ve dung `Map` trong
+> **bo nho cua tung tien trinh** (khong chia se giua cac worker), nen voi N worker nguong thuc te
+> co the long hon toi da khoang N lan so voi con so cong bo (1 nguoi lien tuc thao tac co the roi
+> vao worker khac nhau moi lan, Node chia request theo kieu xoay vong). Danh sach cac co che nay
+> (tat ca deu da tu ghi chu ro trong code, xem file tuong ung):
+> - `loginGuard`/`guessGuard` (muc 8) — khoa tam dang nhap/quet ma sai nhieu lan.
+> - `ipRateLimit.js` — gioi han so request dang nhap/2FA/webauthn that bai tu 1 dia chi IP.
+> - `sessionRevalidation.js` — cache 30 giay trang thai tai khoan (dung de phat hien admin bi
+>   khoa/xoa gan nhu ngay lap tuc); `invalidate()` goi luc khoa/xoa CHI xoa cache o worker xu ly
+>   request do, cac worker khac van dung cache cu toi da 30 giay nua (van nam trong nguong 30
+>   giay da cong bo, khong bi noi rong them boi so worker - khac voi 2 muc tren).
+> - `captcha.js` — chong dung lai (replay) 1 ma xac thuc da giai dung.
+>
+> Day la danh doi da can nhac: voi vai worker (2-4), muc do long hon nay van con chap nhan duoc;
+> neu can dem/chan chinh xac tuyet doi bat ke bao nhieu worker, phai chuyen cac bo dem nay sang
+> luu o DB hoac Redis dung chung thay vi bo nho tien trinh (chua trien khai — lien he neu can).
+> Rieng challenge dang nhap van tay/Face ID (WebAuthn) **da luu san trong DB**
+> (`dbo.WebAuthnChallenges`, migration 013) nen KHONG bi anh huong boi so worker — dang ky/dang
+> nhap van tay hoat dong binh thuong du chay bao nhieu worker.
 
 ### 3f. Reverse proxy Nginx + HTTPS
 
