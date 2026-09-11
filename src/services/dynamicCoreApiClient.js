@@ -12,25 +12,63 @@ const { renderPathTemplate, renderJsonValue } = require('../utils/template');
 // duoc Core that). Day la danh doi co chu dich, uu tien khong lam gian doan nghiep vu.
 const BLOCKED_HOSTS = new Set(['169.254.169.254', 'metadata.google.internal', 'metadata']);
 const BLOCKED_IPV6 = new Set(['fd00:ec2::254']);
+const DNS_LOOKUP_TIMEOUT_MS = 3000;
+
+// URL.hostname tra ve dia chi IPv6 VOI dau ngoac vuong (vd "[fd00:ec2::254]"), khac voi chuoi
+// KHONG ngoac trong BLOCKED_IPV6/ket qua dns.lookup() - neu so sanh thang se KHONG BAO GIO khop,
+// khien toan bo danh sach chan IPv6 thanh "dead code" (da bi 1 dot ra soat sau phat hien).
+function stripBrackets(host) {
+  return host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+}
+
+// Dia chi IPv4-mapped-IPv6 (vd "::ffff:169.254.169.254", hoac dang hex "::ffff:a9fe:a9fe" ma
+// URL parser cua Node tu chuan hoa ve) tro toi CUNG 1 dia chi IPv4 that qua 1 lop dual-stack -
+// day la 1 ky thuat bypass bo loc SSRF da biet, can quy doi ve dang IPv4 thuong de doi chieu.
+function expandIPv4MappedIPv6(addr) {
+  const m = addr.match(/^::ffff:(.+)$/i);
+  if (!m) return null;
+  let v4 = m[1];
+  if (/^[0-9a-f]{1,4}:[0-9a-f]{1,4}$/i.test(v4)) {
+    const parts = v4.split(':').map((h) => parseInt(h, 16));
+    v4 = `${(parts[0] >> 8) & 0xff}.${parts[0] & 0xff}.${(parts[1] >> 8) & 0xff}.${parts[1] & 0xff}`;
+  }
+  return v4;
+}
+
+function isBlockedAddress(rawAddr) {
+  const addr = stripBrackets(String(rawAddr)).toLowerCase();
+  if (BLOCKED_HOSTS.has(addr) || BLOCKED_IPV6.has(addr)) return true;
+  const mappedV4 = expandIPv4MappedIPv6(addr);
+  return !!(mappedV4 && BLOCKED_HOSTS.has(mappedV4));
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('DNS lookup timeout')), ms)),
+  ]);
+}
 
 async function assertHostAllowed(urlString) {
   const { hostname } = new URL(urlString);
-  const lowerHost = hostname.toLowerCase();
-  if (BLOCKED_HOSTS.has(lowerHost) || BLOCKED_IPV6.has(lowerHost)) {
+  const bareHost = stripBrackets(hostname);
+  if (isBlockedAddress(hostname)) {
     throw new Error(`Khong cho phep goi toi dia chi bi chan (metadata cloud): ${hostname}`);
   }
   // Chong DNS-rebinding: kiem tra ca dia chi IP THAT ma hostname phan giai ra, khong chi chuoi
   // hostname go trong cau hinh (1 domain hop le luc luu co the sau nay tro toi IP metadata).
+  // Co timeout rieng (khong phu thuoc connection.timeoutMs) de 1 hostname phan giai cham khong
+  // treo request vo thoi han truoc khi ca den buoc goi axios.
   try {
-    const records = await dns.lookup(hostname, { all: true });
+    const records = await withTimeout(dns.lookup(bareHost, { all: true }), DNS_LOOKUP_TIMEOUT_MS);
     for (const rec of records) {
-      if (BLOCKED_HOSTS.has(rec.address) || BLOCKED_IPV6.has(rec.address)) {
+      if (isBlockedAddress(rec.address)) {
         throw new Error(`Khong cho phep goi toi dia chi bi chan (metadata cloud, qua DNS): ${rec.address}`);
       }
     }
   } catch (err) {
     if (err.message && err.message.includes('bi chan')) throw err;
-    // Loi DNS khac (khong phan giai duoc...) - de axios tu bao loi ket noi binh thuong.
+    // Loi DNS khac (khong phan giai duoc, timeout...) - de axios tu bao loi ket noi binh thuong.
   }
 }
 
@@ -109,7 +147,16 @@ async function callDynamic(connection, phase, vars) {
   const request = buildRequest(connection, phase, vars);
   const startedAt = Date.now();
 
-  await assertHostAllowed(request.url);
+  try {
+    await assertHostAllowed(request.url);
+  } catch (err) {
+    // Day la loi CHINH SACH (dia chi bi chan), khong phai loi ha tang tam thoi - khong duoc gan
+    // nhap voi loi mat mang/Core down (coreUnreachable=true) de cac tang tren KHONG fail-open
+    // coi day la su co mang binh thuong (xem H7 o duoi va ghi chu voucherService.js).
+    err.coreUnreachable = false;
+    err.blockedBySsrfGuard = true;
+    throw err;
+  }
 
   try {
     const response = await axios.request({
@@ -118,6 +165,8 @@ async function callDynamic(connection, phase, vars) {
       headers: request.headers,
       data: request.data,
       timeout: connection.timeoutMs || 8000,
+      maxRedirects: 0, // chan SSRF-qua-redirect: assertHostAllowed chi kiem tra 1 lan o URL goc,
+      // neu axios tu dong theo 1 redirect (3xx) toi dia chi bi chan thi se KHONG duoc kiem tra lai.
       validateStatus: (status) => status < 500, // tu xu ly 4xx, chi throw khi loi server/mang
     });
 
@@ -168,7 +217,14 @@ async function callDynamic(connection, phase, vars) {
     if (err.config) {
       err.config = { ...err.config, headers: '[REDACTED]' };
     }
+    // axios gan CUNG 1 doi tuong config vao ca err.config LAN err.response.config - chi ghi de
+    // err.config (tao object MOI) khong xoa duoc secret tren object GOC ma err.response.config
+    // van con tro toi (da bi 1 dot ra soat sau phat hien). Phai xu ly rieng ca 2 duong.
+    if (err.response && err.response.config) {
+      err.response.config = { ...err.response.config, headers: '[REDACTED]' };
+    }
     delete err.request; // doi tuong ClientRequest cua Node, khong can cho debug va co the rat lon
+    if (err.response) delete err.response.request;
     const wrapped = new Error(err.message);
     wrapped.requestUrl = request.url;
     wrapped.latencyMs = latencyMs;

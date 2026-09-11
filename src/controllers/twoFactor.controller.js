@@ -41,12 +41,23 @@ async function setupInit(req, res, next) {
 
 async function setupVerify(req, res, next) {
   try {
-    const { userId } = req.twoFactorSubject;
+    const { userId, username } = req.twoFactorSubject;
     const { code } = req.body;
     if (!code) {
       return res.status(400).json({ success: false, message: 'Thieu ma xac thuc' });
     }
-    await twoFactorService.verifySetup(userId, code);
+
+    // Truoc day endpoint nay khong gioi han so lan thu ma TOTP nao (khac voi loginVerify/showQr
+    // cung nhap ma xac thuc) - ai giu duoc token tam/phien hop le co the do ma khong gioi han
+    // (da bi 1 dot ra soat sau phat hien). Dung chung chinh sach 'admin' voi loginVerify.
+    loginGuard.assertNotLocked(username);
+    try {
+      await twoFactorService.verifySetup(userId, code);
+    } catch (err) {
+      loginGuard.recordResult(username, false, 'admin');
+      throw err;
+    }
+    loginGuard.recordResult(username, true, 'admin');
 
     // Thiet lap lan dau (token TAM, chua co phien) -> cap phien day du luon de vao thang ung
     // dung. Doi thiet bi trong luc da co phien day du -> giu nguyen phien hien tai, khong can

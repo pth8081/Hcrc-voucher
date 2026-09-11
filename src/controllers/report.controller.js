@@ -59,14 +59,20 @@ async function usedVouchers(req, res, next) {
     // nhieu nam roi render thang vao 1 bang HTML, rui ro treo trinh duyet/qua tai server. Xem
     // MAX_LIST_ROWS trong usedVoucherReportService.js. `truncated` bao cho giao dien biet de
     // nhac nguoi dung thu hep khoang ngay/dung Xuat Excel neu can day du hon.
+    // Lay THUA 1 dong so voi gioi han hien thi that su: cach duy nhat de biet CHAC CHAN co bi cat
+    // bot hay khong (truoc day dung ">=" ngay tren gioi han truy van, nen khi ket qua THAT SU chi
+    // co dung MAX_LIST_ROWS dong (khong thua) van bao "truncated=true" sai - da bi 1 dot ra soat
+    // sau phat hien). Neu du thua 1 dong, cat bot lai dung MAX_LIST_ROWS truoc khi tra ve.
+    const maxRows = usedVoucherReportService.MAX_LIST_ROWS;
     const rows = await usedVoucherReportService.listUsedVouchers({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
-      maxRows: usedVoucherReportService.MAX_LIST_ROWS,
+      maxRows: maxRows + 1,
     });
-    const truncated = rows.length >= usedVoucherReportService.MAX_LIST_ROWS;
-    res.json({ success: true, data: { rows, unassignedLocation: !!unassigned, truncated } });
+    const truncated = rows.length > maxRows;
+    const limitedRows = truncated ? rows.slice(0, maxRows) : rows;
+    res.json({ success: true, data: { rows: limitedRows, unassignedLocation: !!unassigned, truncated } });
   } catch (err) {
     next(err);
   }
