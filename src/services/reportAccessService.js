@@ -108,6 +108,20 @@ async function listGroups() {
   }));
 }
 
+/** 1 nhom quyen theo id (kem danh sach companyIds) - dung de lay trang thai TRUOC KHI sua
+ * (audit log ghi ca before/after, xem auditLogService.js). */
+async function getGroupById(groupId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, groupId)
+    .query('SELECT Id, GroupName, ScopeType FROM dbo.ReportAccessGroups WHERE Id = @id');
+  const row = result.recordset[0];
+  if (!row) return null;
+  const companyIds = await getGroupCompanyIds(row.Id);
+  return { id: row.Id, groupName: row.GroupName, scopeType: row.ScopeType, companyIds };
+}
+
 async function createGroup({ groupName, scopeType, companyIds }) {
   const pool = await getPool();
   const result = await pool
@@ -187,6 +201,8 @@ module.exports = {
   listGroups,
   createGroup,
   updateGroup,
+  getGroupById,
+  getUserGroup,
   listUserAccess,
   setUserGroup,
 };

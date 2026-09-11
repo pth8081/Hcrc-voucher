@@ -23,7 +23,7 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_REDEMPTION_UNIT',
       targetUsername: partnerName,
-      detail: { id, partnerCode, companyId, locationDetailId },
+      detail: { before: null, after: { id, partnerCode, companyId, locationDetailId } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -33,12 +33,18 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    await redemptionUnitService.update(req.params.id, req.body);
+    const unitId = Number(req.params.id);
+    // L6: lay trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    const before = await redemptionUnitService.getById(unitId);
+    await redemptionUnitService.update(unitId, req.body);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_REDEMPTION_UNIT',
       targetUsername: req.body.partnerName || String(req.params.id),
-      detail: { id: req.params.id, partnerCode: req.body.partnerCode },
+      detail: {
+        before: before ? { partnerCode: before.PartnerCode, companyId: before.CompanyId, status: before.Status } : null,
+        after: { id: req.params.id, partnerCode: req.body.partnerCode, companyId: req.body.companyId, status: req.body.status },
+      },
     });
     res.json({ success: true });
   } catch (err) {

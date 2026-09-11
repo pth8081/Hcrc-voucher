@@ -41,7 +41,9 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_API_CONNECTION',
       targetUsername: req.body.name,
-      detail: { id, baseUrl: req.body.baseUrl },
+      // L6: KHONG BAO GIO ghi secret (token/mat khau) vao audit log, ke ca dang da ma hoa - chi
+      // ghi cac truong khong nhay cam (ten, baseUrl) de biet duoc "cai gi" thay doi.
+      detail: { before: null, after: { id, baseUrl: req.body.baseUrl } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -52,12 +54,17 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     if (!validateBody(req.body, res)) return;
+    // L6: getById() tra ve DTO da mask secret - an toan de ghi vao audit log. Lay TRUOC khi sua.
+    const before = await apiConnectionService.getById(req.params.id);
     await apiConnectionService.update(req.params.id, { ...req.body, updatedBy: req.user.username });
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_API_CONNECTION',
       targetUsername: req.body.name,
-      detail: { id: req.params.id, baseUrl: req.body.baseUrl },
+      detail: {
+        before: before ? { name: before.name, baseUrl: before.baseUrl } : null,
+        after: { id: req.params.id, baseUrl: req.body.baseUrl },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -67,12 +74,20 @@ async function update(req, res, next) {
 
 async function activate(req, res, next) {
   try {
+    // L6: biet duoc ket noi nao dang active TRUOC do (co the KHONG co, neu day la lan dau kich
+    // hoat) de ghi vao audit log - quan trong vi day la thao tac co the doi Core API dang dung
+    // cho toan bo luong kiem tra/thu hoi voucher.
+    const allConnections = await apiConnectionService.list();
+    const previouslyActive = allConnections.find((c) => c.isActive);
     await apiConnectionService.activate(req.params.id);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'ACTIVATE_API_CONNECTION',
       targetUsername: String(req.params.id),
-      detail: { id: req.params.id },
+      detail: {
+        before: previouslyActive ? { id: previouslyActive.id, name: previouslyActive.name } : null,
+        after: { id: req.params.id },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -82,12 +97,15 @@ async function activate(req, res, next) {
 
 async function remove(req, res, next) {
   try {
+    // L6: lay trang thai TRUOC KHI xoa (ten/baseUrl) de ghi vao audit log - sau khi xoa se
+    // khong con truy van lai duoc nua.
+    const before = await apiConnectionService.getById(req.params.id);
     await apiConnectionService.remove(req.params.id);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'DELETE_API_CONNECTION',
       targetUsername: String(req.params.id),
-      detail: { id: req.params.id },
+      detail: { before: before ? { name: before.name, baseUrl: before.baseUrl } : null, after: null },
     });
     res.json({ success: true });
   } catch (err) {

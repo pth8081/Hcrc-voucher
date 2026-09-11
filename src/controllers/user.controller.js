@@ -4,6 +4,7 @@ const permissionService = require('../services/permissionService');
 const userAdminService = require('../services/userAdminService');
 const redemptionUnitService = require('../services/redemptionUnitService');
 const auditLogService = require('../services/auditLogService');
+const authService = require('../services/authService');
 const sessionRevalidation = require('../utils/sessionRevalidation');
 
 /** redemptionUnitId (neu co) luon uu tien - tra ve LocationCode that cua Don vi thu hoi da
@@ -58,7 +59,10 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_USER',
       targetUsername: created.username,
-      detail: { role: Number(role) === 1 ? 'admin' : 'staff', redemptionUnitId: redemptionUnitId || null, locationsDetail },
+      detail: {
+        before: null,
+        after: { role: Number(role) === 1 ? 'admin' : 'staff', redemptionUnitId: redemptionUnitId || null, locationsDetail },
+      },
     });
     res.json({ success: true, data: created });
   } catch (err) {
@@ -69,7 +73,15 @@ async function create(req, res, next) {
 async function updateLocation(req, res, next) {
   try {
     const userId = Number(req.params.userId);
-    await userAdminService.assertUserExists(userId);
+    // L6: authService.findUserById() vua kiem tra ton tai (tra ve null neu khong co) VUA lay
+    // luon trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    const before = await authService.findUserById(userId);
+    if (!before) {
+      const err = new Error('Khong tim thay tai khoan nay');
+      err.statusCode = 400;
+      err.publicMessage = 'Khong tim thay tai khoan nay (co the da bi xoa hoac id khong dung)';
+      throw err;
+    }
     const { redemptionUnitId, username } = req.body;
     const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: null });
     await userAdminService.updateLocation(userId, locationsDetail);
@@ -77,7 +89,10 @@ async function updateLocation(req, res, next) {
       actorUsername: req.user.username,
       action: 'UPDATE_USER_LOCATION',
       targetUsername: username || String(req.params.userId),
-      detail: { redemptionUnitId: redemptionUnitId || null, locationsDetail },
+      detail: {
+        before: { locationsDetail: before.Locations_Detail },
+        after: { redemptionUnitId: redemptionUnitId || null, locationsDetail },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -88,14 +103,25 @@ async function updateLocation(req, res, next) {
 async function updateProfile(req, res, next) {
   try {
     const userId = Number(req.params.userId);
-    await userAdminService.assertUserExists(userId);
+    const before = await authService.findUserById(userId);
+    if (!before) {
+      const err = new Error('Khong tim thay tai khoan nay');
+      err.statusCode = 400;
+      err.publicMessage = 'Khong tim thay tai khoan nay (co the da bi xoa hoac id khong dung)';
+      throw err;
+    }
     const { fullName, password, username } = req.body;
     await userAdminService.updateProfile(userId, { fullName, password });
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_USER_PROFILE',
       targetUsername: username || String(req.params.userId),
-      detail: { fullNameChanged: fullName != null, passwordReset: !!password },
+      // L6: KHONG BAO GIO ghi mat khau (ca cu lan moi, du la hash) vao audit log - chi ghi CO
+      // doi hay khong, giu nguyen hanh vi cu cho truong nay, chi them before/after cho ho ten.
+      detail: {
+        before: { fullName: before.FullName },
+        after: { fullName: fullName != null ? String(fullName).trim() : before.FullName, passwordReset: !!password },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -111,13 +137,17 @@ async function updateDeleteStatus(req, res, next) {
       return res.status(400).json({ success: false, message: 'Khong the tu xoa chinh tai khoan dang dang nhap' });
     }
     await userAdminService.assertUserExists(userId);
+    const beforeSchedule = await userScheduleService.getSchedule(userId);
     await userScheduleService.setDeleted(userId, !!isDeleted, req.user.username);
     sessionRevalidation.invalidate(userId); // H1: co hieu luc ngay, khong cho token cu qua 30s cache
     await auditLogService.log({
       actorUsername: req.user.username,
       action: isDeleted ? 'DELETE_USER' : 'RESTORE_USER',
       targetUsername: username || String(userId),
-      detail: { isDeleted: !!isDeleted },
+      detail: {
+        before: { isDeleted: !!(beforeSchedule && beforeSchedule.IsDeleted) },
+        after: { isDeleted: !!isDeleted },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -129,6 +159,7 @@ async function updatePermissions(req, res, next) {
   try {
     const userId = Number(req.params.userId);
     await userAdminService.assertUserExists(userId);
+    const before = await permissionService.getPermissions(userId);
     const { canRedeemVoucher, canViewReconciliation, canViewSummary, canViewUsedVouchers } = req.body;
     const perms = {
       canRedeemVoucher: !!canRedeemVoucher,
@@ -141,7 +172,7 @@ async function updatePermissions(req, res, next) {
       actorUsername: req.user.username,
       action: 'UPDATE_PERMISSIONS',
       targetUsername: req.body.username || String(req.params.userId),
-      detail: perms,
+      detail: { before, after: perms },
     });
     res.json({ success: true });
   } catch (err) {
@@ -168,13 +199,17 @@ async function updateSchedule(req, res, next) {
       }
     }
     await userAdminService.assertUserExists(userId);
+    const beforeSchedule = await userScheduleService.getSchedule(userId);
     await userScheduleService.upsertSchedule(userId, { activeFrom, activeUntil }, req.user.username);
     sessionRevalidation.invalidate(userId); // H1: khoa/mo khoa co hieu luc ngay
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_SCHEDULE',
       targetUsername: username || String(req.params.userId),
-      detail: { activeFrom, activeUntil },
+      detail: {
+        before: { activeFrom: beforeSchedule && beforeSchedule.ActiveFrom, activeUntil: beforeSchedule && beforeSchedule.ActiveUntil },
+        after: { activeFrom, activeUntil },
+      },
     });
     res.json({ success: true });
   } catch (err) {
@@ -186,13 +221,14 @@ async function updateReportAccess(req, res, next) {
   try {
     const userId = Number(req.params.userId);
     await userAdminService.assertUserExists(userId);
+    const before = await reportAccessService.getUserGroup(userId);
     const { groupId, username } = req.body;
     await reportAccessService.setUserGroup(userId, groupId ? Number(groupId) : null, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_REPORT_ACCESS',
       targetUsername: username || String(req.params.userId),
-      detail: { groupId: groupId || null },
+      detail: { before: { groupId: before ? before.groupId : null }, after: { groupId: groupId || null } },
     });
     res.json({ success: true });
   } catch (err) {

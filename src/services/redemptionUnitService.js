@@ -34,6 +34,22 @@ async function getLocationCodeById(id) {
   return result.recordset[0]?.LocationCode || null;
 }
 
+/** 1 Don vi thu hoi theo id - dung de lay trang thai TRUOC KHI sua (audit log ghi ca
+ * before/after, xem auditLogService.js). */
+async function getById(id) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .query(`
+      SELECT Id, LocationDetailId, CompanyId, PartnerCode, PartnerName, ContactName, ContactPhone,
+             ContactEmail, Address, TaxCode, BankAccount, BankName, DailyLimitAmount, Status
+      FROM dbo.RedemptionUnits
+      WHERE Id = @id
+    `);
+  return result.recordset[0] || null;
+}
+
 async function create(data) {
   const pool = await getPool();
 
@@ -179,4 +195,4 @@ async function update(id, data) {
     `);
 }
 
-module.exports = { list, create, update, getLocationCodeById };
+module.exports = { list, create, update, getLocationCodeById, getById };

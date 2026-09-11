@@ -21,7 +21,7 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'CREATE_COMPANY',
       targetUsername: companyName,
-      detail: { id, companyCode },
+      detail: { before: null, after: { id, companyCode } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -31,12 +31,18 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    await companyService.update(req.params.id, req.body);
+    const companyId = Number(req.params.id);
+    // L6: lay trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    const before = await companyService.getById(companyId);
+    await companyService.update(companyId, req.body);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_COMPANY',
       targetUsername: req.body.companyName || String(req.params.id),
-      detail: { id: req.params.id, companyCode: req.body.companyCode },
+      detail: {
+        before: before ? { companyName: before.CompanyName, status: before.Status } : null,
+        after: { id: req.params.id, companyCode: req.body.companyCode, companyName: req.body.companyName, status: req.body.status },
+      },
     });
     res.json({ success: true });
   } catch (err) {
