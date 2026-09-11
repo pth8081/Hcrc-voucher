@@ -33,16 +33,25 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
+    const { partnerCode, partnerName } = req.body;
+    if (!partnerCode || !partnerName) {
+      return res.status(400).json({ success: false, message: 'Thieu partnerCode hoac partnerName' });
+    }
     const unitId = Number(req.params.id);
-    // L6: lay trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    // Dot ra soat sau phat hien: truoc day khong kiem tra Don vi thu hoi co ton tai khong - sua
+    // 1 id da bi xoa/khong ton tai truoc do van bao thanh cong (UPDATE anh huong 0 dong) va van
+    // ghi vao audit log nhu the da sua thanh cong that.
     const before = await redemptionUnitService.getById(unitId);
+    if (!before) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay Don vi thu hoi nay' });
+    }
     await redemptionUnitService.update(unitId, req.body);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_REDEMPTION_UNIT',
       targetUsername: req.body.partnerName || String(req.params.id),
       detail: {
-        before: before ? { partnerCode: before.PartnerCode, companyId: before.CompanyId, status: before.Status } : null,
+        before: { partnerCode: before.PartnerCode, companyId: before.CompanyId, status: before.Status },
         after: { id: req.params.id, partnerCode: req.body.partnerCode, companyId: req.body.companyId, status: req.body.status },
       },
     });

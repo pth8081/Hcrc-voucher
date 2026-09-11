@@ -57,6 +57,9 @@ async function update(id, data) {
   await pool
     .request()
     .input('id', sql.Int, id)
+    // Dot ra soat sau phat hien: truoc day thieu CompanyCode trong SET - sua "ma cong ty" tren
+    // giao dien bao thanh cong nhung du lieu that KHONG doi (chi cac truong khac duoc luu).
+    .input('companyCode', sql.NVarChar(50), data.companyCode)
     .input('companyName', sql.NVarChar(300), data.companyName)
     .input('contactName', sql.NVarChar(200), data.contactName || null)
     .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
@@ -68,6 +71,7 @@ async function update(id, data) {
     .input('status', sql.Bit, data.status === undefined ? 1 : data.status)
     .query(`
       UPDATE dbo.RedemptionCompanies SET
+        CompanyCode = @companyCode,
         CompanyName = @companyName,
         ContactName = @contactName,
         ContactPhone = @contactPhone,

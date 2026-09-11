@@ -167,6 +167,9 @@ async function update(id, data) {
     .request()
     .input('id', sql.Int, id)
     .input('companyId', sql.Int, data.companyId)
+    // Dot ra soat sau phat hien: truoc day thieu PartnerCode trong SET - sua "ma doi tac" tren
+    // giao dien bao thanh cong nhung du lieu that KHONG doi (chi cac truong khac duoc luu).
+    .input('partnerCode', sql.NVarChar(50), data.partnerCode)
     .input('partnerName', sql.NVarChar(300), data.partnerName)
     .input('contactName', sql.NVarChar(200), data.contactName || null)
     .input('contactPhone', sql.NVarChar(40), data.contactPhone || null)
@@ -180,6 +183,7 @@ async function update(id, data) {
     .query(`
       UPDATE dbo.RedemptionUnits SET
         CompanyId = @companyId,
+        PartnerCode = @partnerCode,
         PartnerName = @partnerName,
         ContactName = @contactName,
         ContactPhone = @contactPhone,

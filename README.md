@@ -174,6 +174,8 @@ sequenceDiagram
 - Them cot `IsDeleted`/`DeletedDate` vao `UserAccountSchedule` (016): "xoa mem" tai khoan (nut
   "Xoa"/"Khoi phuc" o man hinh Tai khoan) — an khoi danh sach mac dinh va chan dang nhap, khong
   mat du lieu, khoi phuc lai duoc bat ky luc nao — xem muc 11.
+- Them cot `LastUsedCounter` vao `AdminTwoFactor` (017): chong dung lai (replay) 1 ma TOTP con
+  hop le trong cua so ±30 giay — xem muc 10.
 
 Chay migration:
 
@@ -266,7 +268,9 @@ DB_POOL_MAX=20                  # so ket noi toi da trong pool DB - xem ghi chu 
 > quyen `CREATE TABLE` (mot lan, luc chay migrate) de tao cac bang bo sung o muc 2. Neu chinh
 > sach bao mat noi bo khong cho phep 1 user co quyen `CREATE TABLE` truc tiep tren DB production,
 > nho DBA chay `npm run migrate` (hoac copy noi dung tung file trong `sql/` chay thu cong theo
-> dung thu tu ten file 001 → 013) bang 1 tai khoan co quyen cao hon **1 lan duy nhat**, sau do
+> **dung thu tu ten file, tu 001 den file so lon nhat hien co trong thu muc `sql/`** - danh sach
+> nay tang dan theo thoi gian, xem `ls sql/` de biet chinh xac file moi nhat) bang 1 tai khoan co
+> quyen cao hon **1 lan duy nhat**, sau do
 > tra lai quyen han che cho `DB_USER` dung hang ngay.
 
 ```bash
@@ -279,7 +283,7 @@ npm run migrate
 ```
 
 `npm run migrate` doc va chay tuan tu toan bo file `.sql` trong `sql/` theo thu tu ten file
-(hien tai 001 → 013, xem danh sach o muc 2), moi file boc trong `IF NOT EXISTS (...)` nen
+(xem `ls sql/` de biet danh sach hien tai - moi ban phat hanh moi co the them file moi), moi file boc trong `IF NOT EXISTS (...)` nen
 **chay lai bao nhieu lan cung an toan** (khong tao trung, khong mat du lieu) — dung dung 1 lenh
 nay cho ca lan dau tien va cho moi lan sau nay code co them migration moi.
 

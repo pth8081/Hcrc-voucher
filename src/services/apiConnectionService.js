@@ -248,12 +248,29 @@ async function activate(id) {
   const pool = await getPool();
   const transaction = new sql.Transaction(pool);
   await transaction.begin();
+  let rolledBack = false;
   try {
     await transaction.request().query('UPDATE dbo.ApiConnections SET IsActive = 0');
-    await transaction.request().input('id', sql.Int, id).query('UPDATE dbo.ApiConnections SET IsActive = 1 WHERE Id = @id');
+    const result = await transaction
+      .request()
+      .input('id', sql.Int, id)
+      .query('UPDATE dbo.ApiConnections SET IsActive = 1 WHERE Id = @id');
+    // Dot ra soat sau phat hien: truoc day khong kiem tra id co ton tai khong - goi voi 1 id
+    // rac (da xoa/khong ton tai) van "thanh cong", nhung buoc tat active o tren van chay truoc
+    // do -> KHONG CON ket noi nao active, sap toan bo luong kiem tra/thu hoi voucher ma khong
+    // co canh bao (giong het hau qua cua M5, chi khac nguyen nhan). Rollback thay vi commit
+    // neu id khong khop dong nao.
+    if (result.rowsAffected[0] === 0) {
+      rolledBack = true;
+      await transaction.rollback();
+      const err = new Error('Khong tim thay ket noi de kich hoat');
+      err.statusCode = 404;
+      err.publicMessage = 'Khong tim thay ket noi nay (co the da bi xoa), vui long tai lai trang.';
+      throw err;
+    }
     await transaction.commit();
   } catch (err) {
-    await transaction.rollback();
+    if (!rolledBack) await transaction.rollback();
     throw err;
   }
 }
@@ -265,14 +282,31 @@ async function remove(id) {
   // ve nhanh fallback .env cu (co the CHUA cau hinh, hoac tro toi 1 Core KHAC) - sap toan bo
   // luong kiem tra/thu hoi voucher ngay lap tuc ma khong co canh bao truoc. Bat buoc phai
   // KICH HOAT 1 ket noi khac (hoac chu dong tat active) truoc khi xoa.
-  const check = await pool.request().input('id', sql.Int, id).query('SELECT IsActive FROM dbo.ApiConnections WHERE Id = @id');
-  if (check.recordset.length && check.recordset[0].IsActive) {
-    const err = new Error('Khong the xoa ket noi dang duoc kich hoat (active)');
-    err.statusCode = 400;
-    err.publicMessage = 'Ket noi nay dang duoc su dung (active) cho luong kiem tra/thu hoi voucher. Vui long kich hoat 1 ket noi khac truoc khi xoa ket noi nay, de tranh lam gian doan nghiep vu.';
+  //
+  // Dot ra soat sau phat hien: buoc kiem tra IsActive va buoc DELETE truoc day la 2 cau lenh
+  // RIENG BIET, khong nam trong transaction - 1 admin khac co the activate() dung ket noi nay
+  // GIUA 2 buoc do, khien no bi xoa ngay sau khi vua thanh active. Gop vao 1 transaction, kiem
+  // tra IsActive TRONG transaction (khoa hang, tranh doc du lieu cu trong luc admin khac dang
+  // activate cung dong nay).
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const check = await transaction
+      .request()
+      .input('id', sql.Int, id)
+      .query('SELECT IsActive FROM dbo.ApiConnections WITH (UPDLOCK, HOLDLOCK) WHERE Id = @id');
+    if (check.recordset.length && check.recordset[0].IsActive) {
+      const err = new Error('Khong the xoa ket noi dang duoc kich hoat (active)');
+      err.statusCode = 400;
+      err.publicMessage = 'Ket noi nay dang duoc su dung (active) cho luong kiem tra/thu hoi voucher. Vui long kich hoat 1 ket noi khac truoc khi xoa ket noi nay, de tranh lam gian doan nghiep vu.';
+      throw err;
+    }
+    await transaction.request().input('id', sql.Int, id).query('DELETE FROM dbo.ApiConnections WHERE Id = @id');
+    await transaction.commit();
+  } catch (err) {
+    await transaction.rollback();
     throw err;
   }
-  await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.ApiConnections WHERE Id = @id');
 }
 
 /** Ghep du lieu draft tu form (chua luu DB) thanh config da "giai ma" san, dung de test truoc khi luu. */
