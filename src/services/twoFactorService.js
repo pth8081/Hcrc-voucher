@@ -80,6 +80,34 @@ async function startSetup(userId, username) {
   return { qrCodeDataUrl, manualEntryKey: secret, issuer: ISSUER };
 }
 
+/**
+ * Ghi lai LastUsedCounter theo kieu "CO DIEU KIEN" (UPDATE ... WHERE LastUsedCounter cu VAN
+ * con nho hon counter moi, kiem tra rowsAffected) thay vi UPDATE thang - day la 1 dot ra soat
+ * doi khang sau phat hien: SELECT (doc LastUsedCounter) roi UPDATE (ghi) la 2 cau lenh RIENG
+ * BIET, khong nam trong transaction/khoa nao. Duoi READ COMMITTED (mac dinh SQL Server), 2
+ * request gan nhu dong thoi CUNG 1 ma TOTP dung co the CUNG doc duoc gia tri LastUsedCounter cu
+ * (truoc khi request kia kip ghi), CUNG tinh ra 1 counter hop le, va CA HAI DEU thanh cong -
+ * "1 ma chi dung 1 lan" bi vo hieu hoa dung luc co 2 request chay song song. Dieu kien trong
+ * WHERE bien buoc ghi thanh 1 buoc "compare-and-swap" nguyen tu o tang CSDL: request thua cuoc
+ * se co rowsAffected=0 (vi luc no chay UPDATE thi LastUsedCounter da bi request thang cuoc doi
+ * truoc do), duoc coi la loi thay vi thanh cong gia.
+ */
+async function persistTotpCounter(userId, counter, extraSetClause) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('counter', sql.BigInt, counter)
+    .query(`
+      UPDATE dbo.AdminTwoFactor
+      SET LastUsedDate = GETDATE(), LastUsedCounter = @counter${extraSetClause || ''}
+      WHERE UserId = @userId AND (LastUsedCounter IS NULL OR LastUsedCounter < @counter)
+    `);
+  if (result.rowsAffected[0] === 0) {
+    throw badRequest('Ma xac thuc nay vua duoc su dung, vui long doi sang ma moi tren ung dung xac thuc.');
+  }
+}
+
 /** Xac minh ma nhap trong luc THIET LAP lan dau (hoac doi thiet bi) - dung xong thi bat Enabled=1. */
 async function verifySetup(userId, code) {
   const pool = await getPool();
@@ -94,16 +122,7 @@ async function verifySetup(userId, code) {
 
   const secret = decrypt(row.SecretEncrypted);
   const counter = verifyTotpAndGetCounter(secret, code, row.LastUsedCounter);
-
-  await pool
-    .request()
-    .input('userId', sql.Int, userId)
-    .input('counter', sql.BigInt, counter)
-    .query(`
-      UPDATE dbo.AdminTwoFactor
-      SET Enabled = 1, EnabledDate = GETDATE(), LastUsedDate = GETDATE(), LastUsedCounter = @counter
-      WHERE UserId = @userId
-    `);
+  await persistTotpCounter(userId, counter, ', Enabled = 1, EnabledDate = GETDATE()');
 }
 
 /** Xac minh ma nhap trong luc DANG NHAP (2FA da bat san tu truoc). */
@@ -120,12 +139,7 @@ async function verifyLogin(userId, code) {
 
   const secret = decrypt(row.SecretEncrypted);
   const counter = verifyTotpAndGetCounter(secret, code, row.LastUsedCounter);
-
-  await pool
-    .request()
-    .input('userId', sql.Int, userId)
-    .input('counter', sql.BigInt, counter)
-    .query('UPDATE dbo.AdminTwoFactor SET LastUsedDate = GETDATE(), LastUsedCounter = @counter WHERE UserId = @userId');
+  await persistTotpCounter(userId, counter);
 }
 
 /**

@@ -9,6 +9,18 @@ const MAX_REQUESTS = 30;
 
 const state = new Map(); // ip -> { count, windowStart }
 
+// Dot ra soat sau phat hien: truoc day khong bao gio don dep cac dong da het han (window da
+// troi qua) - 1 tien trinh chay dai ngay (khong restart) tren endpoint dang nhap CONG KHAI (bat
+// ky dia chi IP nao goi toi, ke ca bot/scanner tu dong tren Internet) se khien Map nay phinh to
+// dan theo thoi gian, khong bao gio nho lai. Don dep dinh ky (cung kieu voi captcha.js) sau moi
+// vai tram dia chi moi, xoa cac dong da het han tu lau.
+function cleanupExpired() {
+  const now = Date.now();
+  for (const [ip, s] of state) {
+    if (now - s.windowStart > WINDOW_MS) state.delete(ip);
+  }
+}
+
 function ipLoginRateLimit(req, res, next) {
   const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
   const now = Date.now();
@@ -17,6 +29,7 @@ function ipLoginRateLimit(req, res, next) {
     s = { count: 0, windowStart: now };
   }
   state.set(ip, s);
+  if (state.size % 500 === 0) cleanupExpired();
 
   if (s.count >= MAX_REQUESTS) {
     return res.status(429).json({

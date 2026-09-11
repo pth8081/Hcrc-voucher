@@ -31,9 +31,13 @@ async function log({ actorUsername, action, targetUsername, detail }) {
 
 async function list({ limit }) {
   const pool = await getPool();
+  // Dot ra soat sau phat hien: truoc day chi gioi han CAN TREN - 1 gia tri am (vd ?limit=-1)
+  // van "truthy" nen vuot qua "|| 200", roi lam SELECT TOP (@limit) bao loi SQL. Ep ve khoang
+  // [1, 1000] ro rang thay vi chi chan tren.
+  const safeLimit = Math.min(Math.max(Number(limit) || 200, 1), 1000);
   const result = await pool
     .request()
-    .input('limit', sql.Int, Math.min(Number(limit) || 200, 1000))
+    .input('limit', sql.Int, safeLimit)
     .query(`
       SELECT TOP (@limit) Id, ActorUsername, Action, TargetUsername, Detail, CreatedDate
       FROM dbo.AdminAuditLog

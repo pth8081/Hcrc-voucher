@@ -43,15 +43,20 @@ async function update(req, res, next) {
     const error = validate(req.body);
     if (error) return res.status(400).json({ success: false, message: error });
     const groupId = Number(req.params.id);
-    // L6: lay trang thai TRUOC KHI sua de ghi vao audit log (xem ghi chu chi tiet o auditLogService.js).
+    // Dot ra soat sau phat hien: truoc day khong kiem tra nhom quyen co ton tai khong - sua 1 id
+    // da bi xoa/khong ton tai truoc do van bao thanh cong (UPDATE anh huong 0 dong) va van ghi
+    // vao audit log nhu the da sua thanh cong that.
     const before = await reportAccessService.getGroupById(groupId);
+    if (!before) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay nhom quyen nay' });
+    }
     await reportAccessService.updateGroup(groupId, req.body);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_ACCESS_GROUP',
       targetUsername: req.body.groupName || String(req.params.id),
       detail: {
-        before: before ? { groupName: before.groupName, scopeType: before.scopeType, companyIds: before.companyIds } : null,
+        before: { groupName: before.groupName, scopeType: before.scopeType, companyIds: before.companyIds },
         after: { id: req.params.id, scopeType: req.body.scopeType, companyIds: req.body.companyIds },
       },
     });

@@ -7,7 +7,11 @@ const { sql, getPool } = require('../config/db');
  */
 async function list({ fromDate, toDate, limit }) {
   const pool = await getPool();
-  const request = pool.request().input('limit', sql.Int, Math.min(Number(limit) || 300, 1000));
+  // Dot ra soat sau phat hien: truoc day chi gioi han CAN TREN (Math.min) - 1 gia tri am (vd
+  // ?limit=-1) van la "truthy" nen vuot qua "|| 300", roi lam SELECT TOP (@limit) bao loi SQL
+  // (TOP khong chap nhan gia tri am). Ep ve khoang [1, 1000] ro rang thay vi chi chan tren.
+  const safeLimit = Math.min(Math.max(Number(limit) || 300, 1), 1000);
+  const request = pool.request().input('limit', sql.Int, safeLimit);
 
   let filter = '1 = 1';
   if (fromDate) {

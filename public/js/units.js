@@ -179,16 +179,21 @@ accessGroupForm.addEventListener('submit', async (e) => {
     scopeType,
     companyIds,
   };
-  try {
-    await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
-    showToast('Da luu nhom quyen');
-    accessGroupForm.reset();
-    toggleGroupCompaniesField();
-    renderGroupCompaniesCheckboxes();
-    await loadAccessGroups();
-  } catch (err) {
-    showToast(err.message);
-  }
+  // Dot ra soat sau phat hien: khoa nut trong luc cho phan hoi, tranh mang cham + bam nham 2
+  // lan tao ra 2 nhom quyen trung ten (GroupName truoc day khong co rang buoc UNIQUE, xem
+  // sql/018_add_unique_group_name.sql).
+  await withSubmitLock(accessGroupForm, async () => {
+    try {
+      await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Da luu nhom quyen');
+      accessGroupForm.reset();
+      toggleGroupCompaniesField();
+      renderGroupCompaniesCheckboxes();
+      await loadAccessGroups();
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
 });
 
 companyForm.addEventListener('submit', async (e) => {
@@ -205,15 +210,17 @@ companyForm.addEventListener('submit', async (e) => {
     bankName: document.getElementById('companyBankName').value.trim(),
   };
 
-  try {
-    await apiFetch('/companies', { method: 'POST', body: JSON.stringify(payload) });
-    showToast('Da luu cong ty');
-    companyForm.reset();
-    await loadCompanies();
-    loadUnits();
-  } catch (err) {
-    showToast(err.message);
-  }
+  await withSubmitLock(companyForm, async () => {
+    try {
+      await apiFetch('/companies', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Da luu cong ty');
+      companyForm.reset();
+      await loadCompanies();
+      loadUnits();
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
 });
 
 unitForm.addEventListener('submit', async (e) => {
@@ -233,14 +240,16 @@ unitForm.addEventListener('submit', async (e) => {
     dailyLimitAmount: document.getElementById('dailyLimitAmount').value || null,
   };
 
-  try {
-    await apiFetch('/redemption-units', { method: 'POST', body: JSON.stringify(payload) });
-    showToast('Da luu diem tieu');
-    unitForm.reset();
-    loadUnits();
-  } catch (err) {
-    showToast(err.message);
-  }
+  await withSubmitLock(unitForm, async () => {
+    try {
+      await apiFetch('/redemption-units', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Da luu diem tieu');
+      unitForm.reset();
+      loadUnits();
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
 });
 
 function escapeHtml(str) {

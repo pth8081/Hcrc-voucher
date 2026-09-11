@@ -10,9 +10,34 @@ const { renderPathTemplate, renderJsonValue } = require('../utils/template');
 // bo/rieng tu (10.x/172.16.x/192.168.x...) vi Core thuong la 1 he thong legacy chay tren MANG
 // NOI BO cua doanh nghiep - chan het se lam gay chinh chuc nang chinh cua app (khong ket noi
 // duoc Core that). Day la danh doi co chu dich, uu tien khong lam gian doan nghiep vu.
-const BLOCKED_HOSTS = new Set(['169.254.169.254', 'metadata.google.internal', 'metadata']);
+// Dot ra soat sau phat hien: '100.100.100.200' (dia chi metadata cua Alibaba Cloud ECS) thieu
+// trong danh sach - them vao day.
+const BLOCKED_HOSTS = new Set(['169.254.169.254', '100.100.100.200', 'metadata.google.internal', 'metadata']);
 const BLOCKED_IPV6 = new Set(['fd00:ec2::254']);
 const DNS_LOOKUP_TIMEOUT_MS = 3000;
+
+// Dot ra soat sau phat hien: chi chan dung 1 dia chi 169.254.169.254 la khong du - AWS Fargate
+// phuc vu task-role credentials o 169.254.170.2/170.23, va toan bo dai 169.254.0.0/16 la
+// link-local (IANA danh rieng cho auto-config/metadata, khong 1 he thong noi bo hop le nao co
+// ly do dong o day) - chan CA DAI thay vi tung IP le, tranh phai vá tung IP metadata moi cua
+// tung nha cung cap cloud.
+const BLOCKED_IPV4_RANGES = [{ base: [169, 254, 0, 0], maskBits: 16 }];
+
+function ipv4ToInt(parts) {
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+}
+
+function isBlockedIPv4Range(addr) {
+  const m = addr.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const parts = m.slice(1).map(Number);
+  if (parts.some((p) => p > 255)) return false;
+  const addrInt = ipv4ToInt(parts);
+  return BLOCKED_IPV4_RANGES.some(({ base, maskBits }) => {
+    const mask = maskBits === 0 ? 0 : (0xffffffff << (32 - maskBits)) >>> 0;
+    return (addrInt & mask) === (ipv4ToInt(base) & mask);
+  });
+}
 
 // URL.hostname tra ve dia chi IPv6 VOI dau ngoac vuong (vd "[fd00:ec2::254]"), khac voi chuoi
 // KHONG ngoac trong BLOCKED_IPV6/ket qua dns.lookup() - neu so sanh thang se KHONG BAO GIO khop,
@@ -37,9 +62,9 @@ function expandIPv4MappedIPv6(addr) {
 
 function isBlockedAddress(rawAddr) {
   const addr = stripBrackets(String(rawAddr)).toLowerCase();
-  if (BLOCKED_HOSTS.has(addr) || BLOCKED_IPV6.has(addr)) return true;
+  if (BLOCKED_HOSTS.has(addr) || BLOCKED_IPV6.has(addr) || isBlockedIPv4Range(addr)) return true;
   const mappedV4 = expandIPv4MappedIPv6(addr);
-  return !!(mappedV4 && BLOCKED_HOSTS.has(mappedV4));
+  return !!(mappedV4 && (BLOCKED_HOSTS.has(mappedV4) || isBlockedIPv4Range(mappedV4)));
 }
 
 function withTimeout(promise, ms) {
@@ -49,6 +74,16 @@ function withTimeout(promise, ms) {
   ]);
 }
 
+/**
+ * Dot ra soat sau phat hien: ham nay CHI xac minh, khong tu no ngan duoc axios.request() ben
+ * duoi TU RESOLVE DNS DOC LAP mot lan nua khi mo ket noi that su - giua 2 lan resolve (lan kiem
+ * tra o day, lan axios tu ket noi vai giay sau) la 1 khe ho DNS-rebinding kinh dien: 1 hostname
+ * co TTL cuc ngan/gia mao co the tra ve 1 IP an toan cho lan kiem tra nhung 1 IP metadata cho
+ * lan axios thuc su ket noi. De dong khe ho nay, ham nay TRA VE danh sach ban ghi DNS DA XAC
+ * MINH, va callDynamic() ben duoi "ghim" axios vao DUNG danh sach nay (tham so `lookup`) thay
+ * vi de axios tu resolve lai - axios se KHONG BAO GIO thay 1 IP khac voi IP da duoc kiem tra o
+ * day.
+ */
 async function assertHostAllowed(urlString) {
   const { hostname } = new URL(urlString);
   const bareHost = stripBrackets(hostname);
@@ -66,10 +101,32 @@ async function assertHostAllowed(urlString) {
         throw new Error(`Khong cho phep goi toi dia chi bi chan (metadata cloud, qua DNS): ${rec.address}`);
       }
     }
+    return records;
   } catch (err) {
     if (err.message && err.message.includes('bi chan')) throw err;
     // Loi DNS khac (khong phan giai duoc, timeout...) - de axios tu bao loi ket noi binh thuong.
+    return null;
   }
+}
+
+/** Ghim axios.request() vao DUNG danh sach IP da duoc assertHostAllowed() xac minh, thay vi de
+ * axios tu goi dns.lookup() lai lan nua (xem ghi chu chi tiet o assertHostAllowed). records=null
+ * (loi DNS luc kiem tra, hoac hostname la 1 dia chi IP literal khong can resolve) -> tra ve
+ * undefined de axios tu resolve nhu binh thuong, giu nguyen hanh vi cu. */
+function buildPinnedLookup(records) {
+  if (!records || !records.length) return undefined;
+  return (hostname, options, callback) => {
+    const cb = typeof options === 'function' ? options : callback;
+    const opts = typeof options === 'function' ? {} : options || {};
+    if (opts.all) {
+      return cb(
+        null,
+        records.map((r) => ({ address: r.address, family: r.family }))
+      );
+    }
+    const rec = records[0];
+    return cb(null, rec.address, rec.family);
+  };
 }
 
 function buildAuthHeaders(connection) {
@@ -147,8 +204,9 @@ async function callDynamic(connection, phase, vars) {
   const request = buildRequest(connection, phase, vars);
   const startedAt = Date.now();
 
+  let verifiedRecords;
   try {
-    await assertHostAllowed(request.url);
+    verifiedRecords = await assertHostAllowed(request.url);
   } catch (err) {
     // Day la loi CHINH SACH (dia chi bi chan), khong phai loi ha tang tam thoi - khong duoc gan
     // nhap voi loi mat mang/Core down (coreUnreachable=true) de cac tang tren KHONG fail-open
@@ -167,6 +225,7 @@ async function callDynamic(connection, phase, vars) {
       timeout: connection.timeoutMs || 8000,
       maxRedirects: 0, // chan SSRF-qua-redirect: assertHostAllowed chi kiem tra 1 lan o URL goc,
       // neu axios tu dong theo 1 redirect (3xx) toi dia chi bi chan thi se KHONG duoc kiem tra lai.
+      lookup: buildPinnedLookup(verifiedRecords), // chong DNS-rebinding: xem ghi chu o assertHostAllowed/buildPinnedLookup
       validateStatus: (status) => status < 500, // tu xu ly 4xx, chi throw khi loi server/mang
     });
 
