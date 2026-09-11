@@ -40,6 +40,14 @@ async function authenticate(req, res, next) {
     // lam tron xuong giay) som hon vai chuc/tram mili-giay so voi GETDATE() da ghi (dong ho
     // SQL Server) neu 2 dong ho lech nhau - khong co khoang du nay, chinh phien VUA dang nhap
     // xong co the bi tu choi ngay o request tiep theo (tu khoa chinh minh).
+    // Luu y (dot doi choi doi khang sau phat hien): vi (iat, passwordChangedAt) la 2 gia tri CO
+    // DINH sau khi da doi mat khau xong (khong con phu thuoc Date.now() nua), 1 token co "iat"
+    // roi vao dung trong 10 giay NGAY TRUOC lan doi mat khau se duoc chap nhan VINH VIEN cho toi
+    // khi token do tu het han (toi da 8h), khong phai chi "them 10 giay" nhu con so co the goi y
+    // - day la danh doi CHAP NHAN DUOC (~10s/8h ~ 0.03% co hoi, con doi hoi ke tan cong da giu
+    // san token bi lo VA trung dung thoi diem rat hep do) de doi lay viec khong tu khoa phien
+    // hop le vua dang nhap - KHONG giam nho khoang du nay vi lech dong ho giua 2 may that (khong
+    // dong bo NTP) co the vuot vai giay.
     const CLOCK_SKEW_TOLERANCE_MS = 10 * 1000;
     if (state.passwordChangedAt && payload.iat && payload.iat * 1000 < state.passwordChangedAt - CLOCK_SKEW_TOLERANCE_MS) {
       return res
