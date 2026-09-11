@@ -12,7 +12,7 @@ const userScheduleService = require('../services/userScheduleService');
  * caller trong user.controller.js) thay vi phai cho den khi token het han.
  */
 const TTL_MS = 30 * 1000;
-const cache = new Map(); // userId -> { exists, role, isDeleted, activeState, expiresAt }
+const cache = new Map(); // userId -> { exists, role, isDeleted, activeState, passwordChangedAt, expiresAt }
 
 async function getFreshUserState(userId) {
   const cached = cache.get(userId);
@@ -23,9 +23,11 @@ async function getFreshUserState(userId) {
     .request()
     .input('userId', sql.Int, userId)
     .query(`
-      SELECT u.status AS role, s.ActiveFrom, s.ActiveUntil, ISNULL(s.IsDeleted, 0) AS isDeleted
+      SELECT u.status AS role, s.ActiveFrom, s.ActiveUntil, ISNULL(s.IsDeleted, 0) AS isDeleted,
+             p.PasswordChangedDate AS passwordChangedDate
       FROM dbo.Users u
       LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
+      LEFT JOIN dbo.UserPasswordPolicy p ON p.UserId = u.UserID
       WHERE u.UserID = @userId
     `);
   const row = result.recordset[0];
@@ -35,6 +37,10 @@ async function getFreshUserState(userId) {
         role: row.role,
         isDeleted: !!row.isDeleted,
         activeState: userScheduleService.evaluate({ ActiveFrom: row.ActiveFrom, ActiveUntil: row.ActiveUntil }).state,
+        // Dot ra soat sau phat hien: doi chieu voi "iat" (thoi diem cap) cua JWT o
+        // middleware/auth.js - token cap TRUOC lan doi mat khau gan nhat se bi tu choi, dong khe
+        // ho "token cu van dung duoc binh thuong du mat khau da bi doi de khoa ke gia mao".
+        passwordChangedAt: row.passwordChangedDate ? new Date(row.passwordChangedDate).getTime() : null,
       }
     : { exists: false };
 

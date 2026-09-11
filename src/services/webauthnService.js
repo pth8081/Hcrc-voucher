@@ -40,11 +40,15 @@ async function putChallenge(challenge, userId) {
 /** Dung 1 lan - xoa ngay khoi DB bat ke con han hay khong het han. */
 async function takeChallenge(flowId) {
   const pool = await getPool();
+  // Dot ra soat sau phat hien: truoc day la 2 cau lenh RIENG BIET (SELECT roi DELETE) - ve ly
+  // thuyet, 2 request THAT SU dong thoi CUNG giu duoc 1 flowId hop le (kem 1 phan hoi da ky cua
+  // authenticator bi bat duoc) co the CUNG doc duoc dong truoc khi 1 trong 2 kip xoa, cho phep
+  // dung lai 1 challenge lan 2. Gop thanh 1 cau DELETE ... OUTPUT nguyen tu - dong chi co the bi
+  // "lay" (xoa) dung 1 lan boi DUNG 1 request, khong con khe ho doc-truoc-xoa.
   const result = await pool
     .request()
     .input('flowId', sql.Char(32), flowId)
-    .query('SELECT Challenge, UserId, ExpiresAt FROM dbo.WebAuthnChallenges WHERE FlowId = @flowId');
-  await pool.request().input('flowId', sql.Char(32), flowId).query('DELETE FROM dbo.WebAuthnChallenges WHERE FlowId = @flowId');
+    .query('DELETE FROM dbo.WebAuthnChallenges OUTPUT deleted.Challenge, deleted.UserId, deleted.ExpiresAt WHERE FlowId = @flowId');
 
   const row = result.recordset[0];
   if (!row) return null;
