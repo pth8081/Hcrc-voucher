@@ -16,15 +16,25 @@ function ipLoginRateLimit(req, res, next) {
   if (!s || now - s.windowStart > WINDOW_MS) {
     s = { count: 0, windowStart: now };
   }
-  s.count += 1;
   state.set(ip, s);
 
-  if (s.count > MAX_REQUESTS) {
+  if (s.count >= MAX_REQUESTS) {
     return res.status(429).json({
       success: false,
       message: 'Qua nhieu yeu cau dang nhap tu mang nay trong thoi gian ngan, vui long thu lai sau it phut.',
     });
   }
+
+  // Chi tinh vao gioi han cac lan THAT BAI (status >= 400) - giong triet ly cua loginGuard.js.
+  // Truoc day tinh CA cac lan thanh cong, nen bang 1 thiet bi/quay dung chung nhieu nhan vien
+  // (chinh kich ban README ghi nhan ro) co the tu khoa chinh minh chi vi dang nhap thanh cong
+  // lien tuc trong gio cao diem (da bi 1 dot ra soat sau phat hien) - trong khi muc dich that su
+  // cua middleware nay la chan spam/spray CO CHU DICH tu 1 nguon, khong phai chan luu luong hop le.
+  res.on('finish', () => {
+    if (res.statusCode >= 400) {
+      s.count += 1;
+    }
+  });
   return next();
 }
 

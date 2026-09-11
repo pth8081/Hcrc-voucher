@@ -51,6 +51,13 @@ async function redeemVoucher(voucherCode, context) {
       status: mapCoreStatus(result.normalized.status),
       transRef: result.normalized.transRef || null,
       redeemedAt: result.normalized.redeemedAt || new Date().toISOString(),
+      // C2/syncRetryService.js: khi Core KHONG tra ve redeemedAt that (thieu mapping
+      // redeemedAtPath, hoac Core don gian khong co truong nay), gia tri o tren la "now" GIA LAP
+      // - khong duoc dung no de doi chieu xung dot dong ho (se luon > localCreatedAt trong qua
+      // khu nen "xung dot" khong bao gio kich hoat duoc, vo hieu hoa am tham co che phat hien
+      // trung thu hoi - da bi 1 dot ra soat sau phat hien). Co flag rieng de noi tieu thu (day)
+      // biet ro day la gia tri UOC LUONG, khong phai do Core that su xac nhan.
+      redeemedAtIsEstimated: !result.normalized.redeemedAt,
       message: result.normalized.message || null,
     };
   }
@@ -111,6 +118,7 @@ async function redeemVoucherLegacyEnv(voucherCode, context) {
       status: mapCoreStatus(data && data.status),
       transRef: (data && (data.transRef || data.transactionId)) || null,
       redeemedAt: (data && data.redeemedAt) || new Date().toISOString(),
+      redeemedAtIsEstimated: !(data && data.redeemedAt),
       message: (data && data.message) || null,
     };
   } catch (err) {
@@ -152,7 +160,13 @@ function wrapConnError(err) {
   if (err && err.config) {
     err.config = { ...err.config, headers: '[REDACTED]' };
   }
+  // Cung 1 loi voi dynamicCoreApiClient.js: err.response.config tro toi CUNG object voi
+  // err.config truoc khi bi ghi de, phai xoa rieng de khong con tham chieu toi ban ghi header goc.
+  if (err && err.response && err.response.config) {
+    err.response.config = { ...err.response.config, headers: '[REDACTED]' };
+  }
   if (err) delete err.request;
+  if (err && err.response) delete err.response.request;
   wrapped.cause = err;
   return wrapped;
 }

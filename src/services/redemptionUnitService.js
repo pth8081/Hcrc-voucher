@@ -71,7 +71,11 @@ async function create(data) {
       WHERE LTRIM(RTRIM(d1.LocationCode)) = (
               SELECT LTRIM(RTRIM(LocationCode)) FROM dbo.Locations_Detail WHERE id = @locationDetailId
             )
-        AND (ru2.CompanyId <> @companyId OR (ru2.CompanyId IS NULL) <> (@companyId IS NULL))
+        AND (
+              (ru2.CompanyId IS NOT NULL AND @companyId IS NOT NULL AND ru2.CompanyId <> @companyId)
+              OR (ru2.CompanyId IS NULL AND @companyId IS NOT NULL)
+              OR (ru2.CompanyId IS NOT NULL AND @companyId IS NULL)
+            )
     `);
   if (conflictCheck.recordset.length) {
     const conflictCompany = conflictCheck.recordset[0].CompanyName || '(chua gan cong ty)';
@@ -129,7 +133,11 @@ async function update(id, data) {
               INNER JOIN dbo.Locations_Detail d0 ON d0.id = ru0.LocationDetailId
               WHERE ru0.Id = @id
             )
-        AND (ru2.CompanyId <> @companyId OR (ru2.CompanyId IS NULL) <> (@companyId IS NULL))
+        AND (
+              (ru2.CompanyId IS NOT NULL AND @companyId IS NOT NULL AND ru2.CompanyId <> @companyId)
+              OR (ru2.CompanyId IS NULL AND @companyId IS NOT NULL)
+              OR (ru2.CompanyId IS NOT NULL AND @companyId IS NULL)
+            )
     `);
   if (conflictCheck.recordset.length) {
     const conflictCompany = conflictCheck.recordset[0].CompanyName || '(chua gan cong ty)';

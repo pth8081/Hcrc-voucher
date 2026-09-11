@@ -6,7 +6,12 @@ const logger = pino({
   // thuc truoc khi gan .cause, day chi la luoi an toan them phong truong hop 1 nhanh loi khac
   // sau nay quen lam vay, tranh secret ket noi Core bi ghi ra log dang chu thuong.
   redact: {
-    paths: ['err.config.headers', 'err.cause.config.headers', 'err.response.config.headers'],
+    paths: [
+      'err.config.headers',
+      'err.response.config.headers',
+      'err.cause.config.headers',
+      'err.cause.response.config.headers',
+    ],
     censor: '[REDACTED]',
   },
 });

@@ -143,23 +143,36 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     // chung...), day la 1 giao dich CO THAT nhung co nguy co mat dau vet hoan toan - PHAI ghi
     // canh bao muc CRITICAL de quan tri doi soat thu cong, KHONG duoc de loi troi qua am tham.
     if (err.coreConfirmedSuccess) {
-      await systemLogService.logExecution({
-        proName: SYNC_PROC_NAME,
-        pKey: transNum,
-        uniqueIdGroup: voucherCode,
-        status: 'FAILED_CRITICAL',
-        message: `Core da xac nhan thu hoi thanh cong (transRef=${err.coreTransRef || 'khong co'}) nhung ghi VOUCHER_SYNC that bai: ${err.message}. CAN DOI SOAT THU CONG NGAY - khong duoc quet lai ma nay qua app.`,
-        syncRecord: 0,
-      });
-      await logScan({
-        user,
-        voucherCode,
-        scanMethod,
-        action: 'REDEEM',
-        resultStatus: 'ERROR_UNRECORDED',
-        clientIp,
-        message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
-      });
+      // Ca 2 lenh ghi canh bao ben duoi deu dung CUNG 1 pool SQL vua that bai o buoc INSERT phia
+      // tren - neu nguyen nhan la mat ket noi DB (khong phai loi rieng cua 1 cau lenh), CA 2 lan
+      // ghi log nay co the that bai THEO CUNG 1 ly do, khien canh bao CRITICAL bi mat hoan toan
+      // (chinh tinh huong "khong duoc am tham nuot loi" ma tinh nang nay sinh ra de tranh - da bi
+      // 1 dot ra soat sau phat hien). Bao boc rieng, co console.error lam kenh du phong cuoi
+      // cung (luon co trong log tien trinh du DB co con song hay khong).
+      try {
+        await systemLogService.logExecution({
+          proName: SYNC_PROC_NAME,
+          pKey: transNum,
+          uniqueIdGroup: voucherCode,
+          status: 'FAILED_CRITICAL',
+          message: `Core da xac nhan thu hoi thanh cong (transRef=${err.coreTransRef || 'khong co'}) nhung ghi VOUCHER_SYNC that bai: ${err.message}. CAN DOI SOAT THU CONG NGAY - khong duoc quet lai ma nay qua app.`,
+          syncRecord: 0,
+        });
+        await logScan({
+          user,
+          voucherCode,
+          scanMethod,
+          action: 'REDEEM',
+          resultStatus: 'ERROR_UNRECORDED',
+          clientIp,
+          message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
+        });
+      } catch (alertErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[CRITICAL][KHONG GHI DUOC CANH BAO VAO DB] Core da xac nhan thu hoi THANH CONG cho voucher=${voucherCode}, transNum=${transNum}, transRef=${err.coreTransRef || 'khong co'}, user=${user && user.username}, nhung ca buoc ghi VOUCHER_SYNC LAN buoc ghi canh bao vao DB deu that bai. Loi ghi VOUCHER_SYNC goc: ${err.message}. Loi ghi canh bao: ${alertErr.message}. CAN DOI SOAT THU CONG NGAY.`
+        );
+      }
       const critErr = new Error('Core da xac nhan thu hoi thanh cong nhung he thong ghi nhan cuc bo bi loi.');
       critErr.statusCode = 500;
       critErr.publicMessage = 'Core da xac nhan thu hoi THANH CONG nhung he thong ghi nhan cuc bo bi loi. KHONG quet lai ma nay - vui long bao quan tri vien NGAY de doi soat thu cong.';

@@ -93,11 +93,19 @@ async function processPendingSyncs() {
       // Core noi da tieu TRUOC ca luc app nay moi ghi nhan (co du bu sai lech dong ho), chac
       // chan KHONG PHAI la phan hoi cua chinh request nay - danh dau CONFLICT de admin doi
       // soat thu cong, khong am tham dong ho so.
+      // Chi doi chieu khi redeemedAt la gia tri THAT do Core tra ve (redeemedAtIsEstimated=false) -
+      // coreVoucherService.js gia lap "now" lam redeemedAt khi Core khong co/khong map truong nay,
+      // gia tri gia lap do LUON lon hon localCreatedAt (vi la thoi diem HIEN TAI, sau ca luc ghi
+      // nhan cuc bo) nen se khien dieu kien ben duoi KHONG BAO GIO dung - vo hieu hoa am tham toan
+      // bo co che phat hien xung dot nay neu khong loai tru (da bi 1 dot ra soat sau phat hien).
       let conflict = false;
-      if (alreadyReflected && result.redeemedAt) {
+      if (alreadyReflected && result.redeemedAt && !result.redeemedAtIsEstimated) {
         const coreRedeemedAt = new Date(result.redeemedAt);
         const localCreatedAt = new Date(row.Created_Date);
-        const CLOCK_SKEW_TOLERANCE_MS = 60 * 1000;
+        // Core la he thong legacy chay tren ha tang noi bo, khong dam bao dong bo NTP chat che nhu
+        // ha tang cloud hien dai - nguong 60s ban dau qua chat, de xay ra bao dong gia (XUNG DOT)
+        // chi vi lech dong ho giua 2 may that su, khong phai trung thu hoi that. Noi rong len 5 phut.
+        const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
         if (!Number.isNaN(coreRedeemedAt.getTime()) && coreRedeemedAt.getTime() < localCreatedAt.getTime() - CLOCK_SKEW_TOLERANCE_MS) {
           conflict = true;
         }
