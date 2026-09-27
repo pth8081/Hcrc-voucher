@@ -176,6 +176,11 @@ sequenceDiagram
   mat du lieu, khoi phuc lai duoc bat ky luc nao — xem muc 11.
 - Them cot `LastUsedCounter` vao `AdminTwoFactor` (017): chong dung lai (replay) 1 ma TOTP con
   hop le trong cua so ±30 giay — xem muc 10.
+- Them rang buoc UNIQUE tren `ReportAccessGroups.GroupName` (018): chong tao trung ten nhom
+  quyen do bam nham 2 lan (chi ap dung neu HIEN CHUA co ten nao trung san).
+- Xoa bang `PartnerApiKeys` neu co (020): don dep 1 tinh nang da xay SAI CHIEU roi go bo ngay
+  sau do (migration 019 tung tao bang nay, xem lich su commit) — an toan chay du 019 co tung
+  duoc ap dung hay chua.
 
 Chay migration:
 
@@ -681,6 +686,53 @@ Man hinh cho phep khai bao truc quan, khong can biet lap trinh:
 Neu **chua** cau hinh/kich hoat ket noi nao tren UI, app se **fallback** dung cau hinh tinh
 trong `.env` (`CORE_API_*`) voi hop dong JSON co dinh mo ta o muc 4b ben duoi — giup app van
 chay duoc trong luc admin dang thiet lap ket noi qua UI.
+
+### 4a. Vi du cau hinh that: Core Voucher API xac thuc bang X-API-Key
+
+Doi tac cung cap tai lieu API voi dang xac thuc `X-API-Key: <key-doi-tac-cap>` (khong phai
+Bearer/Basic), base URL rieng cho tung doi tac, endpoint `POST .../vouchers/check` va
+`POST .../vouchers/redeem` nhan JSON `{"voucherCode":"...","scanMethod":"..."}`, phan hoi goi
+trong `{"success":true,"data":{...}}`. **Luu y chieu ket noi**: chinh app nay la BEN GOI (dung
+key ho cap de xac thuc chinh minh khi goi ra he thong cua ho) — khong phai app nay cap key cho
+ai khac. Dien vao man hinh "Ket noi API" nhu sau (thay `<...>` bang gia tri that doi tac cung
+cap):
+
+| Truong | Gia tri |
+|---|---|
+| Base URL | `<https://domain-cua-doi-tac>` |
+| Kieu xac thuc | API Key (header rieng) |
+| Ten header | `X-API-Key` |
+| Gia tri API Key | `<key doi tac da cap>` |
+| **Check** - Method | POST |
+| **Check** - Vi tri ma voucher | Body JSON |
+| **Check** - Path | `/api/v1/vouchers/check` |
+| **Check** - Ten tham so (body) | `voucherCode` |
+| **Check** - Anh xa `status` | `data.status` |
+| **Check** - Anh xa `so serial` | `data.voucherSerial` |
+| **Check** - Anh xa `menh gia` | `data.valueAmt` |
+| **Check** - Anh xa `ngay cap` | `data.issueDate` |
+| **Check** - Anh xa `han su dung` | `data.expiryDate` |
+| **Check** - Anh xa `thong bao loi` | `data.message` |
+| **Redeem** - Method | POST |
+| **Redeem** - Body template | `{"voucherCode":"{code}"}` |
+| **Redeem** - Anh xa `success` | `data.success` |
+| **Redeem** - Anh xa `status` | `data.status` |
+| **Redeem** - Anh xa `ma giao dich` | `data.transNum` |
+| **Redeem** - Anh xa `thoi diem tieu` | `data.redeemedAt` |
+| **Redeem** - Anh xa `thong bao loi` | `data.message` |
+
+Khong can dien bang "anh xa gia tri trang thai" — cac gia tri `UNUSED`/`USED` doi tac tra ve da
+khop san voi ten trang thai chuan cua app. Truong hop `/redeem` tra ve HTTP 404 (khong tim thay
+ma) da duoc xu ly **san co san** (khong can cau hinh gi them) — `dynamicCoreApiClient.js` luon
+coi HTTP 404 la `NOT_FOUND` bat ke cau truc body tra ve.
+
+**Han che con lai (chua xu ly, khong chan viec dung duoc)**: neu doi tac tra ve HTTP 429 (vuot
+gioi han goi), app hien chi hien thong bao loi chung ("Core API tra ve loi HTTP 429") thay vi
+phan biet ro voi loi nghiep vu that — khong sai lech du lieu, chi chua toi uu trai nghiem thong
+bao. Co the cai thien sau neu can.
+
+Sau khi dien xong, bam **"Test kiem tra"** voi 1 ma voucher that de xac nhan mapping dung truoc
+khi bam **"Luu & Kich hoat"**.
 
 ### 4b. Hop dong fallback qua .env (chi ap dung khi chua co ket noi nao tren UI)
 
