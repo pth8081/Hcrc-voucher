@@ -117,34 +117,40 @@ function resetForm() {
   el('f_name').value = '';
   el('f_baseUrl').value = '';
   el('f_timeoutMs').value = 8000;
-  el('f_authType').value = 'NONE';
+
+  // Dot ra soat sau phat hien: truoc day cac truong duoi day LUON bi ep ve gia tri trung tinh
+  // (NONE/GET/PATH) du `defaults` (tu GET /api-connections/defaults) co tra ve gia tri khac -
+  // khien admin phai tu tay sua lai toan bo moi lan tao ket noi moi, ke ca khi backend da co
+  // san 1 mau khop dung voi Core API dang dung. Doc THAT SU tu `defaults` (con gia tri key/
+  // password luon de trong - khong bao gio dien san bi mat qua ma nguon).
+  el('f_authType').value = (defaults && defaults.authType) || 'NONE';
   el('f_authToken_bearer').value = '';
   el('f_authToken_bearer').placeholder = 'Nhap token';
-  el('f_apiKeyHeaderName').value = '';
+  el('f_apiKeyHeaderName').value = (defaults && defaults.apiKeyHeaderName) || '';
   el('f_authToken_apikey').value = '';
   el('f_authToken_apikey').placeholder = 'Nhap API key';
   el('f_basicUsername').value = '';
   el('f_basicPassword').value = '';
   el('f_basicPassword').placeholder = 'Nhap password';
 
-  el('f_checkMethod').value = 'GET';
-  el('f_checkParamMode').value = 'PATH';
+  el('f_checkMethod').value = (defaults && defaults.checkMethod) || 'GET';
+  el('f_checkParamMode').value = (defaults && defaults.checkParamMode) || 'PATH';
   el('f_checkPath').value = (defaults && defaults.checkPath) || '/api/vouchers/{code}/status';
-  el('f_checkParamName').value = 'voucherCode';
+  el('f_checkParamName').value = (defaults && defaults.checkParamName) || 'voucherCode';
   const cm = (defaults && defaults.checkMapping) || {};
   el('f_check_statusPath').value = cm.statusPath || 'status';
-  el('f_check_foundPath').value = cm.foundPath || 'found';
+  el('f_check_foundPath').value = cm.foundPath || '';
   el('f_check_serialPath').value = cm.serialPath || 'serial';
   el('f_check_valueAmtPath').value = cm.valueAmtPath || 'valueAmt';
   el('f_check_issueDatePath').value = cm.issueDatePath || 'issueDate';
   el('f_check_expiryDatePath').value = cm.expiryDatePath || 'expiryDate';
   el('f_check_messagePath').value = cm.messagePath || 'message';
-  setMapRows('checkStatusMapRows', cm.statusValueMap || { UNUSED: 'UNUSED', USED: 'USED', EXPIRED: 'EXPIRED', CANCELLED: 'CANCELLED' });
+  setMapRows('checkStatusMapRows', cm.statusValueMap || {});
 
-  el('f_redeemMethod').value = 'POST';
-  el('f_redeemParamMode').value = 'BODY';
+  el('f_redeemMethod').value = (defaults && defaults.redeemMethod) || 'POST';
+  el('f_redeemParamMode').value = (defaults && defaults.redeemParamMode) || 'BODY';
   el('f_redeemPath').value = (defaults && defaults.redeemPath) || '/api/vouchers/{code}/redeem';
-  el('f_redeemParamName').value = 'voucherCode';
+  el('f_redeemParamName').value = (defaults && defaults.redeemParamName) || 'voucherCode';
   el('f_redeemBodyTemplate').value = JSON.stringify((defaults && defaults.redeemBodyTemplate) || {}, null, 2);
   const rm = (defaults && defaults.redeemMapping) || {};
   el('f_redeem_successPath').value = rm.successPath || 'success';
@@ -152,7 +158,7 @@ function resetForm() {
   el('f_redeem_transRefPath').value = rm.transRefPath || 'transRef';
   el('f_redeem_redeemedAtPath').value = rm.redeemedAtPath || 'redeemedAt';
   el('f_redeem_messagePath').value = rm.messagePath || 'message';
-  setMapRows('redeemStatusMapRows', rm.statusValueMap || { REDEEMED: 'REDEEMED', USED: 'USED' });
+  setMapRows('redeemStatusMapRows', rm.statusValueMap || {});
 
   updateAuthFieldsVisibility();
   updateCheckParamNameVisibility();
