@@ -1,23 +1,13 @@
 const voucherService = require('../services/voucherService');
-
-// Dot ra soat sau phat hien: cot Voucher_Code trong VOUCHER_SYNC/goi Core API deu dung
-// sql.NVarChar(24) (xem voucherService.js, apiConnectionService.js) - truoc day khong kiem tra
-// do dai o day, 1 ma qua 24 ky tu se lam driver mssql nem loi ngay o buoc .input() (thay vi loi
-// nghiep vu ro rang), tra ve 500 khong ro rang thay vi 400 de hieu. Kiem tra som de tra loi sach.
-const MAX_VOUCHER_CODE_LENGTH = 24;
+const { extractVoucherCode } = require('../utils/voucherCodeValidation');
 
 function voucherCodeFromBody(req, res) {
-  const { voucherCode, scanMethod } = req.body;
-  const trimmed = voucherCode ? String(voucherCode).trim() : '';
-  if (!trimmed) {
-    res.status(400).json({ success: false, message: 'Thieu voucherCode' });
+  const { error, voucherCode } = extractVoucherCode(req.body);
+  if (error) {
+    res.status(400).json({ success: false, message: error });
     return null;
   }
-  if (trimmed.length > MAX_VOUCHER_CODE_LENGTH) {
-    res.status(400).json({ success: false, message: `Ma voucher qua dai (toi da ${MAX_VOUCHER_CODE_LENGTH} ky tu)` });
-    return null;
-  }
-  return { voucherCode: trimmed, scanMethod: scanMethod || 'MANUAL' };
+  return { voucherCode, scanMethod: req.body.scanMethod || 'MANUAL' };
 }
 
 async function check(req, res, next) {

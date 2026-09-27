@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>API doi tac - HCRC Voucher Redemption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+    </div>
+
+    <div id="keysCard">
+      <div class="card">
+        <h2>Cap API key moi cho doi tac</h2>
+        <p class="hint mb-10">
+          Key duoc gan voi 1 <strong>tai khoan nhan vien co san</strong> (khong ap dung cho tai
+          khoan quan tri) - khi doi tac goi <code>POST /api/v1/vouchers/check</code> hoac
+          <code>/redeem</code> kem header <code>X-API-Key</code>, he thong xu ly y het tai khoan
+          do tu dang nhap goi API (dung diem tieu/quyen cua tai khoan do). Neu can phan biet
+          nhieu diem tieu qua API, tao 1 tai khoan rieng cho tung diem tieu (man hinh
+          "Tai khoan"), roi cap key cho tung tai khoan do.
+        </p>
+        <form id="createKeyForm">
+          <label>Tai khoan nhan vien *</label>
+          <select id="keyUserId" required></select>
+          <label>Ten/nhan de nhan biet (vd: "Doi tac ABC - diem tieu Q1") *</label>
+          <input id="keyLabel" required maxlength="200" />
+          <div class="flex gap-16 flex-wrap mt-10">
+            <label class="flex items-center gap-8 m-0"><input type="checkbox" id="keyCanCheck" checked /> Cho phep /check</label>
+            <label class="flex items-center gap-8 m-0"><input type="checkbox" id="keyCanRedeem" checked /> Cho phep /redeem</label>
+          </div>
+          <button class="btn-primary btn-block mt-10" type="submit">Tao API key</button>
+        </form>
+
+        <div id="newKeyPanel" class="hidden mt-10">
+          <p class="hint" style="color:#b3261e;font-weight:600;">
+            Key chi hien thi 1 LAN DUY NHAT nay - sao chep va gui cho doi tac ngay. Sau khi roi
+            trang nay, khong the xem lai (chi tao key moi neu bi mat).
+          </p>
+          <div class="flex flex-wrap gap-8">
+            <input id="newKeyValue" readonly class="flex-1 m-0" style="font-family:monospace;" />
+            <button id="copyNewKeyBtn" class="btn-secondary" type="button">Sao chep</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Danh sach API key</h2>
+        <div class="table-wrap table-responsive">
+        <table>
+          <thead>
+            <tr><th>Nhan</th><th>Tai khoan</th><th>Diem tieu</th><th>Quyen</th><th>Tao luc</th><th>Dung gan nhat</th><th>Trang thai</th><th></th></tr>
+          </thead>
+          <tbody id="keysBody"><tr><td colspan="8" class="text-muted">Dang tai...</td></tr></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/partner-api-keys.js"></script>
+</body>
+</html>
