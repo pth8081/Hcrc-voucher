@@ -90,15 +90,11 @@ function createApp() {
   app.use(express.json());
   // redact: khong ghi token dang nhap/xac thuc vao log server - header Authorization mang
   // nguyen ban JWT (hoac cookie 2FA/refresh neu co), lo ra la co the chiem dung phien dang nhap.
-  // req.headers["x-api-key"]: API key CUA DOI TAC (xem middleware/apiKeyAuth.js, moi them cung
-  // luc voi /api/v1/vouchers/*) - CUNG mot bi mat dai han tuong duong mat khau/JWT, phai redact
-  // giong het Authorization, neu khong request logger se ghi nguyen ban key ra log server o MOI
-  // request cua doi tac.
   app.use(
     pinoHttp({
       logger,
       redact: {
-        paths: ['req.headers.authorization', 'req.headers["x-api-key"]', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+        paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
         remove: true,
       },
     })
