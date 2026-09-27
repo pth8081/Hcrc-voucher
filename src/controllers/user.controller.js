@@ -160,12 +160,21 @@ async function updatePermissions(req, res, next) {
     const userId = Number(req.params.userId);
     await userAdminService.assertUserExists(userId);
     const before = await permissionService.getPermissions(userId);
-    const { canRedeemVoucher, canViewReconciliation, canViewSummary, canViewUsedVouchers } = req.body;
+    const {
+      canRedeemVoucher,
+      canViewReconciliation,
+      canViewSummary,
+      canViewUsedVouchers,
+      canViewBusinessGuide,
+      canViewSystemGuide,
+    } = req.body;
     const perms = {
       canRedeemVoucher: !!canRedeemVoucher,
       canViewReconciliation: !!canViewReconciliation,
       canViewSummary: !!canViewSummary,
       canViewUsedVouchers: !!canViewUsedVouchers,
+      canViewBusinessGuide: !!canViewBusinessGuide,
+      canViewSystemGuide: !!canViewSystemGuide,
     };
     await permissionService.setPermissions(userId, perms, req.user.username);
     await auditLogService.log({

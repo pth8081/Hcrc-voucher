@@ -14,5 +14,6 @@ router.use('/api-connections', require('./apiConnection.routes'));
 router.use('/vouchers', require('./voucher.routes'));
 router.use('/reports', require('./report.routes'));
 router.use('/admin', require('./adminLog.routes'));
+router.use('/guides', require('./guide.routes'));
 
 module.exports = router;

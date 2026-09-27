@@ -29,7 +29,14 @@ let accessGroupsCache = [];
 let companiesCache = [];
 let redemptionUnitsCache = [];
 
-const PERM_FIELDS = ['canRedeemVoucher', 'canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'];
+const PERM_FIELDS = [
+  'canRedeemVoucher',
+  'canViewReconciliation',
+  'canViewSummary',
+  'canViewUsedVouchers',
+  'canViewBusinessGuide',
+  'canViewSystemGuide',
+];
 const showDeletedCheckbox = document.getElementById('showDeletedCheckbox');
 
 async function load() {
@@ -111,6 +118,8 @@ function renderUsers(users) {
         <td class="perm-cell" data-label="Doi soat">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
         <td class="perm-cell" data-label="Tong hop">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
         <td class="perm-cell" data-label="Voucher da dung">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
+        <td class="perm-cell" data-label="HD nghiep vu">${permCheckbox('canViewBusinessGuide', perms.canViewBusinessGuide, isAdmin)}</td>
+        <td class="perm-cell" data-label="HD he thong">${permCheckbox('canViewSystemGuide', perms.canViewSystemGuide, isAdmin)}</td>
         <td data-label="Kich hoat tu"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
         <td data-label="Het han"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell" data-label="Trang thai">${STATE_CHIP[u.state] || ''}</td>

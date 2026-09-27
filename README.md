@@ -181,6 +181,8 @@ sequenceDiagram
 - Xoa bang `PartnerApiKeys` neu co (020): don dep 1 tinh nang da xay SAI CHIEU roi go bo ngay
   sau do (migration 019 tung tao bang nay, xem lich su commit) — an toan chay du 019 co tung
   duoc ap dung hay chua.
+- Them cot `CanViewBusinessGuide`/`CanViewSystemGuide` vao `VoucherAppPermissions` (021): 2
+  quyen moi cho module "Huong dan" trong app — xem muc 16.
 
 Chay migration:
 
@@ -862,6 +864,8 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | DELETE | `/api/auth/webauthn/devices/:id` | Xoa 1 passkey (vi du mat thiet bi) |
 | GET | `/api/admin/audit-log` | (can quyen admin) Nhat ky thao tac quan tri — muc 15c |
 | GET | `/api/admin/scan-log?fromDate=&toDate=` | (can quyen admin) Nhat ky quet/kiem tra voucher (doc lai `VoucherScanLogs`) — muc 15c |
+| GET | `/api/guides/business` | (can quyen `canViewBusinessGuide`) Noi dung ban huong dan nghiep vu — muc 16 |
+| GET | `/api/guides/system` | (can quyen `canViewSystemGuide`) Noi dung ban huong dan he thong — muc 16 |
 
 Vi du `POST /api/vouchers/check`:
 ```json
@@ -901,6 +905,10 @@ Tra ve khi da tieu:
   ngay tuy chon, co nut **xuat Excel** — xem muc 12c.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
+- `guide-business.html`: huong dan nghiep vu (quet/thu hoi, doc bao cao) hien ngay trong app —
+  xem muc 16.
+- `guide-system.html`: huong dan he thong (cau hinh ket noi, quan ly tai khoan/phan quyen) hien
+  ngay trong app — xem muc 16.
 
 Luong quet tren UI:
 1. Quet ma (may quet HID hoac camera — **khong the go tay**, xem muc 7) -> goi `/vouchers/check`.
@@ -1253,10 +1261,12 @@ ten khac han de tranh nham):
 | Xem bao cao doi soat | **Bat** | `GET /api/reports/daily` + an/hien muc "Bao cao doi soat" |
 | Xem bao cao tong hop | Tat | `GET /api/reports/summary` + an/hien muc "Bao cao tong hop" |
 | Xem voucher da su dung | Tat | `GET /api/reports/used-vouchers[/export]` + an/hien muc "Voucher da su dung" |
+| Xem huong dan nghiep vu | **Bat** | `GET /api/guides/business` + an/hien muc "Huong dan nghiep vu" — xem muc 16 |
+| Xem huong dan he thong | Tat | `GET /api/guides/system` + an/hien muc "Huong dan he thong" — xem muc 16 |
 
-Tai khoan **quan tri** (`status=1`) **luon co du ca 4 quyen**, khong phu thuoc bang nay —
+Tai khoan **quan tri** (`status=1`) **luon co du ca 6 quyen**, khong phu thuoc bang nay —
 kiem tra o `middleware/requireFeature.js` (bypass thang neu `role===1`, giong cach
-`reportAccessService.js`/`requireRole.js` da lam). Sua o trang "Tai khoan" (4 o checkbox dau
+`reportAccessService.js`/`requireRole.js` da lam). Sua o trang "Tai khoan" (6 o checkbox dau
 moi dong, chi bam duoc voi nhan vien — dong cua quan tri hien san disabled+checked).
 
 Quyen duoc **"chup" vao token dang nhap** luc dang nhap thanh cong (`authService.js#issueSession`)
@@ -1282,3 +1292,36 @@ File lien quan: `src/services/permissionService.js`, `src/services/userAdminServ
 `src/services/auditLogService.js`, `src/services/scanLogService.js`,
 `src/middleware/requireFeature.js`, `public/users.html` + `public/js/users.js`,
 `public/admin-log.html` + `public/js/admin-log.js`.
+
+## 16. Module "Huong dan" trong app (nghiep vu + he thong)
+
+Hai trang huong dan **hien thi ngay trong app** (khong can mo README.md/repo ma nguon) - thay
+the mot phan noi dung README nay thanh dang de doc hon cho nguoi dung cuoi:
+
+- **Huong dan nghiep vu** (`/guide-business.html`): cach quet/thu hoi voucher, y nghia trang
+  thai "Da dong bo"/"Dang cho dong bo", 3 loai bao cao va khi nao dung loai nao, cac tinh huong
+  loi thuong gap - danh cho nhan vien thu hoi hang ngay.
+- **Huong dan he thong** (`/guide-system.html`): quan ly tai khoan/phan quyen, cau hinh Ket noi
+  Core API, bao mat quan tri (2FA), Cong ty/Diem tieu, Nhom quyen xem bao cao, Nhat ky he thong -
+  danh cho quan tri vien/nguoi phu trach cau hinh he thong.
+
+**Phan quyen rieng cho tung ban** (xem bang quyen o muc 15b) - `canViewBusinessGuide` (mac dinh
+**bat**) va `canViewSystemGuide` (mac dinh **tat**), độc lap voi vai tro admin/nhan vien: mot
+tai khoan nhan vien co the duoc cap them quyen xem ban huong dan he thong (vd nhan vien duoc dao
+tao lam quan tri phu) ma khong can nang cap thanh tai khoan quan tri day du. Tai khoan quan tri
+luon co ca 2 quyen.
+
+Ca 2 quyen deu duoc **thuc thi that su o server** (khong chi an/hien menu phia giao dien): noi
+dung huong dan CHI duoc tra ve qua API co kiem tra quyen (`GET /api/guides/business`,
+`GET /api/guides/system`, ca hai deu qua `requireFeature.js`) - mot tai khoan khong duoc cap
+quyen se nhan loi 403 va khong lay duoc noi dung du biet duoc URL trang, khong nhu 1 trang tinh
+don thuan chi an bang CSS/JS.
+
+Noi dung 2 ban huong dan la van ban TINH do doi phat trien viet san
+(`src/content/guideContent.js`), khong lay tu CSDL/nguoi dung nao - can **sua truc tiep file
+nay** (roi commit/deploy lai) moi khi quy trinh nghiep vu hoac cach cau hinh he thong thay doi,
+tranh de tai lieu trong app bi lech voi thuc te.
+
+File lien quan: `src/content/guideContent.js`, `src/controllers/guide.controller.js`,
+`src/routes/guide.routes.js`, `public/guide-business.html` + `public/js/guide-business.js`,
+`public/guide-system.html` + `public/js/guide-system.js`, `public/css/guide.css`.
