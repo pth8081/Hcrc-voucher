@@ -36,18 +36,45 @@ const DEFAULT_REDEEM_MAPPING = {
   statusValueMap: { REDEEMED: 'REDEEMED', USED: 'USED' },
 };
 
+/**
+ * Dot ra soat sau phat hien: gia tri "mac dinh" khi tao ket noi MOI truoc day chi la 1 mau
+ * TRUNG TINH, khong khop voi Core API that su dang dung (tai lieu doi tac cung cap: xac thuc
+ * X-API-Key, path /api/v1/vouchers/check|redeem, phan hoi goi trong {"data": {...}} - xem
+ * README muc 4a) - admin van phai tu tay dien lai toan bo moi lan tao ket noi. Doi thanh DUNG
+ * cau hinh cua doi tac hien tai (deployment nay hien chi tich hop 1 Core API) de admin CHI can
+ * dien 3 truong: Ten ket noi, Base URL, Gia tri API Key - moi truong con lai da dung san. KHONG
+ * BAO GIO dat san gia tri API Key that o day (day la ma nguon, se bi lo neu commit) - chi dien
+ * san TEN header, gia tri key van phai admin tu nhap tren form.
+ */
 function getDefaults() {
   return {
-    checkMapping: DEFAULT_CHECK_MAPPING,
-    redeemMapping: DEFAULT_REDEEM_MAPPING,
-    checkPath: '/api/vouchers/{code}/status',
-    redeemPath: '/api/vouchers/{code}/redeem',
-    redeemBodyTemplate: {
-      voucherCode: '{code}',
-      redeemedBy: '{username}',
-      locationsGroup: '{locationsGroup}',
-      locationsDetail: '{locationsDetail}',
-      transNum: '{transNum}',
+    authType: 'API_KEY_HEADER',
+    apiKeyHeaderName: 'X-API-Key',
+
+    checkMethod: 'POST',
+    checkParamMode: 'BODY',
+    checkParamName: 'voucherCode',
+    checkPath: '/api/v1/vouchers/check',
+    checkMapping: {
+      statusPath: 'data.status',
+      serialPath: 'data.voucherSerial',
+      valueAmtPath: 'data.valueAmt',
+      issueDatePath: 'data.issueDate',
+      expiryDatePath: 'data.expiryDate',
+      messagePath: 'data.message',
+    },
+
+    redeemMethod: 'POST',
+    redeemParamMode: 'BODY',
+    redeemParamName: 'voucherCode',
+    redeemPath: '/api/v1/vouchers/redeem',
+    redeemBodyTemplate: { voucherCode: '{code}' },
+    redeemMapping: {
+      successPath: 'data.success',
+      statusPath: 'data.status',
+      transRefPath: 'data.transNum',
+      redeemedAtPath: 'data.redeemedAt',
+      messagePath: 'data.message',
     },
   };
 }

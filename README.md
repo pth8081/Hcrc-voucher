@@ -696,8 +696,13 @@ Bearer/Basic), base URL rieng cho tung doi tac, endpoint `POST .../vouchers/chec
 `POST .../vouchers/redeem` nhan JSON `{"voucherCode":"...","scanMethod":"..."}`, phan hoi goi
 trong `{"success":true,"data":{...}}`. **Luu y chieu ket noi**: chinh app nay la BEN GOI (dung
 key ho cap de xac thuc chinh minh khi goi ra he thong cua ho) — khong phai app nay cap key cho
-ai khac. Dien vao man hinh "Ket noi API" nhu sau (thay `<...>` bang gia tri that doi tac cung
-cap):
+ai khac.
+
+**Toan bo bang duoi day da duoc dien SAN** khi bam "+ Tao ket noi moi" tren man hinh "Ket noi
+API" (`apiConnectionService.js#getDefaults()`, vi day hien la Core API duy nhat cua deployment
+nay) — chi con **3 o can tu dien**: Ten ket noi (tuy chon, de phan biet neu sau co nhieu ket
+noi), **Base URL** va **Gia tri API Key** (khong bao gio dien san bi mat trong ma nguon). Bang
+sau de doi chieu/kiem tra lai, khong can go tay tung o:
 
 | Truong | Gia tri |
 |---|---|
