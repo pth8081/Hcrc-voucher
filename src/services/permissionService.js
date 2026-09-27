@@ -8,6 +8,8 @@ const DEFAULT_PERMISSIONS = {
   canViewReconciliation: true,
   canViewSummary: false,
   canViewUsedVouchers: false,
+  canViewBusinessGuide: true,
+  canViewSystemGuide: false,
 };
 
 /** Admin (Users.status = 1) luon co du moi quyen, khong phu thuoc bang nay. */
@@ -16,6 +18,8 @@ const ADMIN_PERMISSIONS = {
   canViewReconciliation: true,
   canViewSummary: true,
   canViewUsedVouchers: true,
+  canViewBusinessGuide: true,
+  canViewSystemGuide: true,
 };
 
 async function getPermissions(userId) {
@@ -24,7 +28,8 @@ async function getPermissions(userId) {
     .request()
     .input('userId', sql.Int, userId)
     .query(`
-      SELECT CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers
+      SELECT CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+             CanViewBusinessGuide, CanViewSystemGuide
       FROM dbo.VoucherAppPermissions
       WHERE UserId = @userId
     `);
@@ -35,6 +40,8 @@ async function getPermissions(userId) {
     canViewReconciliation: !!row.CanViewReconciliation,
     canViewSummary: !!row.CanViewSummary,
     canViewUsedVouchers: !!row.CanViewUsedVouchers,
+    canViewBusinessGuide: !!row.CanViewBusinessGuide,
+    canViewSystemGuide: !!row.CanViewSystemGuide,
   };
 }
 
@@ -53,6 +60,8 @@ async function setPermissions(userId, perms, updatedBy) {
     .input('canRecon', sql.Bit, perms.canViewReconciliation ? 1 : 0)
     .input('canSummary', sql.Bit, perms.canViewSummary ? 1 : 0)
     .input('canUsed', sql.Bit, perms.canViewUsedVouchers ? 1 : 0)
+    .input('canBusinessGuide', sql.Bit, perms.canViewBusinessGuide ? 1 : 0)
+    .input('canSystemGuide', sql.Bit, perms.canViewSystemGuide ? 1 : 0)
     .input('updatedBy', sql.NVarChar(100), updatedBy || null)
     .query(`
       MERGE dbo.VoucherAppPermissions AS target
@@ -61,10 +70,13 @@ async function setPermissions(userId, perms, updatedBy) {
       WHEN MATCHED THEN UPDATE SET
         CanRedeemVoucher = @canRedeem, CanViewReconciliation = @canRecon,
         CanViewSummary = @canSummary, CanViewUsedVouchers = @canUsed,
+        CanViewBusinessGuide = @canBusinessGuide, CanViewSystemGuide = @canSystemGuide,
         UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
       WHEN NOT MATCHED THEN INSERT
-        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers, UpdatedBy, UpdatedDate)
-        VALUES (@userId, @canRedeem, @canRecon, @canSummary, @canUsed, @updatedBy, GETDATE());
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, UpdatedBy, UpdatedDate)
+        VALUES (@userId, @canRedeem, @canRecon, @canSummary, @canUsed,
+                @canBusinessGuide, @canSystemGuide, @updatedBy, GETDATE());
     `);
 }
 

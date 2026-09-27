@@ -17,6 +17,7 @@ const NAV_ICONS = {
   usedVouchers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4M9 13l2 2 4-4"/></svg>',
   adminLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  guide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15.5"/><path d="M6 22a2 2 0 0 1-2-2.5C4 18.5 5 18 6 18h13"/><path d="M9 8h7M9 11h5"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
@@ -29,6 +30,8 @@ const NAV_ITEMS = [
   { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report, permission: 'canViewReconciliation' },
   { key: 'summary-report', href: '/summary-report.html', label: 'Bao cao tong hop', icon: NAV_ICONS.summaryReport, permission: 'canViewSummary' },
   { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher da su dung', icon: NAV_ICONS.usedVouchers, permission: 'canViewUsedVouchers' },
+  { key: 'guide-business', href: '/guide-business.html', label: 'Huong dan nghiep vu', icon: NAV_ICONS.guide, permission: 'canViewBusinessGuide' },
+  { key: 'guide-system', href: '/guide-system.html', label: 'Huong dan he thong', icon: NAV_ICONS.guide, permission: 'canViewSystemGuide' },
   { key: 'security', href: '/security.html', label: 'Bao mat', icon: NAV_ICONS.security },
 ];
 
