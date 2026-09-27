@@ -176,10 +176,6 @@ sequenceDiagram
   mat du lieu, khoi phuc lai duoc bat ky luc nao — xem muc 11.
 - Them cot `LastUsedCounter` vao `AdminTwoFactor` (017): chong dung lai (replay) 1 ma TOTP con
   hop le trong cua so ±30 giay — xem muc 10.
-- Them rang buoc UNIQUE tren `ReportAccessGroups.GroupName` (018): chong tao trung ten nhom
-  quyen do bam nham 2 lan (chi ap dung neu HIEN CHUA co ten nao trung san).
-- `PartnerApiKeys` (019): API key cho doi tac tich hop truc tiep (khong qua JWT), gan voi 1 tai
-  khoan nhan vien co san — xem muc 16.
 
 Chay migration:
 
@@ -814,11 +810,6 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | DELETE | `/api/auth/webauthn/devices/:id` | Xoa 1 passkey (vi du mat thiet bi) |
 | GET | `/api/admin/audit-log` | (can quyen admin) Nhat ky thao tac quan tri — muc 15c |
 | GET | `/api/admin/scan-log?fromDate=&toDate=` | (can quyen admin) Nhat ky quet/kiem tra voucher (doc lai `VoucherScanLogs`) — muc 15c |
-| GET | `/api/partner-api-keys` | (can quyen admin) Danh sach API key doi tac — muc 16 |
-| POST | `/api/partner-api-keys` | (can quyen admin) Tao API key moi cho 1 tai khoan nhan vien — muc 16 |
-| DELETE | `/api/partner-api-keys/:id` | (can quyen admin) Thu hoi 1 API key — muc 16 |
-| POST | `/api/v1/vouchers/check` | (cong khai, xac thuc rieng bang header `X-API-Key`) Doi tac kiem tra voucher truc tiep — muc 16 |
-| POST | `/api/v1/vouchers/redeem` | (cong khai, xac thuc rieng bang header `X-API-Key`) Doi tac thu hoi voucher truc tiep — muc 16 |
 
 Vi du `POST /api/vouchers/check`:
 ```json
@@ -858,8 +849,6 @@ Tra ve khi da tieu:
   ngay tuy chon, co nut **xuat Excel** — xem muc 12c.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
-- `partner-api-keys.html`: **(admin)** tao/thu hoi API key cho doi tac tich hop truc tiep
-  (`X-API-Key`) — xem chi tiet o muc 16.
 
 Luong quet tren UI:
 1. Quet ma (may quet HID hoac camera — **khong the go tay**, xem muc 7) -> goi `/vouchers/check`.
@@ -1241,50 +1230,3 @@ File lien quan: `src/services/permissionService.js`, `src/services/userAdminServ
 `src/services/auditLogService.js`, `src/services/scanLogService.js`,
 `src/middleware/requireFeature.js`, `public/users.html` + `public/js/users.js`,
 `public/admin-log.html` + `public/js/admin-log.js`.
-
-## 16. API cho doi tac tich hop truc tiep (X-API-Key)
-
-Ngoai giao dien web (JWT, muc 5), doi tac co the goi thang 2 API nghiep vu chinh
-(`POST /api/v1/vouchers/check` va `/redeem`) tu he thong cua ho (server-to-server, khong qua
-trinh duyet) bang header `X-API-Key` thay vi dang nhap lay JWT. Tai lieu chi tiet (request/
-response, ma loi, vi du) — xem `docs/api-voucher-check-redeem.md` (Phan B).
-
-**Thiet ke cot loi:** 1 API key **gan voi 1 tai khoan NHAN VIEN co san** (bang moi
-`PartnerApiKeys`, migration 019) - khi goi API bang key, he thong dung DUNG
-Locations_Group/Locations_Detail/Username cua tai khoan do, y het tai khoan do tu dang nhap
-goi API. Tai dung TOAN BO logic nghiep vu/phan quyen/ghi nhat ky/doi soat dang co
-(`voucherService.js`, `requireFeature.js`, `VoucherScanLogs`, `VOUCHER_SYNC`...), khong doi
-schema nghiep vu nao. Neu can phan biet nhieu diem tieu qua API, tao 1 tai khoan rieng cho
-tung diem tieu roi cap key cho tung tai khoan do — giong nguyen tac 1 tai khoan/1 diem tieu
-dang dung cho nhan vien dang nhap web.
-
-**Rang buoc bao mat co chu dich:**
-- **Khong the tao key cho tai khoan quan tri** (`status=1`) - chi ap dung tai khoan nhan vien,
-  tranh 1 API key (entropy cao nhung KHONG co lop MFA thu 2) tro thanh duong vong qua chinh
-  sach bat buoc 2FA cua tai khoan quan tri (muc 10).
-- Key chi luu **hash SHA-256** trong DB (`PartnerApiKeys.KeyHash`), khong bao gio luu ban ro -
-  key that CHI hien 1 lan duy nhat luc tao tren man hinh admin, giong het nguyen tac ap dung
-  cho mat khau/secret ket noi Core (muc 4, muc 8).
-- Tai khoan gan voi key bi khoa/xoa/het han lich hieu luc qua man hinh "Tai khoan" khien key do
-  **ngay lap tuc khong dung duoc nua** (doi chieu trang thai moi nhat moi request, cung co che
-  voi phien JWT — `sessionRevalidation.js`), khong can thu hoi rieng key du van khuyen nghi lam
-  vay khi doi tac ngung tich hop.
-- Gioi han rieng 120 lan goi/phut cho TUNG key (tra 429 kem header `Retry-After`), doc lap voi
-  `ipLoginRateLimit`/`guessGuard` da co - xem `src/middleware/apiKeyAuth.js`. Nhu cac cache bo
-  nho khac cua app (muc 8), nguong nay tinh THEO TUNG WORKER khi chay nhieu tien trinh
-  (`CLUSTER_WORKERS > 1`).
-- Header `X-API-Key` duoc **redact khoi log server** (`pino-http`, `app.js`) giong het header
-  `Authorization` - khong bao gio ghi ra log dang chu thuong.
-
-**Quan tri key:** man hinh moi "API doi tac" (menu Quan tri → API doi tac, `public/
-partner-api-keys.html`) - tao key moi (chon tai khoan + nhan + quyen check/redeem), xem danh
-sach (kem trang thai/lan dung gan nhat), thu hoi key (khong xoa, giu vet cho doi soat). Moi
-thao tac tao/thu hoi deu ghi vao Nhat ky quan tri (`AdminAuditLog`, muc 15c) - **khong bao gio**
-ghi ban ro/hash cua key vao nhat ky.
-
-File lien quan: `sql/019_create_partner_api_keys.sql`, `src/services/partnerApiKeyService.js`,
-`src/middleware/apiKeyAuth.js`, `src/controllers/partnerVoucher.controller.js`,
-`src/routes/partnerVoucher.routes.js`, `src/controllers/partnerApiKey.controller.js`,
-`src/routes/partnerApiKey.routes.js`, `src/utils/voucherCodeValidation.js` (dung chung voi
-`voucher.controller.js` de tranh lech logic kiem tra do dai ma voucher giua 2 duong),
-`public/partner-api-keys.html` + `public/js/partner-api-keys.js`.

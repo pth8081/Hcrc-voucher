@@ -16,7 +16,6 @@ const NAV_ICONS = {
   summaryReport: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   usedVouchers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4M9 13l2 2 4-4"/></svg>',
   adminLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>',
-  apiKey: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="3.2"/><path d="M10.3 12.7L19 4M15 8l2.5 2.5M18 5l2.5 2.5"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
 };
 
@@ -38,7 +37,6 @@ const NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
   { key: 'units', href: '/units.html', label: 'Don vi thu hoi', icon: NAV_ICONS.units },
   { key: 'connection', href: '/api-connection.html', label: 'Ket noi API', icon: NAV_ICONS.connection },
-  { key: 'partner-api-keys', href: '/partner-api-keys.html', label: 'API doi tac', icon: NAV_ICONS.apiKey },
   { key: 'users', href: '/users.html', label: 'Tai khoan', icon: NAV_ICONS.users },
   { key: 'admin-log', href: '/admin-log.html', label: 'Nhat ky he thong', icon: NAV_ICONS.adminLog },
 ];
