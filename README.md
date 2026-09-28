@@ -453,6 +453,11 @@ sudo -u hcrcapp pm2 stop hcrc-voucher       # dung han (khong tu bat lai cho toi
 > - Xem dong dau tien trong log luc khoi dong: `sudo -u hcrcapp pm2 logs hcrc-voucher --lines 50`
 >   se co dong "HCRC Voucher Redemption App v<version> ... dang chay tai ...".
 > - Hoac goi `curl http://localhost:3000/health` - tra ve JSON co san field `"version"`.
+> - **Don gian nhat (khong can may chu, ai cung xem duoc):** tu ban v3.14, so version hien
+>   ngay TREN GIAO DIEN WEB - o cuoi trang dang nhap (`/login.html`, chua can dang nhap) va o
+>   goc phai topbar sau khi dang nhap (canh nut "Dang xuat"). Gia tri nay goi truc tiep
+>   `/health` moi khi tai trang (khong luu cung file JS/HTML tinh) nen luon phan anh dung ban
+>   dang thuc su chay tren server, ke ca khi trinh duyet dang cache file tinh cu.
 
 #### Cach 2: Chay bang systemd service (khong can cai them goi nao, co san tren moi distro Linux hien dai)
 

@@ -95,6 +95,7 @@ body {
 .brand-mark { flex: 0 0 auto; display: flex; }
 .brand-word { font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: var(--ink-900); }
 .brand-tagline { font-size: 11px; color: var(--muted); display: block; margin-top: -2px; }
+.version-badge { font-size: 11px; color: var(--muted); }
 
 .nav-links { display: flex; align-items: center; gap: 4px; flex: 1; flex-wrap: wrap; }
 .nav-link {
