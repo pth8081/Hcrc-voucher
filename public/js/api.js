@@ -82,6 +82,22 @@ function fmtMoney(v) {
   return Number(v).toLocaleString('vi-VN') + ' d';
 }
 
+// Hien thi version dang CHAY THUC SU o server (goi /health, doc truc tiep tu package.json luc
+// khoi dong - xem app.js) thay vi ghi co dinh trong file tinh, de IT/nhan vien biet chac chan
+// da len ban moi hay chua ma khong phu thuoc cache trinh duyet cua file JS/HTML tinh.
+async function renderVersionBadge() {
+  const els = document.querySelectorAll('#versionBadge');
+  if (!els.length) return;
+  try {
+    const res = await fetch('/health');
+    const body = await res.json();
+    els.forEach((el) => { el.textContent = body.version ? `Phien ban ${body.version}` : ''; });
+  } catch {
+    els.forEach((el) => { el.textContent = ''; });
+  }
+}
+document.addEventListener('DOMContentLoaded', renderVersionBadge);
+
 function fmtDate(v) {
   if (!v) return '-';
   const d = new Date(v);

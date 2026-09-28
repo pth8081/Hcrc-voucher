@@ -113,6 +113,8 @@ function renderTopbar(activeKey) {
                 <a href="/security.html" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
                 &middot;
                 <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
+                &middot;
+                <span id="versionBadge" class="version-badge"></span>
               </span>
             </div>
           </div>
@@ -120,6 +122,8 @@ function renderTopbar(activeKey) {
       </div>
     </header>
   `;
+
+  if (typeof renderVersionBadge === 'function') renderVersionBadge();
 
   const topbarToggle = document.getElementById('topbarToggle');
   const topbarPanel = document.getElementById('topbarPanel');
