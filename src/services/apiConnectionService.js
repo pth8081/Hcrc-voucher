@@ -1,5 +1,35 @@
+const crypto = require('crypto');
 const { sql, getPool } = require('../config/db');
 const { encrypt, decrypt } = require('../utils/crypto');
+
+/**
+ * Chung chi CA la du lieu CONG KHAI (dung de app XAC MINH server doi tac, khong phai de app
+ * "chung minh danh tinh" voi doi tac - khac han private key) nen an toan khi admin dan/tai len
+ * qua web. Van kiem tra chat de tranh 2 loi pho bien: (1) dan nham private key vao day (hieu lam
+ * "cap key" giua 2 huong - da tung xay ra that trong du an nay, xem lich su PR #42/#43); (2) dan
+ * noi dung khong phai PEM hop le, se khien http.Agent({ca}) nem loi KHO HIEU luc goi API that su
+ * thay vi bao loi RO RANG ngay luc luu.
+ */
+function validateCustomCaCert(pem) {
+  if (!pem) return null; // tuy chon - de trong la hop le (khong dung CA rieng)
+  const trimmed = String(pem).trim();
+  if (/-----BEGIN (RSA |EC |ENCRYPTED )?PRIVATE KEY-----/.test(trimmed)) {
+    return 'Noi dung ban dan la PRIVATE KEY, khong phai chung chi CA cong khai. O day CHI can file chung chi (.crt/.pem) do doi tac cung cap de app tin tuong may chu cua ho - KHONG dan private key (du la cua ai) vao day.';
+  }
+  const blocks = trimmed.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g);
+  if (!blocks || !blocks.length) {
+    return 'Khong doc duoc noi dung chung chi CA. Can dung dinh dang PEM, bat dau bang dong "-----BEGIN CERTIFICATE-----" va ket thuc bang "-----END CERTIFICATE-----".';
+  }
+  for (const block of blocks) {
+    try {
+      // eslint-disable-next-line no-new
+      new crypto.X509Certificate(block);
+    } catch (err) {
+      return `Mot trong cac chung chi dan vao khong hop le (loi doc: ${err.message}). Kiem tra lai noi dung file doi tac gui.`;
+    }
+  }
+  return null; // hop le
+}
 
 const KEEP_SECRET = '__KEEP__'; // gia tri dac biet FE gui len khi khong doi secret da luu
 
@@ -76,6 +106,10 @@ function getDefaults() {
       redeemedAtPath: 'data.redeemedAt',
       messagePath: 'data.message',
     },
+
+    // Mac dinh KHONG co CA rieng - doi tac hien dung chung chi HTTPS cong khai thong thuong,
+    // Node.js tu tin tuong san. Chi dien khi doi tac chuyen sang chung chi tu ky/CA noi bo.
+    customCaCert: null,
   };
 }
 
@@ -101,6 +135,8 @@ function toRow(data) {
     redeemParamName: data.redeemParamName || null,
     redeemBodyTemplate: data.redeemBodyTemplate ? JSON.stringify(data.redeemBodyTemplate) : null,
     redeemMapping: JSON.stringify(data.redeemMapping || DEFAULT_REDEEM_MAPPING),
+
+    customCaCert: data.customCaCert ? String(data.customCaCert).trim() : null,
   };
 }
 
@@ -139,6 +175,10 @@ function toMaskedDto(row) {
     redeemParamName: row.RedeemParamName,
     redeemBodyTemplate: safeParse(row.RedeemBodyTemplate, null),
     redeemMapping: safeParse(row.RedeemMapping, DEFAULT_REDEEM_MAPPING),
+
+    // Khong phai bi mat (khac AuthTokenEncrypted/BasicPasswordEncrypted o tren) - tra ve nguyen
+    // van de admin xem/sua lai duoc, khong can co che "giu nguyen neu de trong" nhu 2 truong secret.
+    customCaCert: row.CustomCaCert || null,
 
     createdDate: row.CreatedDate,
     updatedDate: row.UpdatedDate,
@@ -203,19 +243,20 @@ async function create(data) {
     .input('redeemParamName', sql.NVarChar(100), row.redeemParamName)
     .input('redeemBodyTemplate', sql.NVarChar(sql.MAX), row.redeemBodyTemplate)
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
+    .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null)
     .query(`
       INSERT INTO dbo.ApiConnections
         (Name, IsActive, BaseUrl, AuthType, AuthTokenEncrypted, ApiKeyHeaderName, BasicUsername,
          BasicPasswordEncrypted, TimeoutMs, CheckMethod, CheckPath, CheckParamMode, CheckParamName,
          CheckBodyTemplate, CheckMapping, RedeemMethod, RedeemPath, RedeemParamMode, RedeemParamName,
-         RedeemBodyTemplate, RedeemMapping, CreatedDate, UpdatedBy)
+         RedeemBodyTemplate, RedeemMapping, CustomCaCert, CreatedDate, UpdatedBy)
       OUTPUT INSERTED.Id
       VALUES
         (@name, 0, @baseUrl, @authType, @authTokenEncrypted, @apiKeyHeaderName, @basicUsername,
          @basicPasswordEncrypted, @timeoutMs, @checkMethod, @checkPath, @checkParamMode, @checkParamName,
          @checkBodyTemplate, @checkMapping, @redeemMethod, @redeemPath, @redeemParamMode, @redeemParamName,
-         @redeemBodyTemplate, @redeemMapping, GETDATE(), @updatedBy)
+         @redeemBodyTemplate, @redeemMapping, @customCaCert, GETDATE(), @updatedBy)
     `);
   return result.recordset[0].Id;
 }
@@ -244,6 +285,7 @@ async function update(id, data) {
     .input('redeemParamName', sql.NVarChar(100), row.redeemParamName)
     .input('redeemBodyTemplate', sql.NVarChar(sql.MAX), row.redeemBodyTemplate)
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
+    .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null);
 
   let secretSet = '';
@@ -265,6 +307,7 @@ async function update(id, data) {
       CheckParamName = @checkParamName, CheckBodyTemplate = @checkBodyTemplate, CheckMapping = @checkMapping,
       RedeemMethod = @redeemMethod, RedeemPath = @redeemPath, RedeemParamMode = @redeemParamMode,
       RedeemParamName = @redeemParamName, RedeemBodyTemplate = @redeemBodyTemplate, RedeemMapping = @redeemMapping,
+      CustomCaCert = @customCaCert,
       UpdatedDate = GETDATE(), UpdatedBy = @updatedBy
       ${secretSet}
     WHERE Id = @id
@@ -362,6 +405,8 @@ function resolveDraftConfig(data) {
     redeemParamName: data.redeemParamName || null,
     redeemBodyTemplate: data.redeemBodyTemplate || null,
     redeemMapping: data.redeemMapping || DEFAULT_REDEEM_MAPPING,
+
+    customCaCert: data.customCaCert ? String(data.customCaCert).trim() : null,
   };
 }
 
@@ -393,6 +438,7 @@ async function logTest({ connectionId, action, voucherCode, requestUrl, httpStat
 module.exports = {
   KEEP_SECRET,
   getDefaults,
+  validateCustomCaCert,
   list,
   getById,
   getByIdDecrypted,

@@ -16,6 +16,7 @@ async function init() {
   el('f_redeemParamMode').addEventListener('change', updateRedeemParamNameVisibility);
   el('addCheckMapRow').addEventListener('click', () => addMapRow('checkStatusMapRows'));
   el('addRedeemMapRow').addEventListener('click', () => addMapRow('redeemStatusMapRows'));
+  el('f_customCaCertFile').addEventListener('change', handleCaCertFileUpload);
   el('newBtn').addEventListener('click', () => resetForm());
   el('resetBtn').addEventListener('click', () => resetForm());
   el('saveBtn').addEventListener('click', () => save(false));
@@ -117,6 +118,8 @@ function resetForm() {
   el('f_name').value = '';
   el('f_baseUrl').value = '';
   el('f_timeoutMs').value = 8000;
+  el('f_customCaCert').value = '';
+  el('f_customCaCertFile').value = '';
 
   // Dot ra soat sau phat hien: truoc day cac truong duoi day LUON bi ep ve gia tri trung tinh
   // (NONE/GET/PATH) du `defaults` (tu GET /api-connections/defaults) co tra ve gia tri khac -
@@ -172,6 +175,8 @@ function populateForm(conn) {
   el('f_name').value = conn.name || '';
   el('f_baseUrl').value = conn.baseUrl || '';
   el('f_timeoutMs').value = conn.timeoutMs || 8000;
+  el('f_customCaCert').value = conn.customCaCert || '';
+  el('f_customCaCertFile').value = '';
   el('f_authType').value = conn.authType || 'NONE';
   el('f_authToken_bearer').value = '';
   el('f_authToken_bearer').placeholder = conn.hasAuthToken ? '(Da luu - de trong de giu nguyen)' : 'Nhap token';
@@ -215,6 +220,22 @@ function populateForm(conn) {
   el('testResultWrap').classList.add('hidden');
   el('confirmRedeemCheck').checked = false;
   el('testRedeemBtn').disabled = true;
+}
+
+// Doc file chung chi CA (.pem/.crt...) tren may cua nguoi dung va dien thang vao textarea -
+// IT doi tac thuong gui file, khong phai van ban dan tay - tien hon la bat ho tu mo file bang
+// trinh soan thao roi copy/paste. Chi doc noi dung van ban (khong gui file len dau, FileReader
+// chay hoan toan trong trinh duyet), nguoi dung van xem/sua lai duoc truoc khi bam Luu.
+function handleCaCertFileUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    el('f_customCaCert').value = String(reader.result || '').trim();
+  };
+  reader.onerror = () => showToast('Khong doc duoc file. Vui long thu lai hoac dan noi dung truc tiep.');
+  reader.readAsText(file);
+  e.target.value = ''; // cho phep chon lai CUNG 1 file lan nua (vd sau khi sua loi) ma van bat duoc su kien change
 }
 
 function updateAuthFieldsVisibility() {
@@ -289,6 +310,7 @@ function collectFormData() {
     name: el('f_name').value.trim(),
     baseUrl: el('f_baseUrl').value.trim(),
     timeoutMs: Number(el('f_timeoutMs').value) || 8000,
+    customCaCert: el('f_customCaCert').value.trim() || null,
     authType: el('f_authType').value,
     authToken: readAuthTokenField(),
     apiKeyHeaderName: el('f_apiKeyHeaderName').value.trim(),

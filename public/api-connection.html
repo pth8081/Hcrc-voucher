@@ -49,6 +49,24 @@
         </div>
       </div>
 
+      <div class="section-title">Chung chi CA cua doi tac (chi can khi goi HTTPS bi loi xac minh)</div>
+      <p class="hint">
+        Bo qua muc nay neu Base URL o tren dung chung chi HTTPS mua tu CA cong khai (vd Let's
+        Encrypt, DigiCert...) - truong hop thong thuong, da hoat dong san khong can lam gi them.
+        Chi dien khi "Test kiem tra"/"Test thu hoi" bi loi dang xac minh chung chi (vd
+        <code>UNABLE_TO_VERIFY_LEAF_SIGNATURE</code>, <code>SELF_SIGNED_CERT_IN_CHAIN</code>) -
+        luc do IT phia doi tac se gui cho ban 1 file chung chi CA cong khai (<code>.crt</code>/<code>.pem</code>).
+      </p>
+      <label>Tai file chung chi CA len (.pem/.crt/.cer)</label>
+      <input type="file" id="f_customCaCertFile" accept=".pem,.crt,.cer,.cert,.txt" />
+      <label class="mt-10">Hoac dan truc tiep noi dung chung chi (dinh dang PEM)</label>
+      <textarea id="f_customCaCert" class="code" rows="6" placeholder="-----BEGIN CERTIFICATE-----&#10;MIID...&#10;-----END CERTIFICATE-----"></textarea>
+      <p class="hint">
+        Day la file <strong>cong khai</strong> (khong phai bi mat) do doi tac cung cap de xac minh
+        chinh may chu cua ho - an toan khi tai/dan len day. <strong>Khong</strong> dan noi dung bat
+        dau bang "-----BEGIN PRIVATE KEY-----" (private key) vao muc nay.
+      </p>
+
       <div class="section-title">Xac thuc</div>
       <label>Kieu xac thuc</label>
       <select id="f_authType">
