@@ -1,4 +1,6 @@
 const dns = require('dns').promises;
+const https = require('https');
+const tls = require('tls');
 const axios = require('axios');
 const { getByPath } = require('../utils/jsonPath');
 const { renderPathTemplate, renderJsonValue } = require('../utils/template');
@@ -175,6 +177,20 @@ function buildRequest(connection, phase, vars) {
   return { method, url: url.toString(), headers, data };
 }
 
+/**
+ * Chi tao khi connection co khai bao CustomCaCert (man hinh "Ket noi API", xem apiConnectionService.js
+ * #validateCustomCaCert) - danh cho truong hop doi tac dung chung chi tu ky/CA noi bo, khong nam
+ * trong kho CA cong khai chuan ma Node.js tin tuong san. GHEP THEM (khong THAY THE) danh sach CA
+ * goc mac dinh cua Node (tls.rootCertificates) - neu chi dua đung 1 CustomCaCert vao `ca`, Node se
+ * COI NHU chi co MOT MINH CA do duoc tin tuong, lam gay moi ket noi KHAC (vd sang 1 Core API khac
+ * dung chung chi cong khai binh thuong) neu admin lo chia se agent. rejectUnauthorized LUON giu
+ * mac dinh (true) - day la MO RONG danh sach tin tuong, khong phai tat xac minh chung chi.
+ */
+function buildHttpsAgent(connection) {
+  if (!connection.customCaCert) return undefined;
+  return new https.Agent({ ca: [...tls.rootCertificates, connection.customCaCert] });
+}
+
 function normalize(mapping, body) {
   const statusRaw = getByPath(body, mapping.statusPath);
   const statusMapped =
@@ -233,6 +249,7 @@ async function callDynamic(connection, phase, vars) {
       maxRedirects: 0, // chan SSRF-qua-redirect: assertHostAllowed chi kiem tra 1 lan o URL goc,
       // neu axios tu dong theo 1 redirect (3xx) toi dia chi bi chan thi se KHONG duoc kiem tra lai.
       lookup: buildPinnedLookup(verifiedRecords), // chong DNS-rebinding: xem ghi chu o assertHostAllowed/buildPinnedLookup
+      httpsAgent: buildHttpsAgent(connection), // chi co khi connection khai bao CustomCaCert - xem buildHttpsAgent()
       validateStatus: (status) => status < 500, // tu xu ly 4xx, chi throw khi loi server/mang
     });
 

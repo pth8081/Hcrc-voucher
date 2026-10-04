@@ -36,6 +36,8 @@ function validateBody(body, res) {
 async function create(req, res, next) {
   try {
     if (!validateBody(req.body, res)) return;
+    const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
+    if (caError) return res.status(400).json({ success: false, message: caError });
     const id = await apiConnectionService.create({ ...req.body, updatedBy: req.user.username });
     await auditLogService.log({
       actorUsername: req.user.username,
@@ -54,6 +56,8 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     if (!validateBody(req.body, res)) return;
+    const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
+    if (caError) return res.status(400).json({ success: false, message: caError });
     // L6: getById() tra ve DTO da mask secret - an toan de ghi vao audit log. Lay TRUOC khi sua.
     const before = await apiConnectionService.getById(req.params.id);
     await apiConnectionService.update(req.params.id, { ...req.body, updatedBy: req.user.username });

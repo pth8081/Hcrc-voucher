@@ -746,6 +746,39 @@ bao. Co the cai thien sau neu can.
 Sau khi dien xong, bam **"Test kiem tra"** voi 1 ma voucher that de xac nhan mapping dung truoc
 khi bam **"Luu & Kich hoat"**.
 
+### 4a-1. Khi goi HTTPS ra Core API bi loi xac minh chung chi (chung chi tu ky/CA noi bo)
+
+Mac dinh, app **khong can cau hinh gi them** de goi HTTPS ra Core API - Node.js tu dung kho CA
+cong khai chuan (giong trinh duyet) de xac minh chung chi cua doi tac, mien doi tac dung chung
+chi HTTPS mua/dang ky binh thuong (vd Let's Encrypt, DigiCert...).
+
+**Chi can xu ly them neu** nut "Test kiem tra"/"Test thu hoi" (hoac man hinh quet voucher that)
+bao loi dang `UNABLE_TO_VERIFY_LEAF_SIGNATURE`/`SELF_SIGNED_CERT_IN_CHAIN`/`self-signed
+certificate` - nghia la doi tac dang dung chung chi tu ky hoac CA noi bo rieng (khong nam trong
+kho CA cong khai). Cach xu ly, ngay tren man hinh "Ket noi API":
+
+1. Lien he IT phia doi tac, xin **file chung chi CA cong khai** cua ho (dinh dang `.pem`/`.crt`,
+   thuong bat dau bang dong `-----BEGIN CERTIFICATE-----`). Day la **file cong khai, khong phai
+   bi mat** - doi tac gui binh thuong qua email/chat, khong can kenh bao mat dac biet.
+2. Trong form tao/sua ket noi, muc **"Chung chi CA cua doi tac"**: bam "Choose File" de tai file
+   do len (doc truc tiep trong trinh duyet, khong qua may chu trung gian nao), hoac dan truc tiep
+   noi dung PEM vao o ben duoi.
+3. Bam **"Luu ket noi"**, roi test lai - loi xac minh chung chi se het.
+
+**Luu y quan trong - KHONG dung o nay de nhap private key**: muc nay chi dung de app **xac minh**
+may chu cua doi tac (chieu mot chieu, giong cach trinh duyet kiem tra 1 website co "chung chi hop
+le" hay khong), khong phai de app "chung minh danh tinh" cua minh voi doi tac. Neu tai lieu ky
+thuat cua doi tac yeu cau xac thuc 2 chieu (mutual TLS/mTLS - ho doi app phai trinh 1 private key
++ certificate rieng khi bat tay ket noi) thi day la 1 co che KHAC, nhay cam hon nhieu (private key
+phai duoc bao mat tuyet doi), **chua duoc ho tro qua man hinh nay** - lien he dev de thiet ke rieng
+truoc khi trien khai.
+
+Ve mat ky thuat: gia tri nay luu trong cot `CustomCaCert` cua bang `ApiConnections`
+(`sql/022_add_custom_ca_cert.sql`, khong ma hoa vi khong phai du lieu bi mat), va duoc
+`dynamicCoreApiClient.js#buildHttpsAgent()` **cong them** vao danh sach CA goc mac dinh cua
+Node.js (khong thay the) khi goi API - cac ket noi khac khong khai bao gia tri nay hoan toan
+khong bi anh huong.
+
 ### 4b. Hop dong fallback qua .env (chi ap dung khi chua co ket noi nao tren UI)
 
 File lien quan: `src/services/coreVoucherService.js` (ham `*LegacyEnv`).
