@@ -710,7 +710,7 @@ noi), **Base URL** va **Gia tri API Key** (khong bao gio dien san bi mat trong m
 sau de doi chieu/kiem tra lai, khong can go tay tung o:
 
 > **Da co san 1 dong ket noi mau trong danh sach** (`sql/023_seed_api_server_connection.sql`,
-> ten "API Server - HCRC Report") - khong can bam "+ Tao ket noi moi" nua, chi can bam **"Sua"**
+> ten "HCRC Voucher API Server") - khong can bam "+ Tao ket noi moi" nua, chi can bam **"Sua"**
 > vao dong co san nay, dien **Base URL that** va **Gia tri API Key that**, roi "Test kiem tra" +
 > "Luu & Kich hoat". Dong nay mac dinh **chua kich hoat** (`IsActive=0`) va Base URL la gia tri
 > placeholder ro rang (`https://DIEN-DIA-CHI-THAT-VAO-DAY.example`) de khong vo tinh kich hoat
