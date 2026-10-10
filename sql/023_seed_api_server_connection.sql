@@ -9,7 +9,7 @@
 -- them/sua lai nhieu lan - KHONG bao gio chua gia tri API Key that trong
 -- migration (se bi lo neu commit len git).
 -- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM dbo.ApiConnections WHERE Name = N'API Server - HCRC Report')
+IF NOT EXISTS (SELECT 1 FROM dbo.ApiConnections WHERE Name = N'HCRC Voucher API Server')
 BEGIN
     INSERT INTO dbo.ApiConnections
         (Name, IsActive, BaseUrl, AuthType, AuthTokenEncrypted, ApiKeyHeaderName,
@@ -17,7 +17,7 @@ BEGIN
          RedeemMethod, RedeemPath, RedeemParamMode, RedeemParamName, RedeemBodyTemplate, RedeemMapping,
          CreatedDate, UpdatedBy)
     VALUES
-        (N'API Server - HCRC Report', 0, N'https://DIEN-DIA-CHI-THAT-VAO-DAY.example', 'API_KEY_HEADER', NULL, 'X-API-Key',
+        (N'HCRC Voucher API Server', 0, N'https://DIEN-DIA-CHI-THAT-VAO-DAY.example', 'API_KEY_HEADER', NULL, 'X-API-Key',
          8000, 'POST', '/api/v1/vouchers/check', 'BODY', 'voucherCode',
          N'{"statusPath":"data.status","serialPath":"data.voucherSerial","valueAmtPath":"data.valueAmt","issueDatePath":"data.issueDate","expiryDatePath":"data.expiryDate","messagePath":"data.message"}',
          'POST', '/api/v1/vouchers/redeem', 'BODY', 'voucherCode',
