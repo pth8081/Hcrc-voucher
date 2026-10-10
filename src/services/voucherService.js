@@ -127,7 +127,10 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     return {
       success: false,
       status: precheck.status,
-      message: 'Voucher da doi trang thai, vui long quet lai truoc khi thu hoi.',
+      // C3: uu tien ly do THAT tu Core (vd thong bao 429 "dang gioi han, cho X giay") thay vi
+      // luon ghi co dinh "da doi trang thai" - sai lech neu ly do that khac (gioi han goi, Core
+      // tra ve loi khac...), dung lai thong bao cu chi khi Core khong cho biet ly do gi ca.
+      message: precheck.message || 'Voucher da doi trang thai, vui long quet lai truoc khi thu hoi.',
     };
   }
 

@@ -191,6 +191,20 @@ function buildHttpsAgent(connection) {
   return new https.Agent({ ca: [...tls.rootCertificates, connection.customCaCert] });
 }
 
+/**
+ * HTTP 429 (vuot gioi han goi, vd do dang do ma lien tuc) - doc header Retry-After (giay, theo
+ * RFC) neu Core co tra ve, de bao ro cho nguoi quet BAO LAU can cho thay vi chi 1 thong bao loi
+ * chung chung "Core API tra ve loi HTTP 429". axios chuan hoa ten header ve chu thuong nen tra
+ * cuu truc tiep 'retry-after', khong can doi chieu khong phan biet hoa/thuong.
+ */
+function buildRateLimitMessage(headers) {
+  const retryAfterSec = Number((headers && headers['retry-after']) || NaN);
+  const wait = Number.isFinite(retryAfterSec) && retryAfterSec > 0
+    ? `vui long thu lai sau khoang ${retryAfterSec} giay`
+    : 'vui long cho mot lat roi thu lai';
+  return `He thong doi tac dang tam gioi han do qua nhieu lan kiem tra lien tiep khong hop le - ${wait}.`;
+}
+
 function normalize(mapping, body) {
   const statusRaw = getByPath(body, mapping.statusPath);
   const statusMapped =
@@ -262,6 +276,16 @@ async function callDynamic(connection, phase, vars) {
         requestUrl: request.url,
         raw: response.data,
         normalized: { found: false, status: 'NOT_FOUND', message: 'Khong tim thay voucher tren he thong phat hanh' },
+      };
+    }
+
+    if (response.status === 429) {
+      return {
+        httpStatus: 429,
+        latencyMs,
+        requestUrl: request.url,
+        raw: response.data,
+        normalized: { found: false, status: 'RATE_LIMITED', message: buildRateLimitMessage(response.headers) },
       };
     }
 

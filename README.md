@@ -709,6 +709,13 @@ nay) — chi con **3 o can tu dien**: Ten ket noi (tuy chon, de phan biet neu sa
 noi), **Base URL** va **Gia tri API Key** (khong bao gio dien san bi mat trong ma nguon). Bang
 sau de doi chieu/kiem tra lai, khong can go tay tung o:
 
+> **Da co san 1 dong ket noi mau trong danh sach** (`sql/023_seed_api_server_connection.sql`,
+> ten "API Server - HCRC Report") - khong can bam "+ Tao ket noi moi" nua, chi can bam **"Sua"**
+> vao dong co san nay, dien **Base URL that** va **Gia tri API Key that**, roi "Test kiem tra" +
+> "Luu & Kich hoat". Dong nay mac dinh **chua kich hoat** (`IsActive=0`) va Base URL la gia tri
+> placeholder ro rang (`https://DIEN-DIA-CHI-THAT-VAO-DAY.example`) de khong vo tinh kich hoat
+> nham khi chua dien du thong tin that.
+
 | Truong | Gia tri |
 |---|---|
 | Base URL | `<https://domain-cua-doi-tac>` |
@@ -738,10 +745,11 @@ khop san voi ten trang thai chuan cua app. Truong hop `/redeem` tra ve HTTP 404 
 ma) da duoc xu ly **san co san** (khong can cau hinh gi them) — `dynamicCoreApiClient.js` luon
 coi HTTP 404 la `NOT_FOUND` bat ke cau truc body tra ve.
 
-**Han che con lai (chua xu ly, khong chan viec dung duoc)**: neu doi tac tra ve HTTP 429 (vuot
-gioi han goi), app hien chi hien thong bao loi chung ("Core API tra ve loi HTTP 429") thay vi
-phan biet ro voi loi nghiep vu that — khong sai lech du lieu, chi chua toi uu trai nghiem thong
-bao. Co the cai thien sau neu can.
+**HTTP 429 (vuot gioi han goi, vd dang do ma lien tuc) da duoc nhan dien rieng**
+(`dynamicCoreApiClient.js#buildRateLimitMessage()`): app doc header `Retry-After` (neu Core API
+co tra ve) de bao ro cho nguoi quet **can cho bao lau**, thay vi chi bao loi HTTP chung chung.
+Day la loi nghiep vu thuc su (giong 404) — **khong** dua vao hang doi dong bo/fail-open, vi 429
+la Core CHU DONG tu choi tam thoi, khac han mat ket noi/Core bao tri.
 
 Sau khi dien xong, bam **"Test kiem tra"** voi 1 ma voucher that de xac nhan mapping dung truoc
 khi bam **"Luu & Kich hoat"**.
