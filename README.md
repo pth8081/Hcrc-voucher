@@ -555,7 +555,7 @@ Core API — app da tu xu ly de tranh dieu nay, khong can cau hinh gi them.
 > - `ipRateLimit.js` — gioi han so request dang nhap/2FA/webauthn that bai tu 1 dia chi IP.
 > - `sessionRevalidation.js` — cache 30 giay trang thai tai khoan (dung de phat hien admin bi
 >   khoa/xoa gan nhu ngay lap tuc, VA de tu choi token cap truoc lan doi mat khau gan nhat -
->   xem `PasswordChangedDate`/`passwordChangedAt` trong middleware/auth.js); `invalidate()` goi
+>   xem `PasswordVersion`/`passwordVersion` trong middleware/auth.js); `invalidate()` goi
 >   luc khoa/xoa/doi mat khau CHI xoa cache o worker xu ly request do, cac worker khac van dung
 >   cache cu toi da 30 giay nua (van nam trong nguong 30 giay da cong bo, khong bi noi rong them
 >   boi so worker - khac voi 2 muc tren).
