@@ -24,7 +24,7 @@ async function getFreshUserState(userId) {
     .input('userId', sql.Int, userId)
     .query(`
       SELECT u.status AS role, s.ActiveFrom, s.ActiveUntil, ISNULL(s.IsDeleted, 0) AS isDeleted,
-             p.PasswordChangedDate AS passwordChangedDate
+             p.PasswordVersion AS passwordVersion
       FROM dbo.Users u
       LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
       LEFT JOIN dbo.UserPasswordPolicy p ON p.UserId = u.UserID
@@ -37,10 +37,11 @@ async function getFreshUserState(userId) {
         role: row.role,
         isDeleted: !!row.isDeleted,
         activeState: userScheduleService.evaluate({ ActiveFrom: row.ActiveFrom, ActiveUntil: row.ActiveUntil }).state,
-        // Dot ra soat sau phat hien: doi chieu voi "iat" (thoi diem cap) cua JWT o
-        // middleware/auth.js - token cap TRUOC lan doi mat khau gan nhat se bi tu choi, dong khe
-        // ho "token cu van dung duoc binh thuong du mat khau da bi doi de khoa ke gia mao".
-        passwordChangedAt: row.passwordChangedDate ? new Date(row.passwordChangedDate).getTime() : null,
+        // Doi chieu voi "passwordVersion" nhung san trong JWT luc cap (authService.js#issueSession)
+        // o middleware/auth.js - token mang version CU HON se bi tu choi, dong khe ho "token cu
+        // van dung duoc binh thuong du mat khau da bi doi de khoa ke gia mao". Chua co dong
+        // UserPasswordPolicy (tai khoan chua tung doi mat khau qua app nay) = version goc (1).
+        passwordVersion: row.passwordVersion != null ? row.passwordVersion : 1,
       }
     : { exists: false };
 

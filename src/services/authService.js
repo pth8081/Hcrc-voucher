@@ -146,6 +146,10 @@ async function findUserById(userId) {
 async function issueSession(user) {
   const role = Number(user.status) === 1 ? 'admin' : 'staff';
   const permissions = await permissionService.resolvePermissions({ userId: user.UserID, role: user.status });
+  // Nhung san phien ban mat khau HIEN TAI vao token - middleware/auth.js doi chieu lai sau nay
+  // de phat hien mat khau da doi KE TU LUC token nay duoc cap, khong con phu thuoc dong ho may
+  // chu nao (xem passwordPolicyService.js#getPasswordVersion va sql/025_add_password_version.sql).
+  const passwordVersion = await passwordPolicyService.getPasswordVersion(user.UserID);
 
   const token = jwt.sign(
     {
@@ -156,6 +160,7 @@ async function issueSession(user) {
       locationsGroup: user.Locations_Group,
       locationsDetail: user.Locations_Detail,
       role: user.status,
+      passwordVersion,
     },
     process.env.JWT_SECRET,
     { expiresIn: resolveJwtExpiresIn() }
