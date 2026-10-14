@@ -15,3 +15,23 @@
 @media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Tren dien thoai (<=640px, cung nguong voi .table-responsive trong style.css), bang Tai khoan
+   co qua nhieu cot (16) de hien day du nhu 1 "the" dai cho MOI tai khoan - thu gon mac dinh,
+   chi hien Ten dang nhap/Ho ten/Vai tro/Trang thai/Hanh dong, bam "Sua" (xem users.js) de mo
+   day du cac truong con lai. Man hinh rong (desktop) KHONG bi anh huong - van la bang day du
+   cuon ngang nhu truoc, nut "Sua" an di (xem .edit-toggle-btn ngay duoi). */
+.edit-toggle-btn { display: none; }
+@media (max-width: 640px) {
+  .edit-toggle-btn { display: inline-flex; }
+  #usersBody tr:not(.row-expanded) td {
+    display: none;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Ten dang nhap"],
+  #usersBody tr:not(.row-expanded) td[data-label="Ho ten"],
+  #usersBody tr:not(.row-expanded) td[data-label="Vai tro"],
+  #usersBody tr:not(.row-expanded) td.state-cell,
+  #usersBody tr:not(.row-expanded) td[data-label="Hanh dong"] {
+    display: flex;
+  }
+}
