@@ -138,6 +138,7 @@ function renderUsers(users) {
         <td data-label="Mat khau moi"><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
         <td data-label="Hanh dong">
           <div class="actions-cell">
+            <button class="btn-secondary edit-toggle-btn" type="button">Sua</button>
             <button class="btn-secondary save-btn" type="button">Luu</button>
             <button class="btn-secondary lock-btn" type="button"></button>
             <button class="btn-danger delete-btn" type="button"></button>
@@ -171,7 +172,20 @@ function renderUsers(users) {
     deleteBtn.addEventListener('click', () => deleteUser(tr, !deleted));
 
     tr.querySelector('.save-btn').addEventListener('click', () => saveUser(tr));
+
+    const editToggleBtn = tr.querySelector('.edit-toggle-btn');
+    editToggleBtn.addEventListener('click', () => toggleRowExpanded(tr));
   });
+}
+
+/** Tren dien thoai (man hinh hep), moi dong tai khoan mac dinh THU GON - chi hien Ten dang
+ * nhap/Ho ten/Vai tro/Trang thai/Hanh dong (xem CSS @media trong users.css) - bam "Sua" de mo
+ * ra day du cac truong chi tiet (quyen, lich hieu luc, don vi thu hoi, nhom bao cao, mat khau).
+ * Tren man hinh rong (desktop), CSS giu nguyen bang hien thi day du nhu truoc - nut nay an di,
+ * khong doi hanh vi cu. */
+function toggleRowExpanded(tr) {
+  const expanded = tr.classList.toggle('row-expanded');
+  tr.querySelector('.edit-toggle-btn').textContent = expanded ? 'Dong' : 'Sua';
 }
 
 /** Nut "Khoa"/"Mo khoa" chi DIEN SAN gia tri vao 2 o Kich hoat tu/Het han - PHAI bam "Luu" moi
