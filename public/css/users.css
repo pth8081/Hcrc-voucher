@@ -35,6 +35,25 @@
   }
   #usersBody tr:hover td:first-child { background: var(--ink-100); }
   #usersBody tr.row-deleted td:first-child { background: var(--card); }
+
+  /* Danh sach nhieu tai khoan keo dai rat cao, cuon xong mat luon ten cac cot (phan quyen o
+     cot nao, ngay nao la "Kich hoat tu" vs "Het han"...) - gioi han chieu cao bang ngay trong
+     1 khung nhin, header dong o lai TREN DAU khi cuon doc ben trong khung do (thay vi cuon ca
+     trang), giong y het cach bang tinh thong thuong hoat dong. */
+  .users-table-wrap {
+    max-height: 62vh;
+    overflow-y: auto;
+  }
+  #usersTable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card);
+  }
+  /* O goc tren-trai (vua ghim ngang vua ghim doc) phai noi len tren het 2 ben con lai. */
+  #usersTable thead th:first-child {
+    z-index: 3;
+  }
 }
 
 /* Dong bi loc an boi o tim kiem (xem applyUserSearchFilter trong users.js). */
