@@ -1,6 +1,16 @@
 requireAuth();
 renderTopbar('units');
 
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tabCompanies').classList.toggle('hidden', btn.dataset.tab !== 'companies');
+    document.getElementById('tabUnits').classList.toggle('hidden', btn.dataset.tab !== 'units');
+    document.getElementById('tabAccess').classList.toggle('hidden', btn.dataset.tab !== 'access');
+  });
+});
+
 const notAdminNotice = document.getElementById('notAdminNotice');
 const unitsCard = document.getElementById('unitsCard');
 const unitsBody = document.getElementById('unitsBody');

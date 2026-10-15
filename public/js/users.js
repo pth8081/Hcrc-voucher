@@ -1,6 +1,15 @@
 requireAuth();
 renderTopbar('users');
 
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tabCreate').classList.toggle('hidden', btn.dataset.tab !== 'create');
+    document.getElementById('tabManage').classList.toggle('hidden', btn.dataset.tab !== 'manage');
+  });
+});
+
 const notAdminNotice = document.getElementById('notAdminNotice');
 const usersCard = document.getElementById('usersCard');
 const usersBody = document.getElementById('usersBody');
@@ -38,6 +47,28 @@ const PERM_FIELDS = [
   'canViewSystemGuide',
 ];
 const showDeletedCheckbox = document.getElementById('showDeletedCheckbox');
+const userSearchInput = document.getElementById('userSearchInput');
+
+/** Loc danh sach tai khoan NGAY TRONG TRINH DUYET (du lieu da tai het ve), khong goi lai API -
+ * danh sach tai khoan thuong khong qua lon nen loc phia client la du nhanh, don gian hon han
+ * phai them tham so tim kiem o backend. So khop khong phan biet hoa/thuong tren ca ten dang
+ * nhap (tr.dataset.username) va ho ten (doc truc tiep tu o input, vi ho ten la 1 o co the sua
+ * duoc, khong phai van ban tinh). */
+function applyUserSearchFilter() {
+  const term = userSearchInput.value.trim().toLowerCase();
+  document.querySelectorAll('#usersBody tr[data-user-id]').forEach((tr) => {
+    if (!term) {
+      tr.classList.remove('row-filtered-out');
+      return;
+    }
+    const username = (tr.dataset.username || '').toLowerCase();
+    const fullNameInput = tr.querySelector('.edit-fullname');
+    const fullName = fullNameInput ? fullNameInput.value.toLowerCase() : '';
+    const match = username.includes(term) || fullName.includes(term);
+    tr.classList.toggle('row-filtered-out', !match);
+  });
+}
+userSearchInput.addEventListener('input', applyUserSearchFilter);
 
 async function load() {
   try {
@@ -53,6 +84,7 @@ async function load() {
     redemptionUnitsCache = units;
     renderNewCompanyOptions();
     renderUsers(users);
+    applyUserSearchFilter();
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
     usersCard.classList.add('hidden');

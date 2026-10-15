@@ -25,6 +25,13 @@
     </div>
 
     <div id="unitsCard">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="companies">Cong ty</button>
+      <button type="button" class="tab-btn" data-tab="units">Diem tieu</button>
+      <button type="button" class="tab-btn" data-tab="access">Nhom quyen xem bao cao</button>
+    </div>
+
+    <div id="tabCompanies" class="tab-panel">
     <div class="card">
       <h2>Them cong ty</h2>
       <p class="hint mb-10">1 cong ty co the gan nhieu diem tieu (vd chuoi nhieu chi nhanh) - khai bao cong ty truoc, roi chon o form "Them diem tieu" ben duoi.</p>
@@ -62,7 +69,9 @@
       </table>
       </div>
     </div>
+    </div>
 
+    <div id="tabUnits" class="tab-panel hidden">
     <div class="card">
       <h2>Them diem tieu</h2>
       <form id="unitForm">
@@ -109,7 +118,9 @@
       </table>
       </div>
     </div>
+    </div>
 
+    <div id="tabAccess" class="tab-panel hidden">
     <div class="card">
       <h2>Them nhom quyen xem bao cao</h2>
       <p class="hint mb-10">
@@ -143,6 +154,7 @@
         <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
       </div>
+    </div>
     </div>
     </div>
   </div>

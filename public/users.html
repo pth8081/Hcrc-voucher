@@ -28,91 +28,100 @@
 
     <div id="usersCard">
       <div class="card">
-        <h2>Tao tai khoan moi</h2>
-        <p class="security-note">
-          Tai khoan tao o day doc lap voi he thong Core (Core chi dung de kiem tra/cap nhat
-          voucher, khong quan ly dang nhap). Gan truc tiep <strong>Cong ty</strong> va
-          <strong>Don vi thu hoi (diem tieu)</strong> (chon tu danh sach da tao o trang "Don vi
-          thu hoi") de tai khoan nay chi thay/duoc tinh vao dung bao cao cua diem do - khong can
-          go tay ma dia diem nua.
-        </p>
-        <div class="form-grid">
-          <div>
-            <label>Ten dang nhap</label>
-            <input id="newUsername" placeholder="vd: nhanvien02" />
-          </div>
-          <div>
-            <label>Mat khau</label>
-            <input id="newPassword" type="password" placeholder="It nhat 8 ky tu" />
-          </div>
-          <div>
-            <label>Ho ten</label>
-            <input id="newFullName" placeholder="vd: Nguyen Van A" />
-          </div>
-          <div>
-            <label>Vai tro</label>
-            <select id="newRole">
-              <option value="0">Nhan vien</option>
-              <option value="1">Quan tri</option>
-            </select>
-          </div>
-          <div>
-            <label>Cong ty (tuy chon)</label>
-            <select id="newCompanyId">
-              <option value="">-- Chua gan cong ty --</option>
-            </select>
-          </div>
-          <div>
-            <label>Don vi thu hoi / diem tieu (tuy chon)</label>
-            <select id="newRedemptionUnitId">
-              <option value="">-- Chon cong ty truoc --</option>
-            </select>
-          </div>
+        <h2>Quan ly tai khoan</h2>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="create">Tao tai khoan moi</button>
+          <button type="button" class="tab-btn" data-tab="manage">Danh sach &amp; phan quyen</button>
         </div>
-        <button id="createUserBtn" class="btn-primary mt-6" type="button">Tao tai khoan</button>
-      </div>
 
-      <div class="card">
-        <h2>Thoi han su dung + phan quyen tai khoan</h2>
-        <p class="security-note">
-          De trong <strong>"Kich hoat tu"</strong> = kich hoat ngay lap tuc; de trong
-          <strong>"Het han"</strong> = khong gioi han thoi gian su dung. Tai khoan tu dong
-          khoa/mo dung theo 2 moc thoi gian nay tai thoi diem dang nhap - khong can thao tac
-          them.
-        </p>
-        <p class="security-note">
-          <strong>Quyen tinh nang</strong> (4 cot dau) chi ap dung cho <strong>nhan vien</strong> -
-          quan tri luon co du moi quyen. <strong>Nhom quyen xem bao cao</strong>: mac dinh (de
-          trong) moi tai khoan CHI xem duoc bao cao/doanh thu cua dung cong ty gan voi dia diem
-          cua minh. Chon 1 nhom da tao o trang "Don vi thu hoi" de cap quyen xem cheo/xem nhieu
-          cong ty, hoac xem toan bo.
-        </p>
-        <p class="security-note">
-          <strong>Khoa</strong>: dien san "Het han" = ngay bay gio, bam "Luu" de co hieu luc -
-          tai khoan khong dang nhap moi duoc nua nhung phien dang mo van dung toi khi tu het han
-          (JWT). <strong>Xoa</strong>: xoa mem, an khoi danh sach nay - bat "Hien tai khoan da xoa"
-          de xem lai/khoi phuc, khong mat du lieu.
-        </p>
-        <label class="checkbox-inline mb-10">
-          <input type="checkbox" id="showDeletedCheckbox" />
-          Hien ca tai khoan da xoa
-        </label>
-        <div class="table-wrap table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Ten dang nhap</th><th>Ho ten</th><th>Vai tro</th>
-                <th>Thu hoi</th><th>Doi soat</th><th>Tong hop</th><th>Voucher da dung</th>
-                <th>HD nghiep vu</th><th>HD he thong</th>
-                <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
-                <th>Don vi thu hoi</th>
-                <th>Nhom quyen xem bao cao</th>
-                <th>Mat khau moi</th>
-                <th>Hanh dong</th>
-              </tr>
-            </thead>
-            <tbody id="usersBody"><tr><td colspan="16" class="text-muted">Dang tai...</td></tr></tbody>
-          </table>
+        <div id="tabCreate" class="tab-panel">
+          <p class="security-note">
+            Tai khoan tao o day doc lap voi he thong Core (Core chi dung de kiem tra/cap nhat
+            voucher, khong quan ly dang nhap). Gan truc tiep <strong>Cong ty</strong> va
+            <strong>Don vi thu hoi (diem tieu)</strong> (chon tu danh sach da tao o trang "Don vi
+            thu hoi") de tai khoan nay chi thay/duoc tinh vao dung bao cao cua diem do - khong can
+            go tay ma dia diem nua.
+          </p>
+          <div class="form-grid">
+            <div>
+              <label>Ten dang nhap</label>
+              <input id="newUsername" placeholder="vd: nhanvien02" />
+            </div>
+            <div>
+              <label>Mat khau</label>
+              <input id="newPassword" type="password" placeholder="It nhat 8 ky tu" />
+            </div>
+            <div>
+              <label>Ho ten</label>
+              <input id="newFullName" placeholder="vd: Nguyen Van A" />
+            </div>
+            <div>
+              <label>Vai tro</label>
+              <select id="newRole">
+                <option value="0">Nhan vien</option>
+                <option value="1">Quan tri</option>
+              </select>
+            </div>
+            <div>
+              <label>Cong ty (tuy chon)</label>
+              <select id="newCompanyId">
+                <option value="">-- Chua gan cong ty --</option>
+              </select>
+            </div>
+            <div>
+              <label>Don vi thu hoi / diem tieu (tuy chon)</label>
+              <select id="newRedemptionUnitId">
+                <option value="">-- Chon cong ty truoc --</option>
+              </select>
+            </div>
+          </div>
+          <button id="createUserBtn" class="btn-primary mt-6" type="button">Tao tai khoan</button>
+        </div>
+
+        <div id="tabManage" class="tab-panel hidden">
+          <p class="security-note">
+            De trong <strong>"Kich hoat tu"</strong> = kich hoat ngay lap tuc; de trong
+            <strong>"Het han"</strong> = khong gioi han thoi gian su dung. Tai khoan tu dong
+            khoa/mo dung theo 2 moc thoi gian nay tai thoi diem dang nhap - khong can thao tac
+            them.
+          </p>
+          <p class="security-note">
+            <strong>Quyen tinh nang</strong> (4 cot dau) chi ap dung cho <strong>nhan vien</strong> -
+            quan tri luon co du moi quyen. <strong>Nhom quyen xem bao cao</strong>: mac dinh (de
+            trong) moi tai khoan CHI xem duoc bao cao/doanh thu cua dung cong ty gan voi dia diem
+            cua minh. Chon 1 nhom da tao o trang "Don vi thu hoi" de cap quyen xem cheo/xem nhieu
+            cong ty, hoac xem toan bo.
+          </p>
+          <p class="security-note">
+            <strong>Khoa</strong>: dien san "Het han" = ngay bay gio, bam "Luu" de co hieu luc -
+            tai khoan khong dang nhap moi duoc nua nhung phien dang mo van dung toi khi tu het han
+            (JWT). <strong>Xoa</strong>: xoa mem, an khoi danh sach nay - bat "Hien tai khoan da xoa"
+            de xem lai/khoi phuc, khong mat du lieu.
+          </p>
+          <div class="manage-toolbar">
+            <input id="userSearchInput" placeholder="Tim theo ten dang nhap hoac ho ten..." />
+            <label class="checkbox-inline">
+              <input type="checkbox" id="showDeletedCheckbox" />
+              Hien ca tai khoan da xoa
+            </label>
+          </div>
+          <div class="table-wrap table-responsive">
+            <table id="usersTable">
+              <thead>
+                <tr>
+                  <th>Ten dang nhap</th><th>Ho ten</th><th>Vai tro</th>
+                  <th>Thu hoi</th><th>Doi soat</th><th>Tong hop</th><th>Voucher da dung</th>
+                  <th>HD nghiep vu</th><th>HD he thong</th>
+                  <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
+                  <th>Don vi thu hoi</th>
+                  <th>Nhom quyen xem bao cao</th>
+                  <th>Mat khau moi</th>
+                  <th>Hanh dong</th>
+                </tr>
+              </thead>
+              <tbody id="usersBody"><tr><td colspan="16" class="text-muted">Dang tai...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

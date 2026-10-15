@@ -16,6 +16,30 @@
   .form-grid { grid-template-columns: 1fr; }
 }
 
+.manage-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 14px; }
+#userSearchInput { flex: 1 1 260px; max-width: 360px; margin: 0; }
+
+/* Bang co nhieu cot phai cuon ngang (table-wrap { overflow-x: auto }) - ghim cot "Ten dang
+   nhap" ben trai khi cuon, de luon biet dang xem/sua tai khoan nao du da cuon sang cac cot
+   ben phai (truoc day cuon xong la mat dau ten dang nhap, phai cuon nguoc lai de doi chieu).
+   Chi ap dung tu 641px tro len - duoi 640px bang da chuyen thanh "the" xep doc (table-responsive
+   trong style.css, khong con cuon ngang), sticky luc do se dinh nham vao cuon doc trang. */
+@media (min-width: 641px) {
+  #usersTable thead th:first-child,
+  #usersBody td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--card);
+    z-index: 1;
+    box-shadow: 2px 0 4px rgba(28, 31, 34, 0.06);
+  }
+  #usersBody tr:hover td:first-child { background: var(--ink-100); }
+  #usersBody tr.row-deleted td:first-child { background: var(--card); }
+}
+
+/* Dong bi loc an boi o tim kiem (xem applyUserSearchFilter trong users.js). */
+#usersBody tr.row-filtered-out { display: none; }
+
 /* Tren dien thoai (<=640px, cung nguong voi .table-responsive trong style.css), bang Tai khoan
    co qua nhieu cot (16) de hien day du nhu 1 "the" dai cho MOI tai khoan - thu gon mac dinh,
    chi hien Ten dang nhap/Ho ten/Vai tro/Trang thai/Hanh dong, bam "Sua" (xem users.js) de mo
