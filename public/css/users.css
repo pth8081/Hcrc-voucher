@@ -19,62 +19,81 @@
 .manage-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 14px; }
 #userSearchInput { flex: 1 1 260px; max-width: 360px; margin: 0; }
 
-/* Bang co nhieu cot phai cuon ngang (table-wrap { overflow-x: auto }) - ghim cot "Ten dang
-   nhap" ben trai khi cuon, de luon biet dang xem/sua tai khoan nao du da cuon sang cac cot
-   ben phai (truoc day cuon xong la mat dau ten dang nhap, phai cuon nguoc lai de doi chieu).
-   Chi ap dung tu 641px tro len - duoi 640px bang da chuyen thanh "the" xep doc (table-responsive
-   trong style.css, khong con cuon ngang), sticky luc do se dinh nham vao cuon doc trang. */
-@media (min-width: 641px) {
-  #usersTable thead th:first-child,
-  #usersBody td:first-child {
-    position: sticky;
-    left: 0;
-    background: var(--card);
-    z-index: 1;
-    box-shadow: 2px 0 4px rgba(28, 31, 34, 0.06);
-  }
-  #usersBody tr:hover td:first-child { background: var(--ink-100); }
-  #usersBody tr.row-deleted td:first-child { background: var(--card); }
+/* Dot ra soat sau phan hoi nguoi dung: 16 cot la qua nhieu de hien thang hang ngang tren BAT
+   KY man hinh nao (ke ca desktop rong) ma khong can cuon ngang - du da ghim cot dau/header truoc
+   do, van phai keo sang phai moi thay het thong tin. Thay the HOAN TOAN bang bang ngang bang
+   dang "the" xep doc cho MOI tai khoan (giong cach .table-responsive lam cho MAN HINH HEP trong
+   style.css, nhung ap dung LUON o moi kich thuoc man hinh cho rieng bang nay, khong theo
+   nguong max-width nua) - moi truong tren 1 dong rieng, khong bao gio can cuon ngang. */
+#usersTable { min-width: 0; width: 100%; }
+#usersTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+#usersTable tbody, #usersTable tr, #usersTable td { display: block; width: 100%; }
+#usersTable tr {
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-md);
+  padding: 4px 14px;
+  margin-bottom: 10px;
+  background: var(--card);
+}
+#usersTable tr:last-child { margin-bottom: 0; }
+#usersTable td {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  text-align: right;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ink-100);
+}
+#usersTable td:last-child { border-bottom: none; }
+#usersTable td:empty { display: none; }
+#usersTable td::before {
+  content: attr(data-label);
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex: 0 0 auto;
+}
+#usersTable td[data-label=""]::before,
+#usersTable td:not([data-label])::before { content: none; }
 
-  /* Danh sach nhieu tai khoan keo dai rat cao, cuon xong mat luon ten cac cot (phan quyen o
-     cot nao, ngay nao la "Kich hoat tu" vs "Het han"...) - gioi han chieu cao bang ngay trong
-     1 khung nhin, header dong o lai TREN DAU khi cuon doc ben trong khung do (thay vi cuon ca
-     trang), giong y het cach bang tinh thong thuong hoat dong. */
-  .users-table-wrap {
-    max-height: 62vh;
-    overflow-y: auto;
-  }
-  #usersTable thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--card);
-  }
-  /* O goc tren-trai (vua ghim ngang vua ghim doc) phai noi len tren het 2 ben con lai. */
-  #usersTable thead th:first-child {
-    z-index: 3;
-  }
+/* O co chua o nhap/select/nhom nut: nhan xep TREN, gia tri xep DUOI toan chieu rong - thay vi
+   nhan-trai/gia-tri-phai nhu dong van ban thuong, vi input/select can du cho rong de khong bi
+   bop chu (vd "Nhom quyen xem bao cao"). */
+#usersTable td:has(input, select, .actions-cell) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+#usersTable td:has(input, select, .actions-cell)::before {
+  text-align: left;
+}
+
+/* Danh sach nhieu tai khoan van co the rat dai (moi tai khoan 1 "the") - gioi han chieu cao
+   khung bang, tu co thanh cuon RIENG thay vi keo dai ca trang. */
+.users-table-wrap {
+  max-height: 68vh;
+  overflow-y: auto;
 }
 
 /* Dong bi loc an boi o tim kiem (xem applyUserSearchFilter trong users.js). */
 #usersBody tr.row-filtered-out { display: none; }
 
-/* Tren dien thoai (<=640px, cung nguong voi .table-responsive trong style.css), bang Tai khoan
-   co qua nhieu cot (16) de hien day du nhu 1 "the" dai cho MOI tai khoan - thu gon mac dinh,
-   chi hien Ten dang nhap/Ho ten/Vai tro/Trang thai/Hanh dong, bam "Sua" (xem users.js) de mo
-   day du cac truong con lai. Man hinh rong (desktop) KHONG bi anh huong - van la bang day du
-   cuon ngang nhu truoc, nut "Sua" an di (xem .edit-toggle-btn ngay duoi). */
-.edit-toggle-btn { display: none; }
-@media (max-width: 640px) {
-  .edit-toggle-btn { display: inline-flex; }
-  #usersBody tr:not(.row-expanded) td {
-    display: none;
-  }
-  #usersBody tr:not(.row-expanded) td[data-label="Ten dang nhap"],
-  #usersBody tr:not(.row-expanded) td[data-label="Ho ten"],
-  #usersBody tr:not(.row-expanded) td[data-label="Vai tro"],
-  #usersBody tr:not(.row-expanded) td.state-cell,
-  #usersBody tr:not(.row-expanded) td[data-label="Hanh dong"] {
-    display: flex;
-  }
+/* Moi tai khoan mac dinh THU GON - chi hien Ten dang nhap/Ho ten/Vai tro/Trang thai/Hanh dong,
+   bam "Sua" (xem users.js) de mo day du cac truong con lai (quyen, lich hieu luc, don vi thu
+   hoi, nhom bao cao, mat khau). Ap dung o MOI kich thuoc man hinh (khong con gioi han duoi
+   640px nhu truoc) - day la thay doi chinh giai quyet phan hoi "van phai keo sang de tim thong
+   tin khac" tren desktop. */
+#usersBody tr:not(.row-expanded) td {
+  display: none;
+}
+#usersBody tr:not(.row-expanded) td[data-label="Ten dang nhap"],
+#usersBody tr:not(.row-expanded) td[data-label="Ho ten"],
+#usersBody tr:not(.row-expanded) td[data-label="Vai tro"],
+#usersBody tr:not(.row-expanded) td.state-cell,
+#usersBody tr:not(.row-expanded) td[data-label="Hanh dong"] {
+  display: flex;
 }
