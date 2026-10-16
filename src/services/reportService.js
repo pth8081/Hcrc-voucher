@@ -57,14 +57,16 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId }) {
 }
 
 /**
- * Bao cao doi soat hang ngay: tong hop voucher da thu hoi theo don vi,
- * dung de doi chieu voi bao cao phat hanh cua Core system.
+ * Bao cao doi soat: tong hop voucher da thu hoi theo don vi trong 1 KHOANG NGAY (tu ngay - den
+ * ngay, co the chi la 1 ngay neu fromDate = toDate), dung de doi chieu voi bao cao phat hanh cua
+ * Core system. Truoc day chi loc dung 1 ngay (tham so `date`) - doi sang khoang ngay theo yeu
+ * cau nguoi dung, giong cach 2 bao cao con lai (tong hop, danh sach voucher da su dung) da lam.
  */
-async function dailyReconciliation({ date, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId }) {
+async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId }) {
   const pool = await getPool();
   const request = pool.request();
-  request.input('reportDate', sql.Date, date);
-  let filter = 'CAST(vs.Created_Date AS DATE) = @reportDate';
+  request.input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
+  let filter = 'CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate';
   if (locationsDetail) {
     request.input('locationsDetail', sql.NVarChar(100), locationsDetail);
     filter += ' AND vs.Locations_Detail = @locationsDetail';
@@ -85,8 +87,8 @@ async function dailyReconciliation({ date, locationsDetail, visibleLocationCodes
   `);
 
   const detailRequest = pool.request();
-  detailRequest.input('reportDate', sql.Date, date);
-  let detailFilter = 'CAST(vs.Created_Date AS DATE) = @reportDate';
+  detailRequest.input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
+  let detailFilter = 'CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate';
   if (locationsDetail) {
     detailRequest.input('locationsDetail', sql.NVarChar(100), locationsDetail);
     detailFilter += ' AND vs.Locations_Detail = @locationsDetail';

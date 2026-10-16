@@ -1,18 +1,22 @@
 requireAuth();
 renderTopbar('report');
 
-const reportDate = document.getElementById('reportDate');
+const fromDateInput = document.getElementById('fromDate');
+const toDateInput = document.getElementById('toDate');
 const summaryBody = document.getElementById('summaryBody');
 const detailBody = document.getElementById('detailBody');
 
-reportDate.value = new Date().toISOString().slice(0, 10);
+const today = new Date().toISOString().slice(0, 10);
+fromDateInput.value = today;
+toDateInput.value = today;
 document.getElementById('loadBtn').addEventListener('click', loadReport);
 initReportFilters();
 loadReport();
 
 function buildQuery() {
   const params = new URLSearchParams();
-  params.set('date', reportDate.value);
+  params.set('fromDate', fromDateInput.value);
+  params.set('toDate', toDateInput.value);
   const filters = getReportFilterParams();
   Object.entries(filters).forEach(([key, value]) => params.set(key, value));
   return params.toString();
@@ -39,7 +43,7 @@ function renderSummary(rows, unassignedLocation) {
     return;
   }
   if (!rows.length) {
-    summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Khong co giao dich trong ngay</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Khong co giao dich trong khoang ngay da chon</td></tr>';
     return;
   }
   summaryBody.innerHTML = rows
@@ -60,14 +64,14 @@ function renderDetails(rows, unassignedLocation) {
     return;
   }
   if (!rows.length) {
-    detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co giao dich trong ngay</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co giao dich trong khoang ngay da chon</td></tr>';
     return;
   }
   detailBody.innerHTML = rows
     .map(
       (r) => `
       <tr>
-        <td data-label="Gio">${fmtDate(r.Created_Date)}</td>
+        <td data-label="Ngay gio">${fmtDate(r.Created_Date)}</td>
         <td data-label="Ma giao dich">${escapeHtml(r.TRANS_NUM || '-')}</td>
         <td data-label="Ma voucher">${escapeHtml(r.Voucher_Code)}</td>
         <td data-label="Nguoi thu hoi">${escapeHtml(r.User_Name || '-')}</td>

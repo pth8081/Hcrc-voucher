@@ -222,7 +222,7 @@ DB moi, khong di chuyen/sao chep du lieu cu sang noi khac:
 | Bang | Vai tro trong app moi |
 |---|---|
 | `Users` | Dang nhap — **giu nguyen tai khoan cu**, app chi doc/so sanh mat khau va (khi can) ghi de lai `Password` khi doi mat khau (muc 14). |
-| `Locations_Group`, `Locations_Detail` | Danh muc dia diem — app chi **doc**, khong ghi. |
+| `Locations_Group`, `Locations_Detail` | Danh muc dia diem — app chi **doc** `Locations_Group`. Voi `Locations_Detail`, ngoai doc con cho phep **them dong moi** (tao dia diem chua tung co, muc 12a) va **doi ten** (`LocationName`) qua man hinh "Don vi thu hoi" (chi admin) — dung cho truong hop trien khai he thong moi, chua dong bo tu Core; KHONG sua cau truc bang, van dung chung du lieu cu da co san. |
 | `VOUCHER_SYNC` | App **ghi them dong moi** moi khi thu hoi thanh cong (giu nguyen dung y goc: noi luu ban ghi da tieu de doi soat). |
 | `Voucher_Exelogs` | App **ghi them dong moi** moi lan job dong bo chay (dung y goc: log he thong). |
 
@@ -889,7 +889,7 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
-| GET | `/api/reports/daily?date=YYYY-MM-DD&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo ngay (nhom theo dia diem tai khoan) |
+| GET | `/api/reports/daily?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo KHOANG ngay (nhom theo dia diem tai khoan), toi da 366 ngay |
 | GET | `/api/reports/summary?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
 | GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
 | GET | `/api/reports/used-vouchers/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
