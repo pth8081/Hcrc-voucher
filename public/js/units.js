@@ -61,31 +61,17 @@ locationForm.addEventListener('submit', async (e) => {
         method: 'POST',
         body: JSON.stringify({ locationName }),
       });
-      showToast(`Da tao dia diem "${locationName}" (ma ${result.locationCode})`);
+      showToast(`Da tao dia diem "${locationName}"`);
       locationForm.reset();
       await loadLocations();
       // Chon san dia diem vua tao trong form "Them diem tieu" ben duoi, de admin khong phai
       // tim lai trong danh sach dai - tiep tuc dien cac o con lai roi luu diem tieu ngay.
       locationSelect.value = String(result.id);
-      suggestPartnerCode();
     } catch (err) {
       showToast(err.message);
     }
   });
 });
-
-/** Goi y Ma diem (PartnerCode) = Ma cong ty-Ma dia diem (vd "123-LOC01") ngay khi chon du ca 2 -
- * chi dien khi o Ma diem con DANG TRONG, khong ghi de neu admin da tu go tay truoc do. */
-function suggestPartnerCode() {
-  const partnerCodeInput = document.getElementById('partnerCode');
-  if (partnerCodeInput.value.trim()) return;
-  const company = companiesCache.find((c) => String(c.Id) === companySelect.value);
-  const location = locationsCache.find((d) => String(d.id) === locationSelect.value);
-  if (!company || !location) return;
-  partnerCodeInput.value = `${company.CompanyCode}-${location.LocationCode}`;
-}
-companySelect.addEventListener('change', suggestPartnerCode);
-locationSelect.addEventListener('change', suggestPartnerCode);
 
 async function loadCompanies() {
   try {
