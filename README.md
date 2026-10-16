@@ -887,10 +887,13 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
-| GET | `/api/reports/daily?date=YYYY-MM-DD` | Bao cao doi soat theo ngay (nhom theo dia diem tai khoan) |
-| GET | `/api/reports/summary?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
-| GET | `/api/reports/used-vouchers?fromDate=&toDate=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
-| GET | `/api/reports/used-vouchers/export?fromDate=&toDate=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
+| GET | `/api/reports/daily?date=YYYY-MM-DD&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo ngay (nhom theo dia diem tai khoan) |
+| GET | `/api/reports/summary?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
+| GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
+| GET | `/api/reports/used-vouchers/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
+| GET | `/api/reports/filters/companies` | Danh sach cong ty de hien thi o loc "Cong ty thu" (da scope theo quyen xem bao cao) — muc 12d |
+| GET | `/api/reports/filters/redemption-units?companyId=` | Danh sach diem thu hoi de hien thi o loc "Diem thu hoi" (tuy chon loc theo cong ty) — muc 12d |
+| GET | `/api/reports/filters/redeemers` | Danh sach tai khoan da tung thu hoi voucher, hien thi o loc "Tai khoan thu hoi" — muc 12d |
 | GET | `/api/api-connections` | Danh sach ket noi Core API (can quyen admin, secret duoc mask) |
 | GET/POST/PUT/DELETE | `/api/api-connections[/:id]` | CRUD ket noi Core API (can quyen admin) |
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
@@ -1228,6 +1231,27 @@ lieu ra ngoai:
   (`src/services/usedVoucherReportService.js`), khong can bang du lieu rieng.
 - Ap dung **dung phan quyen xem theo cong ty** nhu 2 bao cao con lai (muc 13) — 1 tai khoan mac
   dinh chi thay/xuat duoc voucher cua cong ty minh, tru khi duoc cap quyen xem cheo/toan bo.
+
+### 12d. Loc theo Cong ty / Diem thu hoi / Tai khoan thu hoi
+
+Ca **3 man hinh bao cao** (Doi soat — muc 5/6, Tong hop — muc 12b, Danh sach voucher da su dung —
+muc 12c) co them 3 o loc dung chung:
+
+- **Cong ty thu** — loc theo `RedemptionCompanies.Id` (`rc.Id`).
+- **Diem thu hoi** — loc theo `RedemptionUnits.Id` (`ru.Id`); chon truoc 1 cong ty se tu dong loc
+  lai danh sach diem thu hoi chi con cua cong ty do (cascading, giong form tao Diem thu hoi o
+  `/units.html`).
+- **Tai khoan thu hoi** — loc theo `VOUCHER_SYNC.userid` (ID tai khoan on dinh, khong phai chuoi
+  `User_Name` luu "chup lai" luc thu hoi — tranh truong hop trung ten hoac tai khoan doi ten sau
+  nay bi loc sai).
+
+Ca 3 o deu **de trong = khong loc** (giu nguyen hanh vi cu), va danh sach gia tri hien trong moi
+o (`GET /api/reports/filters/*`) da **scope theo dung quyen xem bao cao** cua tai khoan dang
+nhap (muc 13) — 1 nhan vien chi duoc xem cong ty cua minh se khong thay duoc cong ty/diem thu hoi
+ngoai pham vi do trong dropdown, tranh lo thong tin cong ty khac qua danh sach loc
+(`src/services/reportService.js#listFilterCompanies/listFilterRedemptionUnits/listFilterRedeemers`,
+dung chung logic voi `requireFeature` cho phep bat ky quyen nao trong 3 quyen xem bao cao goi
+duoc, xem `src/middleware/requireFeature.js`).
 
 ## 13. Phan quyen xem bao cao theo cong ty
 

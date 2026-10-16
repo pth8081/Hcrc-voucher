@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#ee7d1a" />
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -22,9 +23,25 @@
   <div class="container">
     <div class="card">
       <h2>Doi soat voucher da thu hoi</h2>
-      <label>Ngay</label>
-      <input id="reportDate" type="date" />
-      <button id="loadBtn" class="btn-primary">Xem bao cao</button>
+      <div class="summary-filters">
+        <div class="field">
+          <label>Ngay</label>
+          <input id="reportDate" type="date" />
+        </div>
+        <div class="field">
+          <label>Cong ty thu</label>
+          <select id="filterCompany"><option value="">Dang tai...</option></select>
+        </div>
+        <div class="field">
+          <label>Diem thu hoi</label>
+          <select id="filterUnit"><option value="">Dang tai...</option></select>
+        </div>
+        <div class="field">
+          <label>Tai khoan thu hoi</label>
+          <select id="filterUser"><option value="">Dang tai...</option></select>
+        </div>
+        <button id="loadBtn" class="btn-primary">Xem bao cao</button>
+      </div>
     </div>
 
     <div class="card">
@@ -53,6 +70,7 @@
   <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/layout.js"></script>
+  <script src="/js/reportFilters.js"></script>
   <script src="/js/report.js"></script>
 </body>
 </html>

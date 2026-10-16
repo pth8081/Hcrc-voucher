@@ -11,12 +11,27 @@ async function resolveScope(req) {
   });
 }
 
+/** Doc 3 tham so loc chung "Cong ty thu / Diem thu hoi / Tai khoan thu hoi" dung cho ca 4 bao
+ * cao (doi soat, tong hop, danh sach va xuat Excel voucher da su dung). */
+function parseExtraFilters(query) {
+  return {
+    companyId: query.companyId ? Number(query.companyId) : null,
+    redemptionUnitId: query.redemptionUnitId ? Number(query.redemptionUnitId) : null,
+    userId: query.userId ? Number(query.userId) : null,
+  };
+}
+
 async function daily(req, res, next) {
   try {
     const date = req.query.date || new Date().toISOString().slice(0, 10);
     const locationsDetail = req.query.locationsDetail || null;
     const { codes, unassigned } = await resolveScope(req);
-    const data = await reportService.dailyReconciliation({ date, locationsDetail, visibleLocationCodes: codes });
+    const data = await reportService.dailyReconciliation({
+      date,
+      locationsDetail,
+      visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
+    });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
     next(err);
@@ -44,7 +59,12 @@ async function summary(req, res, next) {
       });
     }
     const { codes, unassigned } = await resolveScope(req);
-    const data = await summaryReportService.consolidatedReport({ fromDate, toDate, visibleLocationCodes: codes });
+    const data = await summaryReportService.consolidatedReport({
+      fromDate,
+      toDate,
+      visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
+    });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
     next(err);
@@ -80,6 +100,7 @@ async function usedVouchers(req, res, next) {
       fromDate,
       toDate,
       visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
       maxRows: maxRows + 1,
     });
     const truncated = rows.length > maxRows;
@@ -104,6 +125,7 @@ async function usedVouchersExport(req, res, next) {
       fromDate,
       toDate,
       visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
       maxRows: usedVoucherReportService.MAX_EXPORT_ROWS,
     });
     const buffer = await usedVoucherReportService.buildExcelBuffer(rows);
@@ -117,4 +139,48 @@ async function usedVouchersExport(req, res, next) {
   }
 }
 
-module.exports = { daily, summary, usedVouchers, usedVouchersExport };
+// Danh sach gia tri cho 3 o loc "Cong ty thu / Diem thu hoi / Tai khoan thu hoi" - dung chung
+// cho ca 3 man hinh bao cao. Khong dung lai /companies, /redemption-units (requireAdmin) vi
+// nhan vien (khong phai admin) van can xem duoc cac o loc nay tren man hinh bao cao cua ho -
+// scope theo cung 1 visibleLocationCodes nhu du lieu bao cao chinh, tranh lo thong tin cong
+// ty/diem tieu ngoai quyen xem cua nhan vien do.
+async function filterCompanies(req, res, next) {
+  try {
+    const { codes } = await resolveScope(req);
+    const companies = await reportService.listFilterCompanies(codes);
+    res.json({ success: true, data: companies });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function filterRedemptionUnits(req, res, next) {
+  try {
+    const { codes } = await resolveScope(req);
+    const companyId = req.query.companyId ? Number(req.query.companyId) : null;
+    const units = await reportService.listFilterRedemptionUnits(codes, companyId);
+    res.json({ success: true, data: units });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function filterRedeemers(req, res, next) {
+  try {
+    const { codes } = await resolveScope(req);
+    const redeemers = await reportService.listFilterRedeemers(codes);
+    res.json({ success: true, data: redeemers });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  daily,
+  summary,
+  usedVouchers,
+  usedVouchersExport,
+  filterCompanies,
+  filterRedemptionUnits,
+  filterRedeemers,
+};

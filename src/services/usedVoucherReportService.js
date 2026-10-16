@@ -26,8 +26,10 @@ const MAX_LIST_ROWS = 3000;
  * fromDate/toDate = null -> KHONG loc theo ngay (lay TOAN BO lich su).
  * visibleLocationCodes (xem reportAccessService.js): null = xem het, [] = khong xem gi ca,
  * [...] = chi xem dung cac dia diem do.
+ * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
+ * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, maxRows }) {
+async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, maxRows }) {
   const pool = await getPool();
   const request = pool.request();
 
@@ -57,6 +59,20 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, maxRow
     }
   }
 
+  let extraFilter = '';
+  if (companyId) {
+    request.input('companyId', sql.Int, companyId);
+    extraFilter += ' AND rc.Id = @companyId';
+  }
+  if (redemptionUnitId) {
+    request.input('redemptionUnitId', sql.Int, redemptionUnitId);
+    extraFilter += ' AND ru.Id = @redemptionUnitId';
+  }
+  if (userId) {
+    request.input('userId', sql.Int, userId);
+    extraFilter += ' AND vs.userid = @userId';
+  }
+
   const result = await request.query(`
     SELECT ${topClause}
       vs.Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
@@ -75,7 +91,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, maxRow
     ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
     LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
     LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
-    WHERE 1 = 1${dateFilter}${locationFilter}
+    WHERE 1 = 1${dateFilter}${locationFilter}${extraFilter}
     ORDER BY vs.Created_Date DESC
   `);
 
