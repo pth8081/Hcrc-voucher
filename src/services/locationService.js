@@ -52,6 +52,21 @@ const NEW_LOCATION_TYPE = '1';
  */
 async function createDetail(locationName) {
   const pool = await getPool();
+
+  // Theo yeu cau nguoi dung: khong duoc tao 2 dia diem CUNG TEN - kiem tra truoc voi TOAN BO
+  // du lieu hien co (ke ca du lieu cu), chi chan DIA DIEM MOI trung ten, khong dong gi den cac
+  // dong cu da co san du chung co the da trung ten/ma tu truoc.
+  const dupCheck = await pool
+    .request()
+    .input('locationName', sql.NChar(250), locationName)
+    .query('SELECT 1 FROM dbo.Locations_Detail WHERE LTRIM(RTRIM(LocationName)) = LTRIM(RTRIM(@locationName))');
+  if (dupCheck.recordset.length) {
+    const err = new Error('LocationName da ton tai');
+    err.statusCode = 409;
+    err.publicMessage = `Dia diem "${locationName}" da ton tai, vui long dat ten khac hoac chon dia diem co san trong danh sach.`;
+    throw err;
+  }
+
   const insertResult = await pool
     .request()
     .input('locationType', sql.NChar(10), NEW_LOCATION_TYPE)

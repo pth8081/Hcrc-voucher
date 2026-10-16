@@ -51,8 +51,29 @@ async function getById(id) {
   return result.recordset[0] || null;
 }
 
+/** Theo yeu cau nguoi dung: khong duoc tao/doi 2 diem tieu CUNG TEN (PartnerName) - tranh nham
+ * lan khi chon trong danh sach/bao cao (truoc day chi PartnerCode co rang buoc UNIQUE, xem
+ * sql/001). excludeId dung khi update() (bo qua chinh dong dang sua). */
+async function assertPartnerNameNotDuplicate(pool, partnerName, excludeId) {
+  const request = pool.request().input('partnerName', sql.NVarChar(300), partnerName);
+  let query = 'SELECT 1 FROM dbo.RedemptionUnits WHERE LTRIM(RTRIM(PartnerName)) = LTRIM(RTRIM(@partnerName))';
+  if (excludeId) {
+    request.input('excludeId', sql.Int, excludeId);
+    query += ' AND Id <> @excludeId';
+  }
+  const result = await request.query(query);
+  if (result.recordset.length) {
+    const err = new Error('PartnerName da ton tai');
+    err.statusCode = 409;
+    err.publicMessage = `Ten diem tieu "${partnerName}" da duoc su dung boi 1 diem tieu khac, vui long dat ten khac.`;
+    throw err;
+  }
+}
+
 async function create(data) {
   const pool = await getPool();
+
+  await assertPartnerNameNotDuplicate(pool, data.partnerName);
 
   // LocationDetailId KHONG co FK toi Locations_Detail (bang dung chung voi Core, xem
   // sql/001_create_redemption_units.sql) - tu kiem tra ton tai o day de tranh go nham ma tao
@@ -134,6 +155,8 @@ async function create(data) {
 
 async function update(id, data) {
   const pool = await getPool();
+
+  await assertPartnerNameNotDuplicate(pool, data.partnerName, id);
 
   // C4 (xem giai thich chi tiet o create() phia tren): khi doi cong ty cua 1 don vi thu hoi
   // co san, kiem tra lai cung dieu kien - LocationCode cua don vi nay khong duoc trung voi

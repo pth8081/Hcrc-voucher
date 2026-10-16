@@ -1200,7 +1200,16 @@ thong tu them 1 dong moi vao `Locations_Detail` voi `LocationCode` duoc dat **ba
 bo** (luon duy nhat tuyet doi, khong bao gio trung - xem `locationService.js#createDetail`) roi
 tu dong xuat hien ngay trong dropdown "Dia diem" ben duoi de gan vao Cong ty. **Khong dung den
 du lieu `Locations_Detail` cu da co san** (giu nguyen, ke ca cac dong bi trung `LocationCode`
-tu truoc).
+tu truoc). `LocationCode` tu sinh chi la ma noi bo, KHONG hien thi/goi y o bat ky o nhap nao
+khac trong giao dien (vd o "Ma diem" cua form "Them diem tieu" khong con tu dien san theo ma
+nay nua — admin tu go ma theo quy uoc rieng).
+
+**Chan trung ten:** ca 2 noi — "Ten dia diem" (`Locations_Detail.LocationName`, khi tao qua form
+"Them dia diem moi") va "Ten diem tieu" (`RedemptionUnits.PartnerName`, khi tao/sua qua form
+"Them diem tieu") — deu bi chan neu trung voi 1 ban ghi khac da co (so sanh khong phan biet
+khoang trang dau/cuoi), tra loi 409 kem thong bao ro rang. Rieng du lieu `Locations_Detail` cu
+da co san tu truoc (neu co ten trung nhau) khong bi anh huong — chi ap dung cho ban ghi MOI
+tao/sua qua app.
 
 ### 12b. Bao cao tong hop (`/summary-report.html`)
 
