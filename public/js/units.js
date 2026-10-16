@@ -18,6 +18,7 @@ const companiesBody = document.getElementById('companiesBody');
 const locationSelect = document.getElementById('locationDetailId');
 const companySelect = document.getElementById('companyId');
 const unitForm = document.getElementById('unitForm');
+const locationForm = document.getElementById('locationForm');
 const companyForm = document.getElementById('companyForm');
 const accessGroupForm = document.getElementById('accessGroupForm');
 const accessGroupsBody = document.getElementById('accessGroupsBody');
@@ -48,6 +49,30 @@ async function loadLocations() {
     .map((d) => `<option value="${d.id}">${escapeHtml(d.LocationName)} (${escapeHtml(d.LocationCode)})</option>`)
     .join('');
 }
+
+locationForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const locationNameInput = document.getElementById('newLocationName');
+  const locationName = locationNameInput.value.trim();
+
+  await withSubmitLock(locationForm, async () => {
+    try {
+      const result = await apiFetch('/locations/details', {
+        method: 'POST',
+        body: JSON.stringify({ locationName }),
+      });
+      showToast(`Da tao dia diem "${locationName}" (ma ${result.locationCode})`);
+      locationForm.reset();
+      await loadLocations();
+      // Chon san dia diem vua tao trong form "Them diem tieu" ben duoi, de admin khong phai
+      // tim lai trong danh sach dai - tiep tuc dien cac o con lai roi luu diem tieu ngay.
+      locationSelect.value = String(result.id);
+      suggestPartnerCode();
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
+});
 
 /** Goi y Ma diem (PartnerCode) = Ma cong ty-Ma dia diem (vd "123-LOC01") ngay khi chon du ca 2 -
  * chi dien khi o Ma diem con DANG TRONG, khong ghi de neu admin da tu go tay truoc do. */

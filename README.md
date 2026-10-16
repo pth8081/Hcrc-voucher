@@ -879,6 +879,7 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/auth/login` | Dang nhap, tra ve JWT (bat buoc kem `captchaToken`/`captchaText` tu endpoint tren) |
 | GET | `/api/locations/groups` | Danh sach nhom dia diem |
 | GET | `/api/locations/details` | Danh sach dia diem chi tiet |
+| POST | `/api/locations/details` | Tao dia diem moi (chua tung co trong du lieu cu) - `{ locationName }` (can quyen admin) |
 | GET | `/api/redemption-units` | Danh sach diem tieu (kem ten cong ty) |
 | POST | `/api/redemption-units` | Them diem tieu, bat buoc gan `companyId` (can quyen admin) |
 | PUT | `/api/redemption-units/:id` | Cap nhat diem tieu (can quyen admin) |
@@ -1189,6 +1190,17 @@ Man hinh **"Don vi thu hoi"** (`/units.html`, chi admin) nay gom 2 cap:
 Diem tieu **da khai bao truoc khi co khai niem Cong ty** van giu nguyen `CompanyId = NULL`
 (khong bi xoa/hong du lieu) — cac giao dich cua nhung diem nay se xuat hien duoi nhom
 **"Chua gan cong ty"** trong bao cao tong hop cho toi khi duoc gan cong ty.
+
+**Tao dia diem hoan toan moi (form "Them dia diem moi"):** o tren form "Them diem tieu" co 1
+dropdown "Dia diem (`Locations_Detail`)" chi liet ke du lieu **DA CO SAN** (lay tu bang legacy
+`Locations_Detail`, dung chung voi phan mem cu) — khong dung de tao cua hang/chi nhanh **hoan
+toan moi** chua tung ton tai trong du lieu nay. Form "Them dia diem moi" (`POST
+/api/locations/details`, chi admin) giai quyet dung truong hop nay: nhap **Ten dia diem**, he
+thong tu them 1 dong moi vao `Locations_Detail` voi `LocationCode` duoc dat **bang chinh id noi
+bo** (luon duy nhat tuyet doi, khong bao gio trung - xem `locationService.js#createDetail`) roi
+tu dong xuat hien ngay trong dropdown "Dia diem" ben duoi de gan vao Cong ty. **Khong dung den
+du lieu `Locations_Detail` cu da co san** (giu nguyen, ke ca cac dong bi trung `LocationCode`
+tu truoc).
 
 ### 12b. Bao cao tong hop (`/summary-report.html`)
 
