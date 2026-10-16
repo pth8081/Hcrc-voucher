@@ -21,13 +21,41 @@ function parseExtraFilters(query) {
   };
 }
 
+// M9: bao cao tong hop/doi soat truoc day khong gioi han do rong khoang ngay - 1 khoang ngay qua
+// lon (nhieu nam) khien truy van cong don qua nhieu du lieu, rui ro cham/qua tai server tuong tu
+// loi da vua sua o danh sach voucher da su dung (H11). Dung chung 1 gioi han cho ca 2 bao cao.
+const MAX_SUMMARY_RANGE_DAYS = 366;
+
+/** Doc fromDate/toDate tu query, mac dinh hom nay neu thieu, kiem tra thu tu + gioi han do rong
+ * khoang ngay - dung chung cho ca Bao cao doi soat va Bao cao tong hop (cung 1 quy tac). */
+function parseBoundedDateRange(query, rangeLabel) {
+  const today = new Date().toISOString().slice(0, 10);
+  const fromDate = query.fromDate || today;
+  const toDate = query.toDate || today;
+  if (fromDate > toDate) {
+    const err = new Error('Ngay bat dau phai truoc hoac bang ngay ket thuc');
+    err.statusCode = 400;
+    err.publicMessage = err.message;
+    throw err;
+  }
+  const rangeDays = (new Date(toDate) - new Date(fromDate)) / (24 * 60 * 60 * 1000);
+  if (rangeDays > MAX_SUMMARY_RANGE_DAYS) {
+    const err = new Error('Khoang ngay qua rong');
+    err.statusCode = 400;
+    err.publicMessage = `Khoang ngay toi da ${MAX_SUMMARY_RANGE_DAYS} ngay cho ${rangeLabel}, vui long chon khoang ngay hep hon`;
+    throw err;
+  }
+  return { fromDate, toDate };
+}
+
 async function daily(req, res, next) {
   try {
-    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao doi soat');
     const locationsDetail = req.query.locationsDetail || null;
     const { codes, unassigned } = await resolveScope(req);
     const data = await reportService.dailyReconciliation({
-      date,
+      fromDate,
+      toDate,
       locationsDetail,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
@@ -38,26 +66,9 @@ async function daily(req, res, next) {
   }
 }
 
-// M9: bao cao tong hop truoc day khong gioi han do rong khoang ngay - 1 khoang ngay qua lon
-// (nhieu nam) khien truy van cong don (GROUP BY theo Cong ty -> Diem tieu) qua nhieu du lieu,
-// rui ro cham/qua tai server tuong tu loi da vua sua o danh sach voucher da su dung (H11).
-const MAX_SUMMARY_RANGE_DAYS = 366;
-
 async function summary(req, res, next) {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const fromDate = req.query.fromDate || today;
-    const toDate = req.query.toDate || today;
-    if (fromDate > toDate) {
-      return res.status(400).json({ success: false, message: 'Ngay bat dau phai truoc hoac bang ngay ket thuc' });
-    }
-    const rangeDays = (new Date(toDate) - new Date(fromDate)) / (24 * 60 * 60 * 1000);
-    if (rangeDays > MAX_SUMMARY_RANGE_DAYS) {
-      return res.status(400).json({
-        success: false,
-        message: `Khoang ngay toi da ${MAX_SUMMARY_RANGE_DAYS} ngay cho bao cao tong hop, vui long chon khoang ngay hep hon`,
-      });
-    }
+    const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
     const { codes, unassigned } = await resolveScope(req);
     const data = await summaryReportService.consolidatedReport({
       fromDate,
