@@ -73,7 +73,7 @@ function roleOf(user) {
  *  1. Doi mat khau (passwordPolicyService.js) - ap dung cho MOI tai khoan, ca quan tri lan
  *     nhan vien, trong LAN DANG NHAP DAU TIEN vao app nay (hoac sau khi bi dat lai mat khau).
  *  2. Xac thuc hai yeu to TOTP (twoFactorService.js) - CHI bat buoc voi tai khoan quan tri
- *     (status=1):
+ *     (status=1) VA chi khi dang nhap bang mat khau (skipTwoFactor=false):
  *      - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
  *      - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
  *  3. Khong con buoc nao khac -> cap phien day du.
@@ -82,8 +82,16 @@ function roleOf(user) {
  * ap dung cho MOI tai khoan, khong chi rieng admin. Kiem tra nay chay SAU KHI da xac minh
  * danh tinh dung (khong lo trang thai tai khoan cho nguoi chua biet mat khau/van tay), va
  * KHONG tinh vao bo dem loginGuard vi day khong phai loi go sai.
+ *
+ * skipTwoFactor: theo yeu cau nguoi dung, dang nhap bang van tay/Face ID BO QUA buoc nhap ma
+ * TOTP (webauthnService.js truyen true) - mat khau van bat buoc 2FA nhu cu. An toan vi dang ky
+ * passkey tren 1 thiet bi da bat buoc di qua DU ca doi mat khau LAN thiet lap 2FA it nhat 1 lan
+ * truoc do (xem webauthnService.js#getRegistrationOptions - can phien day du moi dang ky duoc),
+ * nen 1 admin co passkey chac chan da tung xac thuc 2 yeu to; vân tay/Face ID tu no da la 1 yeu
+ * to manh (gan voi thiet bi + sinh trac hoc), duoc nhieu he thong coi la du thay the TOTP lap lai
+ * moi lan dang nhap.
  */
-async function buildLoginOutcome(user) {
+async function buildLoginOutcome(user, { skipTwoFactor = false } = {}) {
   await userScheduleService.assertAccountActive(user.UserID);
 
   const mustChangePassword = await passwordPolicyService.mustChangePassword(user.UserID);
@@ -91,7 +99,7 @@ async function buildLoginOutcome(user) {
     return { passwordChange: 'required', pendingToken: issuePendingToken(user, 'password_change') };
   }
 
-  if (Number(user.status) === 1) {
+  if (Number(user.status) === 1 && !skipTwoFactor) {
     const status = await twoFactorService.getStatus(user.UserID);
     if (!status.enabled) {
       return { twoFactor: 'setup_required', pendingToken: issuePendingToken(user, '2fa_setup') };

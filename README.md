@@ -1261,8 +1261,13 @@ API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
 
 Ap dung cho **MOI tai khoan** — ca quan tri (`status=1`) lan nhan vien thu hoi (`status=0`) —
 tach biet hoan toan voi xac thuc hai yeu to (muc 10). Thu tu cac buoc bat buoc sau khi xac
-minh dung mat khau (hoac van tay/Face ID): **doi mat khau (neu can) → 2FA (chi admin) → phien
-day du**.
+minh dung mat khau: **doi mat khau (neu can) → 2FA (chi admin) → phien day du**.
+
+> **Dang nhap bang van tay/Face ID bo qua buoc 2FA** (theo yeu cau nguoi dung) -
+> `authService.js#buildLoginOutcome(user, { skipTwoFactor: true })`, chi ap dung cho duong
+> WebAuthn, dang nhap bang mat khau van bat buoc 2FA nhu cu. An toan vi dang ky passkey tren 1
+> thiet bi da bat buoc co phien day du (da tung di qua ca doi mat khau lan 2FA setup) truoc do -
+> xem `webauthnService.js#getRegistrationOptions`.
 
 - Tai khoan **chua tung doi mat khau qua app nay** (chua co dong trong `UserPasswordPolicy`,
   ap dung cho ca tai khoan cu co san trong `Users` lan tai khoan moi tao bang
