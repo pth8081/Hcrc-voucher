@@ -214,9 +214,10 @@ async function verifyAuthentication({ flowId, response }) {
   await updateCredentialAfterUse(stored.Id, verification.authenticationInfo.newCounter);
   loginGuard.recordResult(user.Username, true, role);
 
-  // Van tay/Face ID xac minh danh tinh, nhung tai khoan quan tri van phai qua buoc xac thuc
-  // hai yeu to (TOTP) rieng truoc khi duoc cap phien day du - xem authService.buildLoginOutcome.
-  return authService.buildLoginOutcome(user);
+  // Theo yeu cau nguoi dung: dang nhap bang van tay/Face ID BO QUA buoc nhap ma TOTP (2FA) -
+  // dang nhap bang mat khau van bat buoc nhu cu. Xem ghi chu chi tiet ve ly do an toan trong
+  // authService.js#buildLoginOutcome (tham so skipTwoFactor).
+  return authService.buildLoginOutcome(user, { skipTwoFactor: true });
 }
 
 // =====================================================================
