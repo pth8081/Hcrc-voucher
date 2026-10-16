@@ -10,5 +10,6 @@ router.get('/details', locationController.details);
 // Tao dia diem moi la thao tac ghi vao bang dung chung voi he thong cu - gioi han rieng cho
 // admin (khac 2 route GET o tren, van mo cho moi tai khoan da dang nhap nhu truoc).
 router.post('/details', requireAdmin, locationController.createDetail);
+router.put('/details/:id', requireAdmin, locationController.updateDetail);
 
 module.exports = router;

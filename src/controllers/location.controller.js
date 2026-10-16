@@ -38,4 +38,24 @@ async function createDetail(req, res, next) {
   }
 }
 
-module.exports = { groups, details, createDetail };
+async function updateDetail(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const locationName = (req.body.locationName || '').trim();
+    if (!locationName) {
+      return res.status(400).json({ success: false, message: 'Thieu ten dia diem (locationName)' });
+    }
+    await locationService.updateDetailName(id, locationName);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_LOCATION_DETAIL',
+      targetUsername: locationName,
+      detail: { before: null, after: { id, locationName } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { groups, details, createDetail, updateDetail };

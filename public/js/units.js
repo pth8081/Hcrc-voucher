@@ -48,6 +48,80 @@ async function loadLocations() {
   locationSelect.innerHTML = locationsCache
     .map((d) => `<option value="${d.id}">${escapeHtml(d.LocationName)} (${escapeHtml(d.LocationCode)})</option>`)
     .join('');
+  renderLocationsList();
+}
+
+const locationsBody = document.getElementById('locationsBody');
+let editingLocationId = null;
+
+/** Danh sach "Dia diem" voi nut Sua tai cho (doi lai LocationName, vd go sai chinh ta luc tao
+ * qua form "Them dia diem moi" ben tren) - khong co nut Sua nao o day truoc do. */
+function renderLocationsList() {
+  if (!locationsBody) return;
+  if (!locationsCache.length) {
+    locationsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chua co dia diem nao</td></tr>';
+    return;
+  }
+  locationsBody.innerHTML = locationsCache
+    .map((d) => {
+      if (editingLocationId === d.id) {
+        return `
+          <tr>
+            <td data-label="Ten dia diem"><input type="text" class="edit-location-name" value="${escapeHtml(d.LocationName)}" /></td>
+            <td data-label="Trang thai">${d.Status ? 'Hoat dong' : 'Ngung'}</td>
+            <td data-label="Hanh dong" class="actions-cell">
+              <button type="button" class="btn-primary save-location-btn" data-id="${d.id}">Luu</button>
+              <button type="button" class="btn-secondary cancel-location-btn">Huy</button>
+            </td>
+          </tr>`;
+      }
+      return `
+        <tr>
+          <td data-label="Ten dia diem">${escapeHtml(d.LocationName)}</td>
+          <td data-label="Trang thai">${d.Status ? 'Hoat dong' : 'Ngung'}</td>
+          <td data-label="Hanh dong" class="actions-cell">
+            <button type="button" class="btn-secondary edit-location-btn" data-id="${d.id}">Sua</button>
+          </td>
+        </tr>`;
+    })
+    .join('');
+
+  locationsBody.querySelectorAll('.edit-location-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingLocationId = Number(btn.dataset.id);
+      renderLocationsList();
+    });
+  });
+  locationsBody.querySelectorAll('.cancel-location-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingLocationId = null;
+      renderLocationsList();
+    });
+  });
+  locationsBody.querySelectorAll('.save-location-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const input = locationsBody.querySelector('.edit-location-name');
+      const locationName = input.value.trim();
+      if (!locationName) {
+        showToast('Ten dia diem khong duoc de trong');
+        return;
+      }
+      btn.disabled = true;
+      try {
+        await apiFetch(`/locations/details/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ locationName }),
+        });
+        showToast('Da cap nhat dia diem');
+        editingLocationId = null;
+        await loadLocations();
+      } catch (err) {
+        showToast(err.message);
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 locationForm.addEventListener('submit', async (e) => {

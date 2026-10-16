@@ -38,6 +38,24 @@ async function listDetails() {
 // tac dong gi den du lieu cu.
 const NEW_LOCATION_TYPE = '1';
 
+/** Theo yeu cau nguoi dung: khong duoc tao/doi 2 dia diem CUNG TEN - kiem tra voi TOAN BO du
+ * lieu hien co (ke ca du lieu cu). excludeId dung khi sua 1 dia diem co san (bo qua chinh no). */
+async function assertLocationNameNotDuplicate(pool, locationName, excludeId) {
+  const request = pool.request().input('locationName', sql.NChar(250), locationName);
+  let query = 'SELECT 1 FROM dbo.Locations_Detail WHERE LTRIM(RTRIM(LocationName)) = LTRIM(RTRIM(@locationName))';
+  if (excludeId) {
+    request.input('excludeId', sql.Int, excludeId);
+    query += ' AND id <> @excludeId';
+  }
+  const result = await request.query(query);
+  if (result.recordset.length) {
+    const err = new Error('LocationName da ton tai');
+    err.statusCode = 409;
+    err.publicMessage = `Dia diem "${locationName}" da ton tai, vui long dat ten khac hoac chon dia diem co san trong danh sach.`;
+    throw err;
+  }
+}
+
 /**
  * Tao moi 1 dia diem (1 dong Locations_Detail) - dung khi diem tieu/cua hang CHUA TUNG ton tai
  * trong du lieu cu, khong co san de chon trong dropdown "Dia diem" (listDetails() o tren chi
@@ -53,19 +71,7 @@ const NEW_LOCATION_TYPE = '1';
 async function createDetail(locationName) {
   const pool = await getPool();
 
-  // Theo yeu cau nguoi dung: khong duoc tao 2 dia diem CUNG TEN - kiem tra truoc voi TOAN BO
-  // du lieu hien co (ke ca du lieu cu), chi chan DIA DIEM MOI trung ten, khong dong gi den cac
-  // dong cu da co san du chung co the da trung ten/ma tu truoc.
-  const dupCheck = await pool
-    .request()
-    .input('locationName', sql.NChar(250), locationName)
-    .query('SELECT 1 FROM dbo.Locations_Detail WHERE LTRIM(RTRIM(LocationName)) = LTRIM(RTRIM(@locationName))');
-  if (dupCheck.recordset.length) {
-    const err = new Error('LocationName da ton tai');
-    err.statusCode = 409;
-    err.publicMessage = `Dia diem "${locationName}" da ton tai, vui long dat ten khac hoac chon dia diem co san trong danh sach.`;
-    throw err;
-  }
+  await assertLocationNameNotDuplicate(pool, locationName);
 
   const insertResult = await pool
     .request()
@@ -88,6 +94,29 @@ async function createDetail(locationName) {
   return { id: newId, locationCode: newCode };
 }
 
+/** Sua ten 1 dia diem co san (sua loi go tay, vd dia diem vua tao sai chinh ta) - ap dung cho
+ * MOI dong Locations_Detail (ca cu lan moi tao qua app), chi doi cot LocationName, khong dong
+ * gi den LocationCode/LocationType. */
+async function updateDetailName(id, locationName) {
+  const pool = await getPool();
+
+  const existing = await pool.request().input('id', sql.Int, id).query('SELECT 1 FROM dbo.Locations_Detail WHERE id = @id');
+  if (!existing.recordset.length) {
+    const err = new Error('Locations_Detail id khong ton tai');
+    err.statusCode = 404;
+    err.publicMessage = 'Khong tim thay dia diem nay, co the da bi xoa';
+    throw err;
+  }
+
+  await assertLocationNameNotDuplicate(pool, locationName, id);
+
+  await pool
+    .request()
+    .input('id', sql.Int, id)
+    .input('locationName', sql.NChar(250), locationName)
+    .query('UPDATE dbo.Locations_Detail SET LocationName = @locationName WHERE id = @id');
+}
+
 /**
  * Tra ten dia diem theo ma (LocationCode) - dung de dien VOUCHER_SYNC.Location_DetailName
  * luc thu hoi (xem voucherService.js). Locations_Detail.LocationCode co du lieu ro rang de
@@ -108,4 +137,4 @@ async function getDetailNameByCode(code) {
   return result.recordset[0]?.LocationName || null;
 }
 
-module.exports = { listGroups, listDetails, createDetail, getDetailNameByCode };
+module.exports = { listGroups, listDetails, createDetail, updateDetailName, getDetailNameByCode };

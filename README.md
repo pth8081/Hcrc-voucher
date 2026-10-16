@@ -880,6 +880,7 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | GET | `/api/locations/groups` | Danh sach nhom dia diem |
 | GET | `/api/locations/details` | Danh sach dia diem chi tiet |
 | POST | `/api/locations/details` | Tao dia diem moi (chua tung co trong du lieu cu) - `{ locationName }` (can quyen admin) |
+| PUT | `/api/locations/details/:id` | Doi ten 1 dia diem co san (ca cu lan moi tao) - `{ locationName }` (can quyen admin) |
 | GET | `/api/redemption-units` | Danh sach diem tieu (kem ten cong ty) |
 | POST | `/api/redemption-units` | Them diem tieu, bat buoc gan `companyId` (can quyen admin) |
 | PUT | `/api/redemption-units/:id` | Cap nhat diem tieu (can quyen admin) |
@@ -1203,6 +1204,11 @@ du lieu `Locations_Detail` cu da co san** (giu nguyen, ke ca cac dong bi trung `
 tu truoc). `LocationCode` tu sinh chi la ma noi bo, KHONG hien thi/goi y o bat ky o nhap nao
 khac trong giao dien (vd o "Ma diem" cua form "Them diem tieu" khong con tu dien san theo ma
 nay nua — admin tu go ma theo quy uoc rieng).
+
+**Sua ten dia diem:** the "Danh sach dia diem" (duoi form "Them dia diem moi") liet ke toan bo
+`Locations_Detail` (ca du lieu cu lan moi tao qua app) kem nut "Sua" tai cho de doi lai
+`LocationName` (vd go sai chinh ta luc tao) - goi `PUT /api/locations/details/:id`, cung ap dung
+chan trung ten nhu luc tao. Chi doi ten, khong dong gi den `LocationCode`/`LocationType`.
 
 **Chan trung ten:** ca 2 noi — "Ten dia diem" (`Locations_Detail.LocationName`, khi tao qua form
 "Them dia diem moi") va "Ten diem tieu" (`RedemptionUnits.PartnerName`, khi tao/sua qua form
