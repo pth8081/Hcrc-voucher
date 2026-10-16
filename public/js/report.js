@@ -7,13 +7,22 @@ const detailBody = document.getElementById('detailBody');
 
 reportDate.value = new Date().toISOString().slice(0, 10);
 document.getElementById('loadBtn').addEventListener('click', loadReport);
+initReportFilters();
 loadReport();
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  params.set('date', reportDate.value);
+  const filters = getReportFilterParams();
+  Object.entries(filters).forEach(([key, value]) => params.set(key, value));
+  return params.toString();
+}
 
 async function loadReport() {
   summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Dang tai...</td></tr>';
   detailBody.innerHTML = '<tr><td colspan="6" class="text-muted">Dang tai...</td></tr>';
   try {
-    const data = await apiFetch(`/reports/daily?date=${encodeURIComponent(reportDate.value)}`);
+    const data = await apiFetch(`/reports/daily?${buildQuery()}`);
     renderSummary(data.summary, data.unassignedLocation);
     renderDetails(data.details, data.unassignedLocation);
   } catch (err) {

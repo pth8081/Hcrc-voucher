@@ -13,8 +13,10 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
 /**
  * visibleLocationCodes (xem reportAccessService.js): null = duoc xem toan bo (khong loc);
  * [] = khong duoc xem dia diem nao; [...] = chi xem dung cac dia diem do.
+ * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
+ * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
+async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId }) {
   const pool = await getPool();
   const request = pool.request().input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
 
@@ -29,6 +31,20 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
       });
       locationFilter = ` AND LTRIM(RTRIM(vs.Locations_Detail)) IN (${placeholders.join(', ')})`;
     }
+  }
+
+  let extraFilter = '';
+  if (companyId) {
+    request.input('companyId', sql.Int, companyId);
+    extraFilter += ' AND rc.Id = @companyId';
+  }
+  if (redemptionUnitId) {
+    request.input('redemptionUnitId', sql.Int, redemptionUnitId);
+    extraFilter += ' AND ru.Id = @redemptionUnitId';
+  }
+  if (userId) {
+    request.input('userId', sql.Int, userId);
+    extraFilter += ' AND vs.userid = @userId';
   }
 
   const result = await request.query(`
@@ -53,7 +69,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes }) {
       ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
-      WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}
+      WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}${extraFilter}
       ORDER BY rc.CompanyName, ru.PartnerName, vs.Created_Date
     `);
 

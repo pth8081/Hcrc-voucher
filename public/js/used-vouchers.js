@@ -8,12 +8,15 @@ const exportBtn = document.getElementById('exportBtn');
 
 document.getElementById('loadBtn').addEventListener('click', loadReport);
 exportBtn.addEventListener('click', exportExcel);
+initReportFilters();
 loadReport();
 
 function buildQuery() {
   const params = new URLSearchParams();
   if (fromDateInput.value) params.set('fromDate', fromDateInput.value);
   if (toDateInput.value) params.set('toDate', toDateInput.value);
+  const filters = getReportFilterParams();
+  Object.entries(filters).forEach(([key, value]) => params.set(key, value));
   return params.toString();
 }
 

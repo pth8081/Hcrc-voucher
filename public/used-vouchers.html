@@ -38,6 +38,18 @@
           <label>Den ngay (tuy chon)</label>
           <input id="toDate" type="date" />
         </div>
+        <div class="field">
+          <label>Cong ty thu</label>
+          <select id="filterCompany"><option value="">Dang tai...</option></select>
+        </div>
+        <div class="field">
+          <label>Diem thu hoi</label>
+          <select id="filterUnit"><option value="">Dang tai...</option></select>
+        </div>
+        <div class="field">
+          <label>Tai khoan thu hoi</label>
+          <select id="filterUser"><option value="">Dang tai...</option></select>
+        </div>
         <button id="loadBtn" class="btn-primary">Xem danh sach</button>
         <button id="exportBtn" class="btn-secondary">Xuat Excel</button>
       </div>
@@ -63,6 +75,7 @@
   <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/layout.js"></script>
+  <script src="/js/reportFilters.js"></script>
   <script src="/js/used-vouchers.js"></script>
 </body>
 </html>

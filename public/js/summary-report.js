@@ -11,14 +11,22 @@ fromDateInput.value = firstOfMonth.toISOString().slice(0, 10);
 toDateInput.value = today.toISOString().slice(0, 10);
 
 document.getElementById('loadBtn').addEventListener('click', loadReport);
+initReportFilters();
 loadReport();
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  params.set('fromDate', fromDateInput.value);
+  params.set('toDate', toDateInput.value);
+  const filters = getReportFilterParams();
+  Object.entries(filters).forEach(([key, value]) => params.set(key, value));
+  return params.toString();
+}
 
 async function loadReport() {
   reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Dang tai...</td></tr>';
   try {
-    const data = await apiFetch(
-      `/reports/summary?fromDate=${encodeURIComponent(fromDateInput.value)}&toDate=${encodeURIComponent(toDateInput.value)}`
-    );
+    const data = await apiFetch(`/reports/summary?${buildQuery()}`);
     render(data);
   } catch (err) {
     showToast(err.message);
