@@ -80,6 +80,22 @@
     </div>
   </div>
 
+  <div id="confirmRedeemOverlay" class="confirm-overlay hidden">
+    <div class="confirm-box">
+      <div class="confirm-icon">?</div>
+      <h3>Ban co muon thu hoi voucher nay khong?</h3>
+      <p class="confirm-sub">
+        Ma voucher <strong id="confirmRedeemCode"></strong> — menh gia
+        <strong id="confirmRedeemAmount"></strong> — he thong
+        <strong id="confirmRedeemSystem"></strong>. Sau khi xac nhan se KHONG the hoan tac.
+      </p>
+      <div class="confirm-actions">
+        <button id="confirmRedeemYesBtn" class="btn-success">Co, thu hoi</button>
+        <button id="confirmRedeemNoBtn" class="btn-secondary">Khong</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/pwa.js"></script>
