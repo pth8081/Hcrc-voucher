@@ -19,8 +19,8 @@ async function initReportFilters(onChange) {
     const units = await apiFetch(`/reports/filters/redemption-units${query}`);
     const current = unitSelect.value;
     unitSelect.innerHTML =
-      '<option value="">Tat ca diem thu hoi</option>' +
-      units.map((u) => `<option value="${u.Id}">${escapeHtmlFilter(u.PartnerName || '(chua co ten)')}</option>`).join('');
+      '<option value="">Tất cả điểm thu hồi</option>' +
+      units.map((u) => `<option value="${u.Id}">${escapeHtmlFilter(u.PartnerName || '(chưa có tên)')}</option>`).join('');
     if (current && units.some((u) => String(u.Id) === current)) unitSelect.value = current;
   }
 
@@ -30,14 +30,14 @@ async function initReportFilters(onChange) {
       apiFetch('/reports/filters/redeemers'),
     ]);
     companySelect.innerHTML =
-      '<option value="">Tat ca cong ty</option>' +
+      '<option value="">Tất cả công ty</option>' +
       companies.map((c) => `<option value="${c.Id}">${escapeHtmlFilter(c.CompanyName)}</option>`).join('');
     userSelect.innerHTML =
-      '<option value="">Tat ca tai khoan</option>' +
-      redeemers.map((r) => `<option value="${r.userId}">${escapeHtmlFilter(r.userName || '(khong ro)')}</option>`).join('');
+      '<option value="">Tất cả tài khoản</option>' +
+      redeemers.map((r) => `<option value="${r.userId}">${escapeHtmlFilter(r.userName || '(không rõ)')}</option>`).join('');
     await loadUnits(null);
   } catch (err) {
-    showToast('Khong tai duoc danh sach loc: ' + err.message);
+    showToast('Không tải được danh sách lọc: ' + err.message);
   }
 
   // He thong voucher: tai khoan bi gioi han CHI 1 he thong (vd tai khoan doi soat rieng cho
@@ -50,12 +50,12 @@ async function initReportFilters(onChange) {
       if (systems.length > 1) {
         systemField.classList.remove('hidden');
         systemSelect.innerHTML =
-          '<option value="">Tat ca he thong</option>' +
+          '<option value="">Tất cả hệ thống</option>' +
           systems.map((s) => `<option value="${s.id}">${escapeHtmlFilter(s.name)}</option>`).join('');
         systemSelect.addEventListener('change', () => onChange && onChange());
       }
     } catch (err) {
-      showToast('Khong tai duoc danh sach he thong voucher: ' + err.message);
+      showToast('Không tải được danh sách hệ thống voucher: ' + err.message);
     }
   }
 

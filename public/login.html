@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dang nhap - HCRC Voucher Redemption</title>
+<title>Đăng nhập - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -28,32 +28,32 @@
           </svg>
         </span>
         <span class="brand-word">HCRC</span>
-        <span class="brand-tagline">He thong thu hoi voucher doi tac</span>
+        <span class="brand-tagline">Hệ thống thu hồi voucher đối tác</span>
       </div>
 
-      <p class="login-title">Dang nhap de tiep tuc</p>
+      <p class="login-title">Đăng nhập để tiếp tục</p>
 
       <form id="loginForm">
-        <label>Ten dang nhap</label>
+        <label>Tên đăng nhập</label>
         <input id="username" required autocomplete="username" placeholder="vd: nhanvien1" />
-        <label>Mat khau</label>
+        <label>Mật khẩu</label>
         <input id="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
-        <label>Ma xac thuc</label>
+        <label>Mã xác thực</label>
         <div class="captcha-row">
-          <img id="captchaImg" class="captcha-img" alt="Ma xac thuc" />
-          <button type="button" id="captchaRefresh" class="btn-secondary captcha-refresh" aria-label="Doi ma khac">⟳</button>
+          <img id="captchaImg" class="captcha-img" alt="Mã xác thực" />
+          <button type="button" id="captchaRefresh" class="btn-secondary captcha-refresh" aria-label="Đổi mã khác">⟳</button>
         </div>
-        <input id="captchaText" class="captcha-input" required maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Nhap 4 so trong hinh" />
-        <button class="btn-primary btn-block mt-6" type="submit">Dang nhap</button>
+        <input id="captchaText" class="captcha-input" required maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Nhập 4 số trong hình" />
+        <button class="btn-primary btn-block mt-6" type="submit">Đăng nhập</button>
       </form>
 
       <button id="webauthnLoginBtn" class="btn-secondary btn-block mt-10 hidden" type="button">
-        Dang nhap bang van tay / Face ID
+        Đăng nhập bằng vân tay / Face ID
       </button>
 
       <p class="login-footer">
-        © 2026 Cong ty TNHH Xuat - Nhap khau &amp; Ban le hang tieu dung Ha Noi (HCRC)<br />
-        Ung dung noi bo danh cho don vi doi tac thu hoi voucher<br />
+        © 2026 Công ty TNHH Xuất - Nhập khẩu &amp; Bán lẻ hàng tiêu dùng Hà Nội (HCRC)<br />
+        Ứng dụng nội bộ dành cho đơn vị đối tác thu hồi voucher<br />
         <span id="versionBadge" class="version-badge"></span>
       </p>
     </div>

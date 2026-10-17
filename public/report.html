@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bao cao doi soat - HCRC Voucher Redemption</title>
+<title>Báo cáo đối soát - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -22,52 +22,52 @@
 
   <div class="container">
     <div class="card">
-      <h2>Doi soat voucher da thu hoi</h2>
+      <h2>Đối soát voucher đã thu hồi</h2>
       <div class="summary-filters">
         <div class="field">
-          <label>Tu ngay</label>
+          <label>Từ ngày</label>
           <input id="fromDate" type="date" />
         </div>
         <div class="field">
-          <label>Den ngay</label>
+          <label>Đến ngày</label>
           <input id="toDate" type="date" />
         </div>
         <div class="field">
-          <label>Cong ty thu</label>
-          <select id="filterCompany"><option value="">Dang tai...</option></select>
+          <label>Công ty thu</label>
+          <select id="filterCompany"><option value="">Đang tải...</option></select>
         </div>
         <div class="field">
-          <label>Diem thu hoi</label>
-          <select id="filterUnit"><option value="">Dang tai...</option></select>
+          <label>Điểm thu hồi</label>
+          <select id="filterUnit"><option value="">Đang tải...</option></select>
         </div>
         <div class="field">
-          <label>Tai khoan thu hoi</label>
-          <select id="filterUser"><option value="">Dang tai...</option></select>
+          <label>Tài khoản thu hồi</label>
+          <select id="filterUser"><option value="">Đang tải...</option></select>
         </div>
         <div class="field hidden" id="filterSystemField">
-          <label>He thong voucher</label>
-          <select id="filterSystem"><option value="">Dang tai...</option></select>
+          <label>Hệ thống voucher</label>
+          <select id="filterSystem"><option value="">Đang tải...</option></select>
         </div>
-        <button id="loadBtn" class="btn-primary">Xem bao cao</button>
+        <button id="loadBtn" class="btn-primary">Xem báo cáo</button>
       </div>
     </div>
 
     <div class="card">
-      <h3>Tong hop theo dia diem</h3>
+      <h3>Tổng hợp theo địa điểm</h3>
       <div class="table-wrap table-responsive">
       <table>
-        <thead><tr><th>Dia diem</th><th>So luong</th><th>Tong tien</th></tr></thead>
-        <tbody id="summaryBody"><tr><td colspan="3" class="text-muted">Chua co du lieu</td></tr></tbody>
+        <thead><tr><th>Địa điểm</th><th>Số lượng</th><th>Tổng tiền</th></tr></thead>
+        <tbody id="summaryBody"><tr><td colspan="3" class="text-muted">Chưa có dữ liệu</td></tr></tbody>
       </table>
       </div>
     </div>
 
     <div class="card">
-      <h3>Chi tiet giao dich</h3>
+      <h3>Chi tiết giao dịch</h3>
       <div class="table-wrap table-responsive">
       <table>
-        <thead><tr><th>Ngay gio</th><th>TRANS_NUM</th><th>Ma voucher</th><th>Nguoi thu hoi</th><th>Dia diem</th><th>He thong</th><th>Menh gia</th></tr></thead>
-        <tbody id="detailBody"><tr><td colspan="7" class="text-muted">Chua co du lieu</td></tr></tbody>
+        <thead><tr><th>Ngày giờ</th><th>TRANS_NUM</th><th>Mã voucher</th><th>Người thu hồi</th><th>Địa điểm</th><th>Hệ thống</th><th>Mệnh giá</th></tr></thead>
+        <tbody id="detailBody"><tr><td colspan="7" class="text-muted">Chưa có dữ liệu</td></tr></tbody>
       </table>
       </div>
     </div>

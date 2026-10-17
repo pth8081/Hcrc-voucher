@@ -32,12 +32,12 @@ async function apiFetch(path, options = {}) {
   if (res.status === 401) {
     clearSession();
     window.location.href = '/login.html';
-    throw new Error('Phien dang nhap het han');
+    throw new Error('Phiên đăng nhập hết hạn');
   }
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.success === false) {
-    throw new Error(body.message || `Loi API (${res.status})`);
+    throw new Error(body.message || `Lỗi API (${res.status})`);
   }
   return body.data;
 }
@@ -79,7 +79,7 @@ async function withSubmitLock(form, fn) {
 
 function fmtMoney(v) {
   if (v === null || v === undefined) return '-';
-  return Number(v).toLocaleString('vi-VN') + ' d';
+  return Number(v).toLocaleString('vi-VN') + ' đ';
 }
 
 // Hien thi version dang CHAY THUC SU o server (goi /health, doc truc tiep tu package.json luc
@@ -91,7 +91,7 @@ async function renderVersionBadge() {
   try {
     const res = await fetch('/health');
     const body = await res.json();
-    els.forEach((el) => { el.textContent = body.version ? `Phien ban ${body.version}` : ''; });
+    els.forEach((el) => { el.textContent = body.version ? `Phiên bản ${body.version}` : ''; });
   } catch {
     els.forEach((el) => { el.textContent = ''; });
   }

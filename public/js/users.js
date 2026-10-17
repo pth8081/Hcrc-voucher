@@ -16,9 +16,9 @@ const usersCard = document.getElementById('usersCard');
 const usersBody = document.getElementById('usersBody');
 
 const STATE_CHIP = {
-  active: '<span class="status-badge status-unused">DANG HOAT DONG</span>',
-  not_yet_active: '<span class="status-badge status-other">CHUA KICH HOAT</span>',
-  expired: '<span class="status-badge status-used">DA HET HAN</span>',
+  active: '<span class="status-badge status-unused">ĐANG HOẠT ĐỘNG</span>',
+  not_yet_active: '<span class="status-badge status-other">CHƯA KÍCH HOẠT</span>',
+  expired: '<span class="status-badge status-used">ĐÃ HẾT HẠN</span>',
 };
 
 /** ISO string (hoac null) -> gia tri cho input[type=datetime-local] (gio dia phuong). */
@@ -112,14 +112,14 @@ function renderReportFilterOptions() {
   const companySelect = document.getElementById('reportFilterCompany');
   const currentCompany = companySelect.value;
   companySelect.innerHTML =
-    '<option value="">Tat ca cong ty</option>' +
+    '<option value="">Tất cả công ty</option>' +
     companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
   companySelect.value = currentCompany;
 
   const systemSelect = document.getElementById('reportFilterSystem');
   const currentSystem = systemSelect.value;
   systemSelect.innerHTML =
-    '<option value="">Tat ca he thong</option>' +
+    '<option value="">Tất cả hệ thống</option>' +
     voucherConnectionsCache.map((c) => `<option value="${c.id}">${escapeHtmlLayout(c.name)}</option>`).join('');
   systemSelect.value = currentSystem;
 }
@@ -149,7 +149,7 @@ function renderSystemsReport() {
     });
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co tai khoan nao khop voi bo loc</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="text-muted">Không có tài khoản nào khớp với bộ lọc</td></tr>';
     return;
   }
 
@@ -158,15 +158,15 @@ function renderSystemsReport() {
       const isAdmin = Number(u.role) === 1;
       const systemsBadge = (u.voucherSystems || []).length
         ? u.voucherSystems.map((s) => `<span class="status-badge status-other">${escapeHtmlLayout(s.connectionName)}</span>`).join(' ')
-        : '<span class="status-badge status-unused">Khong gioi han (toan bo he thong)</span>';
+        : '<span class="status-badge status-unused">Không giới hạn (toàn bộ hệ thống)</span>';
       return `
       <tr>
-        <td data-label="Tai khoan">${escapeHtmlLayout(u.username)}</td>
-        <td data-label="Ho ten">${escapeHtmlLayout(u.fullName || '')}</td>
-        <td data-label="Vai tro">${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
-        <td data-label="Cong ty">${unit && unit.CompanyName ? escapeHtmlLayout(unit.CompanyName) : '<span class="text-muted">Chua gan</span>'}</td>
-        <td data-label="Don vi thu hoi">${unit ? escapeHtmlLayout(unit.PartnerName) : '<span class="text-muted">Chua gan</span>'}</td>
-        <td data-label="He thong voucher duoc dung">${systemsBadge}</td>
+        <td data-label="Tài khoản">${escapeHtmlLayout(u.username)}</td>
+        <td data-label="Họ tên">${escapeHtmlLayout(u.fullName || '')}</td>
+        <td data-label="Vai trò">${isAdmin ? 'Quản trị' : 'Nhân viên'}</td>
+        <td data-label="Công ty">${unit && unit.CompanyName ? escapeHtmlLayout(unit.CompanyName) : '<span class="text-muted">Chưa gán</span>'}</td>
+        <td data-label="Đơn vị thu hồi">${unit ? escapeHtmlLayout(unit.PartnerName) : '<span class="text-muted">Chưa gán</span>'}</td>
+        <td data-label="Hệ thống voucher được dùng">${systemsBadge}</td>
       </tr>`;
     })
     .join('');
@@ -175,7 +175,7 @@ function renderSystemsReport() {
 /** Nhan dien nhanh: "CompanyName - PartnerName (LocationCode)" - du de phan biet cac diem tieu
  * trung ten o cong ty khac nhau, ma van gon trong 1 dropdown. */
 function unitLabel(u) {
-  const company = u.CompanyName ? escapeHtmlLayout(u.CompanyName) : 'Chua gan cong ty';
+  const company = u.CompanyName ? escapeHtmlLayout(u.CompanyName) : 'Chưa gán công ty';
   return `${company} - ${escapeHtmlLayout(u.PartnerName)} (${escapeHtmlLayout(u.LocationCode)})`;
 }
 
@@ -189,7 +189,7 @@ function redemptionUnitOptions(filterCompanyId) {
 function renderNewCompanyOptions() {
   const select = document.getElementById('newCompanyId');
   select.innerHTML =
-    '<option value="">-- Chua gan cong ty --</option>' +
+    '<option value="">-- Chưa gán công ty --</option>' +
     companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
 }
 
@@ -197,13 +197,13 @@ function refreshNewRedemptionUnitOptions() {
   const companyId = document.getElementById('newCompanyId').value;
   const select = document.getElementById('newRedemptionUnitId');
   if (!companyId) {
-    select.innerHTML = '<option value="">-- Chon cong ty truoc --</option>';
+    select.innerHTML = '<option value="">-- Chọn công ty trước --</option>';
     return;
   }
   const opts = redemptionUnitOptions(companyId);
   select.innerHTML = opts
-    ? `<option value="">-- Khong gan diem tieu --</option>${opts}`
-    : '<option value="">-- Cong ty nay chua co diem tieu nao --</option>';
+    ? `<option value="">-- Không gán điểm tiêu --</option>${opts}`
+    : '<option value="">-- Công ty này chưa có điểm tiêu nào --</option>';
 }
 document.getElementById('newCompanyId').addEventListener('change', refreshNewRedemptionUnitOptions);
 
@@ -223,31 +223,31 @@ function renderUsers(users) {
       const deleted = !!u.isDeleted;
       return `
       <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" class="${deleted ? 'row-deleted' : ''}">
-        <td data-label="Ten dang nhap">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">DA XOA</span>' : ''}</td>
-        <td data-label="Ho ten"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
-        <td data-label="Vai tro">${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
-        <td class="perm-cell" data-label="Thu hoi">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
-        <td class="perm-cell" data-label="Doi soat">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
-        <td class="perm-cell" data-label="Tong hop">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
-        <td class="perm-cell" data-label="Voucher da dung">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
-        <td class="perm-cell" data-label="HD nghiep vu">${permCheckbox('canViewBusinessGuide', perms.canViewBusinessGuide, isAdmin)}</td>
-        <td class="perm-cell" data-label="HD he thong">${permCheckbox('canViewSystemGuide', perms.canViewSystemGuide, isAdmin)}</td>
-        <td data-label="Kich hoat tu"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
-        <td data-label="Het han"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
-        <td class="state-cell" data-label="Trang thai">${STATE_CHIP[u.state] || ''}</td>
-        <td data-label="Don vi thu hoi">
+        <td data-label="Tên đăng nhập">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">ĐÃ XÓA</span>' : ''}</td>
+        <td data-label="Họ tên"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
+        <td data-label="Vai trò">${isAdmin ? 'Quản trị' : 'Nhân viên'}</td>
+        <td class="perm-cell" data-label="Thu hồi">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
+        <td class="perm-cell" data-label="Đối soát">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
+        <td class="perm-cell" data-label="Tổng hợp">${permCheckbox('canViewSummary', perms.canViewSummary, isAdmin)}</td>
+        <td class="perm-cell" data-label="Voucher đã dùng">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
+        <td class="perm-cell" data-label="HD nghiệp vụ">${permCheckbox('canViewBusinessGuide', perms.canViewBusinessGuide, isAdmin)}</td>
+        <td class="perm-cell" data-label="HD hệ thống">${permCheckbox('canViewSystemGuide', perms.canViewSystemGuide, isAdmin)}</td>
+        <td data-label="Kích hoạt từ"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
+        <td data-label="Hết hạn"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
+        <td class="state-cell" data-label="Trạng thái">${STATE_CHIP[u.state] || ''}</td>
+        <td data-label="Đơn vị thu hồi">
           <select class="redemption-unit">
-            <option value="">-- Chua gan diem tieu --</option>
+            <option value="">-- Chưa gán điểm tiêu --</option>
             ${redemptionUnitOptions()}
           </select>
         </td>
-        <td data-label="Nhom quyen xem bao cao">
+        <td data-label="Nhóm quyền xem báo cáo">
           <select class="report-access-group">
-            <option value="">Mac dinh (chi cong ty cua minh)</option>
+            <option value="">Mặc định (chỉ công ty của mình)</option>
             ${groupOptions}
           </select>
         </td>
-        <td data-label="He thong voucher duoc dung">
+        <td data-label="Hệ thống voucher được dùng">
           <div class="voucher-system-checkboxes">
             ${voucherConnectionsCache
               .map(
@@ -259,14 +259,14 @@ function renderUsers(users) {
                 ${escapeHtmlLayout(c.name)}
               </label>`
               )
-              .join('') || '<span class="text-muted">Chua co he thong nao</span>'}
+              .join('') || '<span class="text-muted">Chưa có hệ thống nào</span>'}
           </div>
         </td>
-        <td data-label="Mat khau moi"><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
-        <td data-label="Hanh dong">
+        <td data-label="Mật khẩu mới"><input type="password" class="edit-password" placeholder="Để trống = giữ nguyên" autocomplete="new-password" /></td>
+        <td data-label="Hành động">
           <div class="actions-cell">
-            <button class="btn-secondary edit-toggle-btn" type="button">Sua</button>
-            <button class="btn-secondary save-btn" type="button">Luu</button>
+            <button class="btn-secondary edit-toggle-btn" type="button">Sửa</button>
+            <button class="btn-secondary save-btn" type="button">Lưu</button>
             <button class="btn-secondary lock-btn" type="button"></button>
             <button class="btn-danger delete-btn" type="button"></button>
           </div>
@@ -288,12 +288,12 @@ function renderUsers(users) {
 
     const lockBtn = tr.querySelector('.lock-btn');
     const isLocked = user && user.state === 'expired';
-    lockBtn.textContent = isLocked ? 'Mo khoa' : 'Khoa';
+    lockBtn.textContent = isLocked ? 'Mở khóa' : 'Khóa';
     lockBtn.addEventListener('click', () => toggleLockFields(tr, !isLocked));
 
     const deleteBtn = tr.querySelector('.delete-btn');
     const deleted = user && user.isDeleted;
-    deleteBtn.textContent = deleted ? 'Khoi phuc' : 'Xoa';
+    deleteBtn.textContent = deleted ? 'Khôi phục' : 'Xóa';
     deleteBtn.classList.toggle('btn-danger', !deleted);
     deleteBtn.classList.toggle('btn-secondary', !!deleted);
     deleteBtn.addEventListener('click', () => deleteUser(tr, !deleted));
@@ -312,7 +312,7 @@ function renderUsers(users) {
  * khong doi hanh vi cu. */
 function toggleRowExpanded(tr) {
   const expanded = tr.classList.toggle('row-expanded');
-  tr.querySelector('.edit-toggle-btn').textContent = expanded ? 'Dong' : 'Sua';
+  tr.querySelector('.edit-toggle-btn').textContent = expanded ? 'Đóng' : 'Sửa';
 }
 
 /** Nut "Khoa"/"Mo khoa" chi DIEN SAN gia tri vao 2 o Kich hoat tu/Het han - PHAI bam "Luu" moi
@@ -324,15 +324,15 @@ function toggleLockFields(tr, lock) {
   activeFromInput.value = '';
   activeUntilInput.value = lock ? toLocalInputValue(new Date().toISOString()) : '';
   const lockBtn = tr.querySelector('.lock-btn');
-  lockBtn.textContent = lock ? 'Mo khoa' : 'Khoa';
-  showToast(lock ? 'Da dien "Het han" = bay gio - bam Luu de khoa that su' : 'Da xoa gioi han - bam Luu de mo khoa that su');
+  lockBtn.textContent = lock ? 'Mở khóa' : 'Khóa';
+  showToast(lock ? 'Đã điền "Hết hạn" = bây giờ - bấm Lưu để khóa thật sự' : 'Đã xóa giới hạn - bấm Lưu để mở khóa thật sự');
 }
 
 async function deleteUser(tr, isDeleted) {
   const username = tr.dataset.username;
   const confirmMsg = isDeleted
-    ? `Xoa tai khoan "${username}"? Tai khoan se khong dang nhap duoc nua va an khoi danh sach - co the khoi phuc lai sau.`
-    : `Khoi phuc tai khoan "${username}"?`;
+    ? `Xóa tài khoản "${username}"? Tài khoản sẽ không đăng nhập được nữa và ẩn khỏi danh sách - có thể khôi phục lại sau.`
+    : `Khôi phục tài khoản "${username}"?`;
   if (!confirm(confirmMsg)) return;
 
   const deleteBtn = tr.querySelector('.delete-btn');
@@ -342,7 +342,7 @@ async function deleteUser(tr, isDeleted) {
       method: 'PUT',
       body: JSON.stringify({ isDeleted, username }),
     });
-    showToast(isDeleted ? `Da xoa tai khoan "${username}"` : `Da khoi phuc tai khoan "${username}"`);
+    showToast(isDeleted ? `Đã xóa tài khoản "${username}"` : `Đã khôi phục tài khoản "${username}"`);
     load();
   } catch (err) {
     showToast(err.message);
@@ -363,7 +363,7 @@ async function saveUser(tr) {
   const passwordInput = tr.querySelector('.edit-password');
   const password = passwordInput.value || null;
   if (!fullName) {
-    showToast('Ho ten khong duoc de trong');
+    showToast('Họ tên không được để trống');
     return;
   }
   const permissions = {};
@@ -378,42 +378,42 @@ async function saveUser(tr) {
 
   const jobs = [
     {
-      label: 'Lich hieu luc',
+      label: 'Lịch hiệu lực',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/schedule`, {
         method: 'PUT',
         body: JSON.stringify({ activeFrom, activeUntil, username }),
       }),
     },
     {
-      label: 'Nhom quyen bao cao',
+      label: 'Nhóm quyền báo cáo',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/report-access`, {
         method: 'PUT',
         body: JSON.stringify({ groupId, username }),
       }),
     },
     {
-      label: 'Quyen tinh nang',
+      label: 'Quyền tính năng',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/permissions`, {
         method: 'PUT',
         body: JSON.stringify({ ...permissions, username }),
       }),
     },
     {
-      label: 'Don vi thu hoi',
+      label: 'Đơn vị thu hồi',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId, username }),
       }),
     },
     {
-      label: 'He thong voucher duoc dung',
+      label: 'Hệ thống voucher được dùng',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/voucher-systems`, {
         method: 'PUT',
         body: JSON.stringify({ connectionIds, username }),
       }),
     },
     {
-      label: 'Ho so (ho ten/mat khau)',
+      label: 'Hồ sơ (họ tên/mật khẩu)',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/profile`, {
         method: 'PUT',
         body: JSON.stringify({ fullName, password, username }),
@@ -428,12 +428,12 @@ async function saveUser(tr) {
       .filter((x) => x.r.status === 'rejected');
 
     if (!failed.length) {
-      showToast('Da luu tai khoan');
+      showToast('Đã lưu tài khoản');
     } else if (failed.length === jobs.length) {
-      showToast(`Luu that bai toan bo: ${failed[0].r.reason.message}`);
+      showToast(`Lưu thất bại toàn bộ: ${failed[0].r.reason.message}`);
     } else {
       const names = failed.map((x) => x.label).join(', ');
-      showToast(`Loi khi luu: ${names} (${failed[0].r.reason.message}). Cac muc con lai da luu.`);
+      showToast(`Lỗi khi lưu: ${names} (${failed[0].r.reason.message}). Các mục còn lại đã lưu.`);
     }
   } finally {
     saveBtn.disabled = false;
@@ -456,7 +456,7 @@ createUserBtn.addEventListener('click', async () => {
       method: 'POST',
       body: JSON.stringify({ username, password, fullName, role: Number(role), redemptionUnitId }),
     });
-    showToast(`Da tao tai khoan "${username}"`);
+    showToast(`Đã tạo tài khoản "${username}"`);
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
     document.getElementById('newFullName').value = '';

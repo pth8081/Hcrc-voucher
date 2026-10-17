@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Voucher da su dung - HCRC Voucher Redemption</title>
+<title>Voucher đã sử dụng - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -22,40 +22,40 @@
 
   <div class="container container-wide">
     <div class="card">
-      <h2>Danh sach voucher da su dung</h2>
+      <h2>Danh sách voucher đã sử dụng</h2>
       <p class="hint">
-        Liet ke TOAN BO tung voucher da duoc thu hoi (khong cong don theo cong ty/diem tieu nhu
-        "Bao cao tong hop") - dung de doi soat/kiem toan chi tiet va xuat ra file Excel.
-        De trong ca 2 o ngay de xem toan bo lich su (rieng xuat Excel bat buoc phai chon it nhat
-        1 moc ngay, va gioi han 20.000 dong moi lan xuat).
+        Liệt kê TOÀN BỘ từng voucher đã được thu hồi (không cộng dồn theo công ty/điểm tiêu như
+        "Báo cáo tổng hợp") - dùng để đối soát/kiểm toán chi tiết và xuất ra file Excel.
+        Để trống cả 2 ô ngày để xem toàn bộ lịch sử (riêng xuất Excel bắt buộc phải chọn ít nhất
+        1 mốc ngày, và giới hạn 20.000 dòng mỗi lần xuất).
       </p>
       <div class="summary-filters">
         <div class="field">
-          <label>Tu ngay (tuy chon)</label>
+          <label>Từ ngày (tùy chọn)</label>
           <input id="fromDate" type="date" />
         </div>
         <div class="field">
-          <label>Den ngay (tuy chon)</label>
+          <label>Đến ngày (tùy chọn)</label>
           <input id="toDate" type="date" />
         </div>
         <div class="field">
-          <label>Cong ty thu</label>
-          <select id="filterCompany"><option value="">Dang tai...</option></select>
+          <label>Công ty thu</label>
+          <select id="filterCompany"><option value="">Đang tải...</option></select>
         </div>
         <div class="field">
-          <label>Diem thu hoi</label>
-          <select id="filterUnit"><option value="">Dang tai...</option></select>
+          <label>Điểm thu hồi</label>
+          <select id="filterUnit"><option value="">Đang tải...</option></select>
         </div>
         <div class="field">
-          <label>Tai khoan thu hoi</label>
-          <select id="filterUser"><option value="">Dang tai...</option></select>
+          <label>Tài khoản thu hồi</label>
+          <select id="filterUser"><option value="">Đang tải...</option></select>
         </div>
         <div class="field hidden" id="filterSystemField">
-          <label>He thong voucher</label>
-          <select id="filterSystem"><option value="">Dang tai...</option></select>
+          <label>Hệ thống voucher</label>
+          <select id="filterSystem"><option value="">Đang tải...</option></select>
         </div>
-        <button id="loadBtn" class="btn-primary">Xem danh sach</button>
-        <button id="exportBtn" class="btn-secondary">Xuat Excel</button>
+        <button id="loadBtn" class="btn-primary">Xem danh sách</button>
+        <button id="exportBtn" class="btn-secondary">Xuất Excel</button>
       </div>
     </div>
 
@@ -64,11 +64,11 @@
       <table>
         <thead>
           <tr>
-            <th>Ngay tieu</th><th>Ma giao dich</th><th>Ma voucher</th><th>Nguoi tieu</th>
-            <th>Cong ty</th><th>Diem tieu</th><th>He thong</th><th>So tien</th><th>Dong bo</th>
+            <th>Ngày tiêu</th><th>Mã giao dịch</th><th>Mã voucher</th><th>Người tiêu</th>
+            <th>Công ty</th><th>Điểm tiêu</th><th>Hệ thống</th><th>Số tiền</th><th>Đồng bộ</th>
           </tr>
         </thead>
-        <tbody id="reportBody"><tr><td colspan="9" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="reportBody"><tr><td colspan="9" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

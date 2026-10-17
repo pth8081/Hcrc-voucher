@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bao mat - HCRC Voucher Redemption</title>
+<title>Bảo mật - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -22,60 +22,60 @@
 
   <div class="container">
     <div class="card">
-      <h2>Van tay / Face ID cua toi</h2>
+      <h2>Vân tay / Face ID của tôi</h2>
       <p class="security-note">
-        Dang ky them thiet bi de lan sau dang nhap bang van tay/Face ID thay vi go mat khau.
-        Co the dang ky nhieu thiet bi cho cung 1 tai khoan.
+        Đăng ký thêm thiết bị để lần sau đăng nhập bằng vân tay/Face ID thay vì gõ mật khẩu.
+        Có thể đăng ký nhiều thiết bị cho cùng 1 tài khoản.
       </p>
-      <div id="passkeyList"><p class="text-muted">Dang tai...</p></div>
+      <div id="passkeyList"><p class="text-muted">Đang tải...</p></div>
       <div class="flex flex-wrap gap-8 mt-10">
-        <input id="passkeyLabel" placeholder="Ten thiet bi (vd: iPhone cua toi)" class="flex-1 m-0" />
-        <button id="passkeyRegisterBtn" class="btn-primary" type="button">Dang ky thiet bi nay</button>
+        <input id="passkeyLabel" placeholder="Tên thiết bị (vd: iPhone của tôi)" class="flex-1 m-0" />
+        <button id="passkeyRegisterBtn" class="btn-primary" type="button">Đăng ký thiết bị này</button>
       </div>
     </div>
 
     <div id="notAdminNotice" class="card hidden">
-      <p class="text-muted m-0">Cac muc ben duoi chi danh cho tai khoan quan tri.</p>
+      <p class="text-muted m-0">Các mục bên dưới chỉ dành cho tài khoản quản trị.</p>
     </div>
 
     <div id="securityCards">
       <div class="card">
-        <h2>Xac thuc hai yeu to cua toi</h2>
-        <p id="myStatus" class="text-muted">Dang tai...</p>
+        <h2>Xác thực hai yếu tố của tôi</h2>
+        <p id="myStatus" class="text-muted">Đang tải...</p>
         <div class="flex gap-8 flex-wrap">
-          <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Doi thiet bi xac thuc</button>
-          <button id="showQrBtn" class="btn-secondary hidden" type="button">Them thiet bi Authenticator khac</button>
+          <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Đổi thiết bị xác thực</button>
+          <button id="showQrBtn" class="btn-secondary hidden" type="button">Thêm thiết bị Authenticator khác</button>
         </div>
 
         <div id="showQrPanel" class="hidden mt-10">
           <p class="hint">
-            Hien lai dung ma QR dang dung de quet them tren 1 thiet bi thu 2 - khong anh huong
-            thiet bi hien tai. Nhap lai mat khau de xac nhan.
+            Hiện lại đúng mã QR đang dùng để quét thêm trên 1 thiết bị thứ 2 - không ảnh hưởng
+            thiết bị hiện tại. Nhập lại mật khẩu để xác nhận.
           </p>
           <div class="flex flex-wrap gap-8">
-            <input id="showQrPassword" type="password" placeholder="Mat khau" class="flex-1 m-0" autocomplete="current-password" />
-            <button id="showQrConfirmBtn" class="btn-secondary" type="button">Hien ma QR</button>
+            <input id="showQrPassword" type="password" placeholder="Mật khẩu" class="flex-1 m-0" autocomplete="current-password" />
+            <button id="showQrConfirmBtn" class="btn-secondary" type="button">Hiện mã QR</button>
           </div>
           <div id="showQrResult" class="hidden mt-10">
-            <div class="twofa-qr"><img id="showQrImg" alt="Ma QR xac thuc hai yeu to" /></div>
-            <p class="twofa-key-label">Hoac nhap tay ma nay vao ung dung Authenticator:</p>
+            <div class="twofa-qr"><img id="showQrImg" alt="Mã QR xác thực hai yếu tố" /></div>
+            <p class="twofa-key-label">Hoặc nhập tay mã này vào ứng dụng Authenticator:</p>
             <p id="showQrKey" class="twofa-key"></p>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h2>Quan tri vien &amp; trang thai 2FA</h2>
+        <h2>Quản trị viên &amp; trạng thái 2FA</h2>
         <p class="security-note">
-          Chi quan tri vien khac moi go duoc xac thuc hai yeu to cua ban - khong the tu go cua chinh minh,
-          de tranh 1 phien bi chiem quyen tu vo hieu hoa lop bao ve nay.
+          Chỉ quản trị viên khác mới gỡ được xác thực hai yếu tố của bạn - không thể tự gỡ của chính mình,
+          để tránh 1 phiên bị chiếm quyền tự vô hiệu hóa lớp bảo vệ này.
         </p>
         <div class="table-wrap table-responsive">
         <table>
           <thead>
-            <tr><th>Ten dang nhap</th><th>Ho ten</th><th>Trang thai 2FA</th><th>Kich hoat luc</th><th>Dung gan nhat</th><th></th></tr>
+            <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái 2FA</th><th>Kích hoạt lúc</th><th>Dùng gần nhất</th><th></th></tr>
           </thead>
-          <tbody id="adminsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
+          <tbody id="adminsBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
         </table>
         </div>
       </div>

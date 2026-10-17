@@ -24,23 +24,23 @@ function buildQuery() {
 }
 
 async function loadReport() {
-  reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Dang tai...</td></tr>';
+  reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải...</td></tr>';
   try {
     const data = await apiFetch(`/reports/summary?${buildQuery()}`);
     render(data);
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="7" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="7" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
   }
 }
 
 function render(data) {
   if (data.unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="7" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="7" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!data.companies.length) {
-    reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Khong co giao dich trong khoang ngay da chon</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
 
@@ -49,31 +49,31 @@ function render(data) {
   data.companies.forEach((company) => {
     rowsHtml.push(`
       <tr class="company-row">
-        <td data-label="Cong ty">${escapeHtml(company.companyName)}</td>
+        <td data-label="Công ty">${escapeHtml(company.companyName)}</td>
         <td></td><td></td><td></td><td></td>
-        <td data-label="So voucher">${company.count}</td>
-        <td data-label="Menh gia">${fmtMoney(company.amount)}</td>
+        <td data-label="Số voucher">${company.count}</td>
+        <td data-label="Mệnh giá">${fmtMoney(company.amount)}</td>
       </tr>`);
 
     company.points.forEach((point) => {
       rowsHtml.push(`
         <tr class="point-row">
-          <td data-label="Diem tieu">${escapeHtml(point.pointName)}</td>
+          <td data-label="Điểm tiêu">${escapeHtml(point.pointName)}</td>
           <td></td><td></td><td></td><td></td>
-          <td data-label="So voucher">${point.count}</td>
-          <td data-label="Menh gia">${fmtMoney(point.amount)}</td>
+          <td data-label="Số voucher">${point.count}</td>
+          <td data-label="Mệnh giá">${fmtMoney(point.amount)}</td>
         </tr>`);
 
       point.rows.forEach((row) => {
         rowsHtml.push(`
           <tr class="detail-row">
             <td></td>
-            <td data-label="Ngay tieu">${fmtDate(row.createdDate)}</td>
-            <td data-label="Nguoi tieu">${escapeHtml(row.userName || '-')}</td>
-            <td data-label="Ma giao dich">${escapeHtml(row.transNum || '-')}</td>
-            <td data-label="Ma voucher">${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(cho dong bo)</span>'}</td>
+            <td data-label="Ngày tiêu">${fmtDate(row.createdDate)}</td>
+            <td data-label="Người tiêu">${escapeHtml(row.userName || '-')}</td>
+            <td data-label="Mã giao dịch">${escapeHtml(row.transNum || '-')}</td>
+            <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(chờ đồng bộ)</span>'}</td>
             <td></td>
-            <td data-label="Menh gia">${fmtMoney(row.valueAmt)}</td>
+            <td data-label="Mệnh giá">${fmtMoney(row.valueAmt)}</td>
           </tr>`);
       });
     });
@@ -81,10 +81,10 @@ function render(data) {
 
   rowsHtml.push(`
     <tr class="grand-total-row">
-      <td data-label="Tong">TONG TOAN BO CONG TY</td>
+      <td data-label="Tổng">TỔNG TOÀN BỘ CÔNG TY</td>
       <td></td><td></td><td></td><td></td>
-      <td data-label="So voucher">${data.grandTotal.count}</td>
-      <td data-label="Menh gia">${fmtMoney(data.grandTotal.amount)}</td>
+      <td data-label="Số voucher">${data.grandTotal.count}</td>
+      <td data-label="Mệnh giá">${fmtMoney(data.grandTotal.amount)}</td>
     </tr>`);
 
   reportBody.innerHTML = rowsHtml.join('');

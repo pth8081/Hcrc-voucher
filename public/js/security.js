@@ -32,7 +32,7 @@ showQrBtn.addEventListener('click', () => {
 showQrConfirmBtn.addEventListener('click', async () => {
   const password = showQrPassword.value;
   if (!password) {
-    showToast('Vui long nhap mat khau');
+    showToast('Vui lòng nhập mật khẩu');
     return;
   }
   showQrConfirmBtn.disabled = true;
@@ -62,7 +62,7 @@ async function loadPasskeys() {
 
 function renderPasskeys(devices) {
   if (!devices.length) {
-    passkeyList.innerHTML = '<p class="text-muted">Chua dang ky thiet bi nao.</p>';
+    passkeyList.innerHTML = '<p class="text-muted">Chưa đăng ký thiết bị nào.</p>';
     return;
   }
   passkeyList.innerHTML = devices
@@ -70,10 +70,10 @@ function renderPasskeys(devices) {
       (d) => `
       <div class="passkey-row" data-id="${d.Id}">
         <div>
-          <div class="passkey-name">${escapeHtmlLayout(d.DeviceLabel || 'Thiet bi khong ten')}</div>
-          <div class="text-muted fs-13">Dang ky luc: ${fmtDate(d.CreatedDate)}${d.LastUsedDate ? ' &middot; Dung gan nhat: ' + fmtDate(d.LastUsedDate) : ''}</div>
+          <div class="passkey-name">${escapeHtmlLayout(d.DeviceLabel || 'Thiết bị không tên')}</div>
+          <div class="text-muted fs-13">Đăng ký lúc: ${fmtDate(d.CreatedDate)}${d.LastUsedDate ? ' &middot; Dùng gần nhất: ' + fmtDate(d.LastUsedDate) : ''}</div>
         </div>
-        <button class="btn-danger" data-remove-id="${d.Id}" type="button">Go</button>
+        <button class="btn-danger" data-remove-id="${d.Id}" type="button">Gỡ</button>
       </div>`
     )
     .join('');
@@ -84,10 +84,10 @@ function renderPasskeys(devices) {
 }
 
 async function removePasskeyDevice(id) {
-  if (!window.confirm('Go thiet bi nay? Thiet bi se khong con dang nhap duoc bang van tay/Face ID nua.')) return;
+  if (!window.confirm('Gỡ thiết bị này? Thiết bị sẽ không còn đăng nhập được bằng vân tay/Face ID nữa.')) return;
   try {
     await removePasskey(id);
-    showToast('Da go thiet bi');
+    showToast('Đã gỡ thiết bị');
     loadPasskeys();
   } catch (err) {
     showToast(err.message);
@@ -96,14 +96,14 @@ async function removePasskeyDevice(id) {
 
 passkeyRegisterBtn.addEventListener('click', async () => {
   if (!webauthnSupported()) {
-    showToast('Trinh duyet nay khong ho tro dang ky van tay/Face ID.');
+    showToast('Trình duyệt này không hỗ trợ đăng ký vân tay/Face ID.');
     return;
   }
   passkeyRegisterBtn.disabled = true;
   try {
     await registerPasskey(passkeyLabel.value.trim() || null);
     passkeyLabel.value = '';
-    showToast('Da dang ky thiet bi nay');
+    showToast('Đã đăng ký thiết bị này');
     loadPasskeys();
   } catch (err) {
     showToast(err.message);
@@ -118,10 +118,10 @@ async function load() {
   try {
     const status = await apiFetch('/auth/2fa/status');
     myStatusEl.textContent = status.enabled
-      ? `Da bat - kich hoat luc ${fmtDate(status.enabledDate)}${status.lastUsedDate ? ', dung gan nhat ' + fmtDate(status.lastUsedDate) : ''}`
-      : 'Chua thiet lap - can mot quan tri vien khac go giup neu ban tung bi khoa thiet bi.';
+      ? `Đã bật - kích hoạt lúc ${fmtDate(status.enabledDate)}${status.lastUsedDate ? ', dùng gần nhất ' + fmtDate(status.lastUsedDate) : ''}`
+      : 'Chưa thiết lập - cần một quản trị viên khác gỡ giúp nếu bạn từng bị khóa thiết bị.';
     changeDeviceBtn.classList.remove('hidden');
-    changeDeviceBtn.textContent = status.enabled ? 'Doi thiet bi xac thuc' : 'Thiet lap ngay';
+    changeDeviceBtn.textContent = status.enabled ? 'Đổi thiết bị xác thực' : 'Thiết lập ngay';
     showQrBtn.classList.toggle('hidden', !status.enabled);
 
     const admins = await apiFetch('/auth/2fa/admins');
@@ -137,19 +137,19 @@ function renderAdmins(admins) {
     .map((a) => {
       const isSelf = currentUser && Number(currentUser.userId) === Number(a.userId);
       const statusBadge = a.twoFactorEnabled
-        ? '<span class="status-badge status-unused">DA BAT</span>'
-        : '<span class="status-badge status-other">CHUA BAT</span>';
+        ? '<span class="status-badge status-unused">ĐÃ BẬT</span>'
+        : '<span class="status-badge status-other">CHƯA BẬT</span>';
       const actionCell = isSelf
-        ? '<span class="text-muted fs-13">Tai khoan cua ban</span>'
-        : `<button class="btn-danger" data-user-id="${a.userId}" data-username="${escapeHtmlLayout(a.username)}" ${a.twoFactorEnabled ? '' : 'disabled'}>Go 2FA</button>`;
+        ? '<span class="text-muted fs-13">Tài khoản của bạn</span>'
+        : `<button class="btn-danger" data-user-id="${a.userId}" data-username="${escapeHtmlLayout(a.username)}" ${a.twoFactorEnabled ? '' : 'disabled'}>Gỡ 2FA</button>`;
       return `
         <tr class="${isSelf ? 'self-row' : ''}">
-          <td data-label="Ten dang nhap">${escapeHtmlLayout(a.username)}</td>
-          <td data-label="Ho ten">${escapeHtmlLayout(a.fullName || '-')}</td>
-          <td data-label="Trang thai 2FA">${statusBadge}</td>
-          <td data-label="Kich hoat luc">${fmtDate(a.enabledDate)}</td>
-          <td data-label="Dung gan nhat">${fmtDate(a.lastUsedDate)}</td>
-          <td data-label="Hanh dong">${actionCell}</td>
+          <td data-label="Tên đăng nhập">${escapeHtmlLayout(a.username)}</td>
+          <td data-label="Họ tên">${escapeHtmlLayout(a.fullName || '-')}</td>
+          <td data-label="Trạng thái 2FA">${statusBadge}</td>
+          <td data-label="Kích hoạt lúc">${fmtDate(a.enabledDate)}</td>
+          <td data-label="Dùng gần nhất">${fmtDate(a.lastUsedDate)}</td>
+          <td data-label="Hành động">${actionCell}</td>
         </tr>`;
     })
     .join('');
@@ -161,13 +161,13 @@ function renderAdmins(admins) {
 
 async function resetAdmin(userId, username) {
   const confirmed = window.confirm(
-    `Go xac thuc hai yeu to cua "${username}"? Nguoi nay se phai thiet lap lai tu dau o lan dang nhap ke tiep.`
+    `Gỡ xác thực hai yếu tố của "${username}"? Người này sẽ phải thiết lập lại từ đầu ở lần đăng nhập kế tiếp.`
   );
   if (!confirmed) return;
 
   try {
     await apiFetch(`/auth/2fa/admins/${encodeURIComponent(userId)}`, { method: 'DELETE' });
-    showToast(`Da go xac thuc hai yeu to cua ${username}`);
+    showToast(`Đã gỡ xác thực hai yếu tố của ${username}`);
     load();
   } catch (err) {
     showToast(err.message);

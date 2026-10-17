@@ -22,25 +22,25 @@ function buildQuery() {
 
 async function loadReport() {
   try {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Dang tai...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Đang tải...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
     render(data.rows, data.unassignedLocation);
     if (data.truncated) {
-      showToast(`Danh sach dang qua nhieu, chi hien ${data.rows.length.toLocaleString('vi-VN')} dong dau. Thu hep khoang ngay hoac dung "Xuat Excel" de xem day du.`);
+      showToast(`Danh sách đang quá nhiều, chỉ hiện ${data.rows.length.toLocaleString('vi-VN')} dòng đầu. Thu hẹp khoảng ngày hoặc dùng "Xuất Excel" để xem đầy đủ.`);
     }
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="9" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="9" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
   }
 }
 
 function render(rows, unassignedLocation) {
   if (unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Khong co voucher nao trong khoang da chon</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Không có voucher nào trong khoảng đã chọn</td></tr>';
     return;
   }
 
@@ -48,15 +48,15 @@ function render(rows, unassignedLocation) {
     .map(
       (row) => `
       <tr>
-        <td data-label="Ngay tieu">${fmtDate(row.createdDate)}</td>
-        <td data-label="Ma giao dich">${escapeHtml(row.transNum || '-')}</td>
-        <td data-label="Ma voucher">${escapeHtml(row.voucherCode)}</td>
-        <td data-label="Nguoi tieu">${escapeHtml(row.userName || '-')}</td>
-        <td data-label="Cong ty">${escapeHtml(row.companyName)}</td>
-        <td data-label="Diem tieu">${escapeHtml(row.pointName)}</td>
-        <td data-label="He thong">${escapeHtml(row.connectionName || '-')}</td>
-        <td data-label="So tien">${fmtMoney(row.valueAmt)}</td>
-        <td data-label="Dong bo">${row.synced ? 'Da dong bo' : '<span class="text-muted">Cho dong bo</span>'}</td>
+        <td data-label="Ngày tiêu">${fmtDate(row.createdDate)}</td>
+        <td data-label="Mã giao dịch">${escapeHtml(row.transNum || '-')}</td>
+        <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}</td>
+        <td data-label="Người tiêu">${escapeHtml(row.userName || '-')}</td>
+        <td data-label="Công ty">${escapeHtml(row.companyName)}</td>
+        <td data-label="Điểm tiêu">${escapeHtml(row.pointName)}</td>
+        <td data-label="Hệ thống">${escapeHtml(row.connectionName || '-')}</td>
+        <td data-label="Số tiền">${fmtMoney(row.valueAmt)}</td>
+        <td data-label="Đồng bộ">${row.synced ? 'Đã đồng bộ' : '<span class="text-muted">Chờ đồng bộ</span>'}</td>
       </tr>`
     )
     .join('');
@@ -69,7 +69,7 @@ function render(rows, unassignedLocation) {
  */
 async function exportExcel() {
   if (!fromDateInput.value && !toDateInput.value) {
-    showToast('Vui long chon it nhat 1 moc ngay (tu ngay hoac den ngay) truoc khi xuat Excel');
+    showToast('Vui lòng chọn ít nhất 1 mốc ngày (từ ngày hoặc đến ngày) trước khi xuất Excel');
     return;
   }
   exportBtn.disabled = true;

@@ -9,7 +9,7 @@ async function loadCaptcha() {
     document.getElementById('captchaImg').src = data.imageDataUrl;
     document.getElementById('captchaText').value = '';
   } catch (err) {
-    showToast('Khong tai duoc ma xac thuc, vui long thu lai.');
+    showToast('Không tải được mã xác thực, vui lòng thử lại.');
   }
 }
 document.getElementById('captchaRefresh').addEventListener('click', loadCaptcha);

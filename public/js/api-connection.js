@@ -44,7 +44,7 @@ async function loadList() {
     const list = await apiFetch('/api-connections');
     const wrap = el('connList');
     if (!list.length) {
-      wrap.innerHTML = '<p class="text-muted">Chua co ket noi nao, tao moi ben duoi.</p>';
+      wrap.innerHTML = '<p class="text-muted">Chưa có kết nối nào, tạo mới bên dưới.</p>';
       return;
     }
     wrap.innerHTML = list
@@ -52,13 +52,13 @@ async function loadList() {
         (c) => `
         <div class="conn-row">
           <div>
-            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">DANG KICH HOAT</span>' : ''}
+            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}
             <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
           </div>
           <div class="flex gap-8">
-            <button class="btn-secondary" data-edit="${c.id}">Sua</button>
-            ${!c.isActive ? `<button class="btn-secondary" data-activate="${c.id}">Kich hoat</button>` : ''}
-            <button class="btn-danger" data-remove="${c.id}">Xoa</button>
+            <button class="btn-secondary" data-edit="${c.id}">Sửa</button>
+            ${!c.isActive ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
+            <button class="btn-danger" data-remove="${c.id}">Xóa</button>
           </div>
         </div>`
       )
@@ -81,7 +81,7 @@ async function loadList() {
 async function activateConnection(id) {
   try {
     await apiFetch(`/api-connections/${id}/activate`, { method: 'POST' });
-    showToast('Da kich hoat ket noi');
+    showToast('Đã kích hoạt kết nối');
     await loadList();
   } catch (err) {
     showToast(err.message);
@@ -89,10 +89,10 @@ async function activateConnection(id) {
 }
 
 async function removeConnection(id) {
-  if (!confirm('Xoa ket noi nay? Khong the hoan tac.')) return;
+  if (!confirm('Xóa kết nối này? Không thể hoàn tác.')) return;
   try {
     await apiFetch(`/api-connections/${id}`, { method: 'DELETE' });
-    showToast('Da xoa ket noi');
+    showToast('Đã xóa kết nối');
     if (currentId === id) resetForm();
     await loadList();
   } catch (err) {
@@ -104,7 +104,7 @@ async function editConnection(id) {
   try {
     const conn = await apiFetch(`/api-connections/${id}`);
     currentId = id;
-    el('formTitle').textContent = `Sua ket noi: ${conn.name}`;
+    el('formTitle').textContent = `Sửa kết nối: ${conn.name}`;
     populateForm(conn);
     window.scrollTo({ top: el('formTitle').offsetTop - 20, behavior: 'smooth' });
   } catch (err) {
@@ -114,7 +114,7 @@ async function editConnection(id) {
 
 function resetForm() {
   currentId = null;
-  el('formTitle').textContent = 'Tao ket noi moi';
+  el('formTitle').textContent = 'Tạo kết nối mới';
   el('f_name').value = '';
   el('f_baseUrl').value = '';
   el('f_timeoutMs').value = 8000;
@@ -128,13 +128,13 @@ function resetForm() {
   // password luon de trong - khong bao gio dien san bi mat qua ma nguon).
   el('f_authType').value = (defaults && defaults.authType) || 'NONE';
   el('f_authToken_bearer').value = '';
-  el('f_authToken_bearer').placeholder = 'Nhap token';
+  el('f_authToken_bearer').placeholder = 'Nhập token';
   el('f_apiKeyHeaderName').value = (defaults && defaults.apiKeyHeaderName) || '';
   el('f_authToken_apikey').value = '';
-  el('f_authToken_apikey').placeholder = 'Nhap API key';
+  el('f_authToken_apikey').placeholder = 'Nhập API key';
   el('f_basicUsername').value = '';
   el('f_basicPassword').value = '';
-  el('f_basicPassword').placeholder = 'Nhap password';
+  el('f_basicPassword').placeholder = 'Nhập password';
 
   el('f_checkMethod').value = (defaults && defaults.checkMethod) || 'GET';
   el('f_checkParamMode').value = (defaults && defaults.checkParamMode) || 'PATH';
@@ -179,13 +179,13 @@ function populateForm(conn) {
   el('f_customCaCertFile').value = '';
   el('f_authType').value = conn.authType || 'NONE';
   el('f_authToken_bearer').value = '';
-  el('f_authToken_bearer').placeholder = conn.hasAuthToken ? '(Da luu - de trong de giu nguyen)' : 'Nhap token';
+  el('f_authToken_bearer').placeholder = conn.hasAuthToken ? '(Đã lưu - để trống để giữ nguyên)' : 'Nhập token';
   el('f_apiKeyHeaderName').value = conn.apiKeyHeaderName || '';
   el('f_authToken_apikey').value = '';
-  el('f_authToken_apikey').placeholder = conn.hasAuthToken ? '(Da luu - de trong de giu nguyen)' : 'Nhap API key';
+  el('f_authToken_apikey').placeholder = conn.hasAuthToken ? '(Đã lưu - để trống để giữ nguyên)' : 'Nhập API key';
   el('f_basicUsername').value = conn.basicUsername || '';
   el('f_basicPassword').value = '';
-  el('f_basicPassword').placeholder = conn.hasBasicPassword ? '(Da luu - de trong de giu nguyen)' : 'Nhap password';
+  el('f_basicPassword').placeholder = conn.hasBasicPassword ? '(Đã lưu - để trống để giữ nguyên)' : 'Nhập password';
 
   el('f_checkMethod').value = conn.checkMethod || 'GET';
   el('f_checkParamMode').value = conn.checkParamMode || 'PATH';
@@ -233,7 +233,7 @@ function handleCaCertFileUpload(e) {
   reader.onload = () => {
     el('f_customCaCert').value = String(reader.result || '').trim();
   };
-  reader.onerror = () => showToast('Khong doc duoc file. Vui long thu lai hoac dan noi dung truc tiep.');
+  reader.onerror = () => showToast('Không đọc được file. Vui lòng thử lại hoặc dán nội dung trực tiếp.');
   reader.readAsText(file);
   e.target.value = ''; // cho phep chon lai CUNG 1 file lan nua (vd sau khi sua loi) ma van bat duoc su kien change
 }
@@ -262,9 +262,9 @@ function addMapRow(containerId, rawKey = '', mappedValue = '') {
   const row = document.createElement('div');
   row.className = 'maprow';
   row.innerHTML = `
-    <input placeholder="Gia tri Core API tra ve (vd: 0)" class="mk" value="${escapeHtml(rawKey)}" />
-    <input placeholder="Trang thai chuan (vd: UNUSED)" class="mv" value="${escapeHtml(mappedValue)}" />
-    <button type="button" class="btn-secondary">Xoa</button>
+    <input placeholder="Giá trị Core API trả về (vd: 0)" class="mk" value="${escapeHtml(rawKey)}" />
+    <input placeholder="Trạng thái chuẩn (vd: UNUSED)" class="mv" value="${escapeHtml(mappedValue)}" />
+    <button type="button" class="btn-secondary">Xóa</button>
   `;
   row.querySelector('button').addEventListener('click', () => row.remove());
   container.appendChild(row);
@@ -302,7 +302,7 @@ function collectFormData() {
     try {
       redeemBodyTemplate = JSON.parse(raw);
     } catch (err) {
-      throw new Error('Body template (Redeem) khong phai JSON hop le: ' + err.message);
+      throw new Error('Body template (Redeem) không phải JSON hợp lệ: ' + err.message);
     }
   }
 
@@ -357,7 +357,7 @@ async function save(activateAfter) {
     return;
   }
   if (!payload.name || !payload.baseUrl || !payload.checkPath || !payload.redeemPath) {
-    showToast('Vui long nhap Ten, Base URL, Path kiem tra va Path thu hoi');
+    showToast('Vui lòng nhập Tên, Base URL, Path kiểm tra và Path thu hồi');
     return;
   }
 
@@ -373,7 +373,7 @@ async function save(activateAfter) {
     if (activateAfter) {
       await apiFetch(`/api-connections/${id}/activate`, { method: 'POST' });
     }
-    showToast(activateAfter ? 'Da luu va kich hoat ket noi' : 'Da luu ket noi');
+    showToast(activateAfter ? 'Đã lưu và kích hoạt kết nối' : 'Đã lưu kết nối');
     await loadList();
   } catch (err) {
     showToast(err.message);
@@ -382,7 +382,7 @@ async function save(activateAfter) {
 
 async function testCheck() {
   const voucherCode = el('testVoucherCode').value.trim();
-  if (!voucherCode) return showToast('Nhap ma voucher de test');
+  if (!voucherCode) return showToast('Nhập mã voucher để test');
 
   let connection;
   try {
@@ -407,9 +407,9 @@ async function testCheck() {
 
 async function testRedeem() {
   const voucherCode = el('testVoucherCode').value.trim();
-  if (!voucherCode) return showToast('Nhap ma voucher de test');
-  if (!el('confirmRedeemCheck').checked) return showToast('Ban can xac nhan hieu ro rui ro truoc khi test thu hoi');
-  if (!confirm(`Ban chac chan muon TIEU THAT voucher "${voucherCode}" tren he thong Core?`)) return;
+  if (!voucherCode) return showToast('Nhập mã voucher để test');
+  if (!el('confirmRedeemCheck').checked) return showToast('Bạn cần xác nhận hiểu rõ rủi ro trước khi test thu hồi');
+  if (!confirm(`Bạn chắc chắn muốn TIÊU THẬT voucher "${voucherCode}" trên hệ thống Core?`)) return;
 
   let connection;
   try {
@@ -438,15 +438,15 @@ function renderTestResult(data) {
 
   const n = data.normalized || {};
   el('testNormalized').innerHTML = `
-    <div class="info-row"><span class="k">Trang thai chuan hoa</span><span class="v">${escapeHtml(n.status || '-')}</span></div>
+    <div class="info-row"><span class="k">Trạng thái chuẩn hóa</span><span class="v">${escapeHtml(n.status || '-')}</span></div>
     ${n.found !== undefined ? `<div class="info-row"><span class="k">found</span><span class="v">${n.found}</span></div>` : ''}
-    ${n.voucherSerial ? `<div class="info-row"><span class="k">So serial</span><span class="v">${escapeHtml(n.voucherSerial)}</span></div>` : ''}
-    ${n.valueAmt != null ? `<div class="info-row"><span class="k">Menh gia</span><span class="v">${fmtMoney(n.valueAmt)}</span></div>` : ''}
-    ${n.issueDate ? `<div class="info-row"><span class="k">Ngay cap</span><span class="v">${escapeHtml(fmtDate(n.issueDate))}</span></div>` : ''}
-    ${n.expiryDate ? `<div class="info-row"><span class="k">Han su dung</span><span class="v">${escapeHtml(fmtDate(n.expiryDate))}</span></div>` : ''}
+    ${n.voucherSerial ? `<div class="info-row"><span class="k">Số serial</span><span class="v">${escapeHtml(n.voucherSerial)}</span></div>` : ''}
+    ${n.valueAmt != null ? `<div class="info-row"><span class="k">Mệnh giá</span><span class="v">${fmtMoney(n.valueAmt)}</span></div>` : ''}
+    ${n.issueDate ? `<div class="info-row"><span class="k">Ngày cấp</span><span class="v">${escapeHtml(fmtDate(n.issueDate))}</span></div>` : ''}
+    ${n.expiryDate ? `<div class="info-row"><span class="k">Hạn sử dụng</span><span class="v">${escapeHtml(fmtDate(n.expiryDate))}</span></div>` : ''}
     ${n.success !== undefined ? `<div class="info-row"><span class="k">success</span><span class="v">${n.success}</span></div>` : ''}
-    ${n.transRef ? `<div class="info-row"><span class="k">Ma giao dich (transRef)</span><span class="v">${escapeHtml(n.transRef)}</span></div>` : ''}
-    ${n.message ? `<div class="info-row"><span class="k">Thong bao</span><span class="v">${escapeHtml(n.message)}</span></div>` : ''}
+    ${n.transRef ? `<div class="info-row"><span class="k">Mã giao dịch (transRef)</span><span class="v">${escapeHtml(n.transRef)}</span></div>` : ''}
+    ${n.message ? `<div class="info-row"><span class="k">Thông báo</span><span class="v">${escapeHtml(n.message)}</span></div>` : ''}
   `;
   el('testRaw').textContent = JSON.stringify(data.raw, null, 2);
 }

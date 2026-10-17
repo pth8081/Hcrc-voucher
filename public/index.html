@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Quet voucher - HCRC Voucher Redemption</title>
+<title>Quét voucher - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -21,7 +21,7 @@
 
   <div class="container">
     <div id="systemSwitchCard" class="card hidden">
-      <span class="system-switch-label">He thong voucher</span>
+      <span class="system-switch-label">Hệ thống voucher</span>
       <div id="systemSwitch" class="system-switch"></div>
       <div id="systemActiveBanner" class="system-active-banner default">
         <span class="dot"></span>
@@ -36,45 +36,45 @@
             <path d="M3 8V5a2 2 0 0 1 2-2h3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3M7 12h10"/>
           </svg>
         </span>
-        <h2>San sang quet voucher</h2>
+        <h2>Sẵn sàng quét voucher</h2>
         <p class="hint">
-          Chi chap nhan ma duoc <strong>quet</strong> bang may quet ma vach/QR hoac camera —
-          khong cho phep go tay de tranh nhap sai hoac gian lan.
+          Chỉ chấp nhận mã được <strong>quét</strong> bằng máy quét mã vạch/QR hoặc camera —
+          không cho phép gõ tay để tránh nhập sai hoặc gian lận.
         </p>
       </div>
 
-      <label>Dua may quet vao day va bam quet</label>
+      <label>Đưa máy quét vào đây và bấm quét</label>
       <input
         id="voucherInput"
         class="scan-input"
-        placeholder="Dang cho tin hieu quet..."
+        placeholder="Đang chờ tín hiệu quét..."
         autocomplete="off"
         inputmode="none"
       />
       <div id="manualBlockedHint" class="warn-inline hidden">
-        Khong nhan dien duoc thao tac quet. Vui long dung may quet hoac camera, khong go tay.
+        Không nhận diện được thao tác quét. Vui lòng dùng máy quét hoặc camera, không gõ tay.
       </div>
       <div class="flex gap-10 mt-14">
-        <button id="cameraBtn" class="btn-primary flex-1">Quet bang camera</button>
+        <button id="cameraBtn" class="btn-primary flex-1">Quét bằng camera</button>
       </div>
       <div id="qr-reader" class="hidden mt-16"></div>
     </div>
 
     <div id="resultCard" class="card hidden">
-      <h3>Ket qua kiem tra</h3>
+      <h3>Kết quả kiểm tra</h3>
       <div id="statusBadge"></div>
       <div id="resultInfo" class="mt-12"></div>
       <div id="resultActions" class="flex gap-10 mt-16"></div>
     </div>
 
     <div class="card">
-      <h3>Cac giao dich thu hoi gan day (phien nay)</h3>
+      <h3>Các giao dịch thu hồi gần đây (phiên này)</h3>
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Gio</th><th>Ma voucher</th><th>He thong</th><th>Menh gia</th><th>TRANS_NUM</th><th>Dong bo</th></tr>
+          <tr><th>Giờ</th><th>Mã voucher</th><th>Hệ thống</th><th>Mệnh giá</th><th>TRANS_NUM</th><th>Đồng bộ</th></tr>
         </thead>
-        <tbody id="recentBody"><tr><td colspan="6" class="text-muted">Chua co giao dich</td></tr></tbody>
+        <tbody id="recentBody"><tr><td colspan="6" class="text-muted">Chưa có giao dịch</td></tr></tbody>
       </table>
       </div>
     </div>

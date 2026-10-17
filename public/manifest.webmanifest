@@ -1,7 +1,7 @@
 {
   "name": "HCRC Voucher Redemption",
   "short_name": "HCRC Voucher",
-  "description": "Ung dung thu hoi voucher cho don vi doi tac HCRC",
+  "description": "Ứng dụng thu hồi voucher cho đơn vị đối tác HCRC",
   "start_url": "/index.html",
   "id": "/index.html",
   "scope": "/",
