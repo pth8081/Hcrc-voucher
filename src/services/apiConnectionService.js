@@ -217,10 +217,23 @@ async function getByIdDecrypted(id) {
  * Quet voucher (MOI tai khoan co quyen thu hoi deu goi duoc, khong chi admin). KHONG tra ve
  * baseUrl/path/mapping/secret nhu list() (danh cho man hinh quan tri "Ket noi API", chi admin) -
  * nhan vien thu hoi chi can biet TEN de chon, khong can/khong nen thay chi tiet cau hinh ket noi.
+ *
+ * CHI tra ve ket noi da "SAN SANG" (co du secret can thiet theo AuthType) - loai bo ket noi
+ * con la BAN NHAP (vd tao san cho 1 he thong moi nhung chua dien API Key that, xem
+ * sql/029_seed_fuji_connection.sql). Tranh truong hop nhan vien thay o chon "He thong voucher"
+ * xuat hien (va co the bam nham) truoc khi admin dien xong cau hinh that - KHONG lien quan gi
+ * den IsActive (1 ket noi KHONG active van phai hien ra o day neu da san sang, vi IsActive chi
+ * quyet dinh lua chon MAC DINH, khong phai co hien ra hay khong - xem README muc 4e).
  */
 async function listOptions() {
   const pool = await getPool();
-  const result = await pool.request().query('SELECT Id, Name, IsActive FROM dbo.ApiConnections ORDER BY IsActive DESC, Name');
+  const result = await pool.request().query(`
+    SELECT Id, Name, IsActive FROM dbo.ApiConnections
+    WHERE AuthType = 'NONE'
+       OR (AuthType IN ('BEARER', 'API_KEY_HEADER') AND AuthTokenEncrypted IS NOT NULL)
+       OR (AuthType = 'BASIC' AND BasicPasswordEncrypted IS NOT NULL)
+    ORDER BY IsActive DESC, Name
+  `);
   return result.recordset.map((r) => ({ id: r.Id, name: r.Name, isActive: !!r.IsActive }));
 }
 

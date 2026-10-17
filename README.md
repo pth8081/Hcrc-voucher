@@ -887,6 +887,19 @@ lieu khac cau truc). Ket noi nao dang **active** se la lua chon **mac dinh** hie
 hinh Quet voucher (nhan vien van quet binh thuong duoc ma khong can chon gi neu chi dung 1 he
 thong, hoac muon dung dung he thong mac dinh).
 
+**Da tao san 1 dong "Fuji" o dang BAN NHAP** (`sql/029_seed_fuji_connection.sql`, chay 1 lan luc
+migrate) — SAO CHEP Base URL/duong dan/mapping tu ket noi dang active hien tai (dung thuc te da
+xac nhan: ca 2 he thong chung 1 cong API gateway), nhung **chua co Gia tri API Key** (dong nay
+KHONG the goi duoc Core cho toi khi dien that). Chi can vao "Ket noi API", bam "Sua" dong "Fuji",
+dien dung API Key do doi tac cung cap roi bam Luu la xong — khong can bam "+ Tao ket noi moi".
+
+**An toan cho setup hien tai (chi 1 he thong) ngay ca khi dong "Fuji" nay da ton tai**: o chon
+"He thong voucher" tren man Quet voucher va o loc "He thong" tren 3 man bao cao (muc 13a) CHI
+liet ke ket noi da **"san sang"** (co du secret theo `AuthType` — `apiConnectionService.js#listOptions`),
+khong lien quan `IsActive`. Dong "Fuji" chua dien API Key se **khong hien ra o dau ca** (nhan vien
+khong thay, khong bam nham duoc) cho toi khi admin dien xong — vi vay tao san dong nay KHONG lam
+thay doi hanh vi hien tai (van dung dung 1 he thong nhu truoc, o chon van tu an).
+
 **Mac dinh KHONG duoc "nho" giua cac lan mo trang** — moi lan vao lai man hinh Quet voucher luon
 quay ve ket noi active mac dinh, tranh truong hop ca truoc de quen dang chon 1 he thong khac roi
 ca sau quet nham sang he thong do.
