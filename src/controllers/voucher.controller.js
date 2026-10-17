@@ -1,4 +1,5 @@
 const voucherService = require('../services/voucherService');
+const apiConnectionService = require('../services/apiConnectionService');
 
 // Dot ra soat sau phat hien: cot Voucher_Code trong VOUCHER_SYNC/goi Core API deu dung
 // sql.NVarChar(24) (xem voucherService.js, apiConnectionService.js) - truoc day khong kiem tra
@@ -7,7 +8,7 @@ const voucherService = require('../services/voucherService');
 const MAX_VOUCHER_CODE_LENGTH = 24;
 
 function voucherCodeFromBody(req, res) {
-  const { voucherCode, scanMethod } = req.body;
+  const { voucherCode, scanMethod, connectionId } = req.body;
   const trimmed = voucherCode ? String(voucherCode).trim() : '';
   if (!trimmed) {
     res.status(400).json({ success: false, message: 'Thieu voucherCode' });
@@ -17,7 +18,13 @@ function voucherCodeFromBody(req, res) {
     res.status(400).json({ success: false, message: `Ma voucher qua dai (toi da ${MAX_VOUCHER_CODE_LENGTH} ky tu)` });
     return null;
   }
-  return { voucherCode: trimmed, scanMethod: scanMethod || 'MANUAL' };
+  return {
+    voucherCode: trimmed,
+    scanMethod: scanMethod || 'MANUAL',
+    // He thong voucher nguoi dung chon tren man hinh Quet voucher (vd "BRGmart"/"Fuji") - tuy
+    // chon, de trong se dung ket noi active mac dinh (xem coreVoucherService.js#resolveConnection).
+    connectionId: connectionId ? Number(connectionId) : null,
+  };
 }
 
 async function check(req, res, next) {
@@ -46,4 +53,15 @@ async function redeem(req, res, next) {
   }
 }
 
-module.exports = { check, redeem };
+/** Danh sach he thong voucher de chon tren man hinh Quet voucher - xem apiConnectionService.js#
+ * listOptions (rut gon, khong lo chi tiet cau hinh/secret cho nhan vien khong phai admin). */
+async function systems(req, res, next) {
+  try {
+    const data = await apiConnectionService.listOptions();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { check, redeem, systems };

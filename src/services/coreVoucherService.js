@@ -14,13 +14,32 @@ const VOUCHER_STATUS = {
  * Nguon cau hinh Core API cua app: uu tien connection admin da cau hinh + kich hoat
  * qua man hinh "Ket noi API" (bang ApiConnections). Neu chua co connection nao active,
  * fallback ve cau hinh tinh trong .env (CORE_API_*) de app van chay duoc ngay sau khi cai dat.
+ *
+ * connectionId (tuy chon): khi app tich hop NHIEU he thong voucher (vd BRGmart/Fuji, xem o
+ * chon "He thong voucher" tren man hinh Quet voucher), nguoi dung chon dung ket noi can dung cho
+ * lan quet nay - uu tien ket noi NAY thay vi luon lay "ket noi active" mac dinh. Bo trong (hoac
+ * khong truyen) -> giu nguyen hanh vi cu (dung ket noi active).
  */
-async function checkVoucher(voucherCode) {
-  const connection = await apiConnectionService.getActiveDecrypted();
+async function resolveConnection(connectionId) {
+  if (connectionId) {
+    const connection = await apiConnectionService.getByIdDecrypted(connectionId);
+    if (!connection) {
+      const err = new Error('Khong tim thay he thong voucher da chon');
+      err.statusCode = 400;
+      err.publicMessage = 'He thong voucher ban da chon khong con ton tai (co the da bi xoa) - vui long tai lai trang va chon lai.';
+      throw err;
+    }
+    return connection;
+  }
+  return apiConnectionService.getActiveDecrypted();
+}
+
+async function checkVoucher(voucherCode, { connectionId } = {}) {
+  const connection = await resolveConnection(connectionId);
   if (connection) {
     try {
       const result = await callDynamic(connection, 'check', { code: voucherCode });
-      return { httpStatus: result.httpStatus, ...result.normalized, status: mapCoreStatus(result.normalized.status) };
+      return { httpStatus: result.httpStatus, ...result.normalized, status: mapCoreStatus(result.normalized.status), connectionName: connection.name };
     } catch (err) {
       // callDynamic chi throw khi mat mang/timeout/Core 5xx (loi 4xx da duoc xu ly va tra ve
       // binh thuong o tren, khong roi vao day) - nghia la KHONG ket noi duoc toi Core that su.
@@ -31,7 +50,7 @@ async function checkVoucher(voucherCode) {
 }
 
 async function redeemVoucher(voucherCode, context) {
-  const connection = await apiConnectionService.getActiveDecrypted();
+  const connection = await resolveConnection(context.connectionId);
   if (connection) {
     let result;
     try {
@@ -59,6 +78,7 @@ async function redeemVoucher(voucherCode, context) {
       // biet ro day la gia tri UOC LUONG, khong phai do Core that su xac nhan.
       redeemedAtIsEstimated: !result.normalized.redeemedAt,
       message: result.normalized.message || null,
+      connectionName: connection.name,
     };
   }
   return redeemVoucherLegacyEnv(voucherCode, context);

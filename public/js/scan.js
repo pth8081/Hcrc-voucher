@@ -10,6 +10,10 @@ const resultInfo = document.getElementById('resultInfo');
 const resultActions = document.getElementById('resultActions');
 const recentBody = document.getElementById('recentBody');
 const manualBlockedHint = document.getElementById('manualBlockedHint');
+const systemSwitchCard = document.getElementById('systemSwitchCard');
+const systemSwitch = document.getElementById('systemSwitch');
+const systemActiveBanner = document.getElementById('systemActiveBanner');
+const systemActiveBannerText = document.getElementById('systemActiveBannerText');
 
 // Chi chap nhan du lieu quet (may quet HID hoac camera), khong cho phep go tay/dan/keo-tha.
 // May quet HID gia lap ban phim that nen khong the chan bang thuoc tinh readonly - thay vao do
@@ -24,7 +28,61 @@ let html5QrCode = null;
 let cameraRunning = false;
 let recentRows = [];
 
+// He thong voucher dang chon (vd BRGmart/Fuji, khi tich hop nhieu he thong qua man hinh "Ket
+// noi API") - id null nghia la dung ket noi active mac dinh cua server (hanh vi cu, khong doi gi
+// khi chi co 1 he thong duoc cau hinh). KHONG luu lai giua cac lan mo trang (khong dung
+// localStorage) - moi lan vao trang Quet voucher LUON mac dinh ve he thong active, tranh truong
+// hop ca truoc de quen o 1 he thong khac roi ca sau quet nham sang he thong do.
+let selectedConnectionId = null;
+let selectedConnectionName = null;
+
 focusInput();
+loadSystemOptions();
+
+async function loadSystemOptions() {
+  try {
+    const systems = await apiFetch('/vouchers/systems');
+    if (!systems.length) return; // chi 1 he thong duy nhat (hoac chua cau hinh ket noi nao) -> an o chon, giu nguyen hanh vi cu
+    const defaultSystem = systems.find((s) => s.isActive) || systems[0];
+    selectedConnectionId = defaultSystem.id;
+    selectedConnectionName = defaultSystem.name;
+
+    if (systems.length > 1) {
+      systemSwitchCard.classList.remove('hidden');
+      renderSystemSwitch(systems, defaultSystem.id);
+    }
+  } catch (err) {
+    // Khong chan luong quet neu loi o cho nay (vd mang cham) - chi khong hien o chon, van dung
+    // dung ket noi active mac dinh cua server y het hanh vi cu (selectedConnectionId = null).
+    // eslint-disable-next-line no-console
+    console.error('Khong tai duoc danh sach he thong voucher:', err.message);
+  }
+}
+
+function renderSystemSwitch(systems, defaultId) {
+  systemSwitch.innerHTML = systems
+    .map((s) => `<button type="button" class="system-btn" data-id="${s.id}" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</button>`)
+    .join('');
+  systemSwitch.querySelectorAll('.system-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedConnectionId = Number(btn.dataset.id);
+      selectedConnectionName = btn.dataset.name;
+      updateSystemSwitchUi(defaultId);
+    });
+  });
+  updateSystemSwitchUi(defaultId);
+}
+
+function updateSystemSwitchUi(defaultId) {
+  const isDefault = selectedConnectionId === defaultId;
+  systemSwitch.querySelectorAll('.system-btn').forEach((btn) => {
+    const isSelected = Number(btn.dataset.id) === selectedConnectionId;
+    btn.classList.toggle('selected-default', isSelected && isDefault);
+    btn.classList.toggle('selected-alt', isSelected && !isDefault);
+  });
+  systemActiveBanner.className = 'system-active-banner ' + (isDefault ? 'default' : 'alt');
+  systemActiveBannerText.textContent = `Dang quet cho: He thong voucher ${selectedConnectionName}`;
+}
 
 voucherInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
@@ -99,7 +157,7 @@ async function runCheck(voucherCode) {
     cameraBtn.disabled = true;
     const data = await apiFetch('/vouchers/check', {
       method: 'POST',
-      body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod }),
+      body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod, connectionId: selectedConnectionId }),
     });
     renderResult(voucherCode, data);
   } catch (err) {
@@ -162,7 +220,7 @@ async function confirmRedeem(voucherCode) {
 
     const data = await apiFetch('/vouchers/redeem', {
       method: 'POST',
-      body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod }),
+      body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod, connectionId: selectedConnectionId }),
     });
 
     if (data.success) {
@@ -170,7 +228,14 @@ async function confirmRedeem(voucherCode) {
         ? `Da thu hoi: ${voucherCode} (dang cho dong bo voi he thong trung tam)`
         : `Thu hoi thanh cong: ${voucherCode}`;
       showToast(msg);
-      addRecentRow({ time: new Date(), voucherCode, valueAmt: data.valueAmt, transNum: data.transNum, pendingSync: data.pendingSync });
+      addRecentRow({
+        time: new Date(),
+        voucherCode,
+        connectionName: data.connectionName || selectedConnectionName,
+        valueAmt: data.valueAmt,
+        transNum: data.transNum,
+        pendingSync: data.pendingSync,
+      });
       resetResult();
     } else {
       showToast(data.message || 'Thu hoi that bai');
@@ -199,6 +264,7 @@ function addRecentRow(row) {
       <tr>
         <td data-label="Gio">${r.time.toLocaleTimeString('vi-VN')}</td>
         <td data-label="Ma voucher">${escapeHtml(r.voucherCode)}</td>
+        <td data-label="He thong">${escapeHtml(r.connectionName || '-')}</td>
         <td data-label="Menh gia">${fmtMoney(r.valueAmt)}</td>
         <td data-label="TRANS_NUM">${escapeHtml(r.transNum || '-')}</td>
         <td data-label="Dong bo">${r.pendingSync ? '<span class="status-badge status-other">CHO DONG BO</span>' : '<span class="status-badge status-unused">DA DONG BO</span>'}</td>

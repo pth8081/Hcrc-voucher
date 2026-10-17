@@ -212,6 +212,18 @@ async function getByIdDecrypted(id) {
   return result.recordset[0] ? toDecryptedConfig(result.recordset[0]) : null;
 }
 
+/**
+ * Danh sach RUT GON (id, name, isActive) - dung cho o chon "He thong voucher" tren man hinh
+ * Quet voucher (MOI tai khoan co quyen thu hoi deu goi duoc, khong chi admin). KHONG tra ve
+ * baseUrl/path/mapping/secret nhu list() (danh cho man hinh quan tri "Ket noi API", chi admin) -
+ * nhan vien thu hoi chi can biet TEN de chon, khong can/khong nen thay chi tiet cau hinh ket noi.
+ */
+async function listOptions() {
+  const pool = await getPool();
+  const result = await pool.request().query('SELECT Id, Name, IsActive FROM dbo.ApiConnections ORDER BY IsActive DESC, Name');
+  return result.recordset.map((r) => ({ id: r.Id, name: r.Name, isActive: !!r.IsActive }));
+}
+
 async function getActiveDecrypted() {
   const pool = await getPool();
   const result = await pool.request().query('SELECT TOP 1 * FROM dbo.ApiConnections WHERE IsActive = 1');
@@ -440,6 +452,7 @@ module.exports = {
   getDefaults,
   validateCustomCaCert,
   list,
+  listOptions,
   getById,
   getByIdDecrypted,
   getActiveDecrypted,

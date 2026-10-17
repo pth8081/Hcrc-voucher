@@ -22,7 +22,7 @@ const { VOUCHER_STATUS } = coreVoucherService;
  * neu KHONG thay o local van PHAI hoi Core nhu cu, vi khong the ket luan "con dung duoc" chi
  * vi local chua co (co the da bi tieu qua kenh khac ngoai app nay).
  */
-async function checkVoucher({ voucherCode, user, scanMethod }) {
+async function checkVoucher({ voucherCode, user, scanMethod, connectionId }) {
   guessGuard.assertNotLocked(user.userId);
 
   const localRedeemed = await findLocalRedemption(voucherCode);
@@ -43,7 +43,7 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
     };
   }
 
-  const result = await coreVoucherService.checkVoucher(voucherCode);
+  const result = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
   guessGuard.recordResult(user.userId, result.status === VOUCHER_STATUS.UNUSED || result.status === VOUCHER_STATUS.USED);
 
   await logScan({
@@ -57,6 +57,7 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
     issueDate: result.issueDate,
     httpStatus: result.httpStatus,
     message: result.message,
+    connectionName: result.connectionName,
   });
 
   if (result.status === VOUCHER_STATUS.USED) {
@@ -105,13 +106,13 @@ async function checkVoucher({ voucherCode, user, scanMethod }) {
  * goi Core nen 2 request trung ma se tu dong xep hang, request thu 2 se thay ngay o buoc
  * kiem tra "da co ban ghi" ma KHONG can goi Core nua.
  */
-async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
+async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId }) {
   guessGuard.assertNotLocked(user.userId);
 
   // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
   // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),
   // nen loi ket noi o day van chan giao dich nhu cu, KHONG dua vao hang doi.
-  const precheck = await coreVoucherService.checkVoucher(voucherCode);
+  const precheck = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
   guessGuard.recordResult(user.userId, precheck.status === VOUCHER_STATUS.UNUSED || precheck.status === VOUCHER_STATUS.USED);
 
   if (precheck.status !== VOUCHER_STATUS.UNUSED) {
@@ -123,6 +124,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
       resultStatus: precheck.status,
       clientIp,
       message: 'Tu choi thu hoi: voucher khong con o trang thai UNUSED khi xac nhan',
+      connectionName: precheck.connectionName,
     });
     return {
       success: false,
@@ -138,7 +140,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
 
   let outcome;
   try {
-    outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck });
+    outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId });
   } catch (err) {
     // C1: neu Core DA XAC NHAN thu hoi thanh cong (khong phai do Core loi ket noi - truong hop
     // do da duoc gan pendingSync=true va van ghi DB binh thuong) nhung buoc ghi VOUCHER_SYNC
@@ -169,6 +171,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
           resultStatus: 'ERROR_UNRECORDED',
           clientIp,
           message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
+          connectionName: precheck.connectionName,
         });
       } catch (alertErr) {
         // eslint-disable-next-line no-console
@@ -193,6 +196,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
       resultStatus: VOUCHER_STATUS.USED,
       clientIp,
       message: 'Tu choi thu hoi: da co ban ghi VOUCHER_SYNC khac ghi nhan dung luc (chan trung theo ma voucher)',
+      connectionName: precheck.connectionName,
     });
     return {
       success: false,
@@ -210,6 +214,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
       resultStatus: outcome.redeemResult.status || 'ERROR',
       clientIp,
       message: outcome.redeemResult.message,
+      connectionName: precheck.connectionName,
     });
     return {
       success: false,
@@ -242,6 +247,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     message: pendingSync
       ? 'Da thu hoi tai cho, dang cho dong bo lai voi he thong trung tam'
       : redeemResult.message,
+    connectionName: precheck.connectionName,
   });
 
   return {
@@ -251,6 +257,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp }) {
     transNum,
     valueAmt: precheck.valueAmt,
     redeemedAt: redeemResult.redeemedAt,
+    connectionName: precheck.connectionName,
   };
 }
 
@@ -303,7 +310,7 @@ function sanitizeValueAmt(rawValueAmt, { voucherCode, transNum } = {}) {
  * loi ket noi Core), loi nem ra duoc gan them err.coreConfirmedSuccess=true de ham goi (C1)
  * biet day la 1 giao dich CO THAT can canh bao khan, khong phai loi thong thuong.
  */
-async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck }) {
+async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId }) {
   const pool = await getPool();
   // Location_DetailName: tra ten theo LocationCode (Locations_Detail co cot ma ro rang de
   // doi chieu). Location_GroupName KHONG dien duoc tuong tu vi Locations_Group khong co cot
@@ -352,6 +359,7 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck })
         locationsGroup: user.locationsGroup,
         locationsDetail: user.locationsDetail,
         transNum,
+        connectionId,
       });
     } catch (err) {
       pendingSync = true;
@@ -397,6 +405,20 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck })
              @status, @computerName, @locationsGroup, @locationsDetail, @locationDetailName, @valueAmt,
              GETDATE(), @sync, @sync)
         `);
+
+      // Ghi lai he thong voucher (connectionId/connectionName) da xu ly giao dich nay, khoa theo
+      // TRANS_NUM - CUNG transaction voi INSERT VOUCHER_SYNC o tren, de 2 ban ghi luon nhat quan
+      // voi nhau. Can thiet de syncRetryService.js biet goi lai DUNG he thong khi giao dich nay
+      // dang "cho dong bo" (xem sql/027_create_voucher_redemption_connections.sql).
+      await transaction
+        .request()
+        .input('transNum', sql.Char(18), transNum)
+        .input('connectionId', sql.Int, connectionId || null)
+        .input('connectionName', sql.NVarChar(100), redeemResult.connectionName || null)
+        .query(`
+          INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName)
+          VALUES (@transNum, @connectionId, @connectionName)
+        `);
     } catch (insertErr) {
       // C1: Core CO THE da xac nhan that su (khong phai qua nhanh "pendingSync" do loi ket
       // noi) nhung ghi DB van that bai - danh dau ro de ham goi biet day la giao dich CO THAT.
@@ -431,6 +453,7 @@ async function logScan({
   httpStatus,
   clientIp,
   message,
+  connectionName,
 }) {
   const pool = await getPool();
   await pool
@@ -449,15 +472,19 @@ async function logScan({
     .input('httpStatus', sql.Int, httpStatus || null)
     .input('message', sql.NVarChar(1000), message || null)
     .input('clientIp', sql.NVarChar(60), clientIp || null)
+    // He thong voucher (ten ket noi ApiConnections, vd "BRGmart"/"Fuji") da xu ly lan quet nay -
+    // xem sql/026_add_connection_to_scan_logs.sql. null khi app chi dung fallback .env cu (chua
+    // cau hinh ket noi nao) - khong co "ten he thong" nao de ghi trong truong hop do.
+    .input('connectionName', sql.NVarChar(100), connectionName || null)
     .query(`
       INSERT INTO dbo.VoucherScanLogs
         (UserId, UserName, LocationsGroup, LocationsDetail, VoucherCode, ScanMethod,
          Action, ResultStatus, ValueAmt, VoucherExpiryDate, VoucherIssueDate,
-         CoreApiHttpStatus, CoreApiMessage, ClientIp, CreatedDate)
+         CoreApiHttpStatus, CoreApiMessage, ClientIp, ConnectionName, CreatedDate)
       VALUES
         (@userId, @userName, @locationsGroup, @locationsDetail, @voucherCode, @scanMethod,
          @action, @resultStatus, @valueAmt, @expiryDate, @issueDate,
-         @httpStatus, @message, @clientIp, GETDATE())
+         @httpStatus, @message, @clientIp, @connectionName, GETDATE())
     `);
 }
 

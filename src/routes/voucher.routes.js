@@ -5,6 +5,7 @@ const controller = require('../controllers/voucher.controller');
 
 const router = express.Router();
 router.use(authenticate);
+router.get('/systems', requireFeature('canRedeemVoucher'), controller.systems);
 router.post('/check', requireFeature('canRedeemVoucher'), controller.check);
 router.post('/redeem', requireFeature('canRedeemVoucher'), controller.redeem);
 

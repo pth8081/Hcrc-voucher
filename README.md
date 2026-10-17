@@ -869,6 +869,38 @@ Noi cach khac, day chi la 1 "duong tat" 1 chieu de **tu choi nhanh hon** — Cor
 su that duy nhat** cho cau tra loi "con dung duoc". Tan dung index co san `IX_VOUCHER_SYNC_Voucher_Code`
 (migration 003) nen tra cuu rat nhanh du bang co nhieu du lieu. Xem `voucherService.js#checkVoucher`.
 
+### 4e. Tich hop CUNG LUC nhieu he thong voucher (vd BRGmart + Fuji)
+
+Man hinh "Ket noi API" von da cho phep tao **nhieu ket noi** (bang `ApiConnections`), nhung truoc
+day chi 1 ket noi duoc danh dau "active" va LUON la ket noi duy nhat app dung (`activate()`).
+Tu ban nay, man hinh **Quet voucher** (`/index.html`) co them o chon **"He thong voucher"** khi
+co **tu 2 ket noi tro len** — nhan vien chon dung he thong truoc khi quet (vd "BRGmart" hoac
+"Fuji"), gui kem `connectionId` trong moi lan goi `/vouchers/check` va `/vouchers/redeem`, dung
+**DUNG ket noi do** thay vi luon lay ket noi "active" mac dinh. Chi 1 ket noi duy nhat -> o chon
+tu an, hanh vi y het truoc day (luon dung ket noi active).
+
+**De them 1 he thong moi (vd Fuji):** vao "Ket noi API" → tao ket noi moi, dat Ten ro rang (vd
+"Fuji") — Base URL co the TRUNG voi ket noi khac (vd cung 1 cong API gateway), vi he thong phan
+biet 2 ket noi bang **Id noi bo**, khong phai Base URL — chi can dien dung **Gia tri API Key**
+rieng cua he thong do (va sua lai duong dan/mapping request-response neu he thong do tra du
+lieu khac cau truc). Ket noi nao dang **active** se la lua chon **mac dinh** hien san tren man
+hinh Quet voucher (nhan vien van quet binh thuong duoc ma khong can chon gi neu chi dung 1 he
+thong, hoac muon dung dung he thong mac dinh).
+
+**Mac dinh KHONG duoc "nho" giua cac lan mo trang** — moi lan vao lai man hinh Quet voucher luon
+quay ve ket noi active mac dinh, tranh truong hop ca truoc de quen dang chon 1 he thong khac roi
+ca sau quet nham sang he thong do.
+
+**Truy vet:** moi lan quet/thu hoi deu ghi lai **ten he thong** (cot `ConnectionName`,
+`sql/026_add_connection_to_scan_logs.sql`) vao `VoucherScanLogs` (bang log cua app, khong phai
+`VOUCHER_SYNC`) de admin xem lai duoc giao dich nao thuoc he thong nao. Rieng voi giao dich **dang
+cho dong bo** (Core khong goi duoc luc thu hoi, xem muc 4c), bang `VoucherRedemptionConnections`
+(`sql/027_create_voucher_redemption_connections.sql`, khoa theo `TRANS_NUM`) ghi lai dung he
+thong da xu ly giao dich do, de job dong bo lai (`syncRetryService.js`) **goi lai DUNG he thong
+goc** thay vi mac dinh goi nham sang ket noi active hien tai (co the da doi sang he thong khac
+luc do) — day la diem bat buoc phai co khi tich hop nhieu he thong, neu khong se co nguy co gui
+nham 1 giao dich cua he thong A sang he thong B luc dong bo lai.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -887,8 +919,9 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | GET | `/api/companies` | Danh sach cong ty |
 | POST | `/api/companies` | Them cong ty (can quyen admin) |
 | PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
-| POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) |
-| POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) |
+| GET | `/api/vouchers/systems` | Danh sach he thong voucher de chon (id/name/isActive) — muc 4e |
+| POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) - `{ voucherCode, scanMethod, connectionId? }` |
+| POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) - `{ voucherCode, scanMethod, connectionId? }` |
 | GET | `/api/reports/daily?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo KHOANG ngay (nhom theo dia diem tai khoan), toi da 366 ngay |
 | GET | `/api/reports/summary?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
 | GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
