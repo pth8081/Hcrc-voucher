@@ -228,7 +228,7 @@ function openRedeemConfirm(voucherCode, data) {
   pendingRedeemVoucherCode = voucherCode;
   confirmRedeemCode.textContent = voucherCode;
   confirmRedeemAmount.textContent = fmtMoney(data.valueAmt);
-  confirmRedeemSystem.textContent = selectedConnectionName || 'mac dinh';
+  confirmRedeemSystem.textContent = selectedConnectionName || 'mặc định';
   confirmRedeemOverlay.classList.remove('hidden');
   resultActions.querySelectorAll('button').forEach((b) => (b.disabled = true));
 }

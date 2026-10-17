@@ -1057,8 +1057,8 @@ Tra ve khi da tieu:
 Luong quet tren UI:
 1. Quet ma (may quet HID hoac camera — **khong the go tay**, xem muc 7) -> goi `/vouchers/check`.
 2. Neu **chua tieu**: hien menh gia/han dung/ngay cap + nut "Xac nhan thu hoi".
-3. Bam "Xac nhan thu hoi" -> hien **hop thoai hoi lai** "Ban co muon thu hoi voucher nay
-   khong?" (kem lai ma voucher/menh gia/he thong de xem lai lan cuoi truoc khi xac nhan that su —
+3. Bam "Xac nhan thu hoi" -> hien **hop thoai hoi lai** "Bạn có muốn thu hồi voucher này
+   không?" (kem lai ma voucher/menh gia/he thong de xem lai lan cuoi truoc khi xac nhan that su —
    chan bam/cham nham, dac biet tren man hinh cam ung) — bam **"Khong"** se dong hop thoai va
    **quay ve man hinh quet san sang**, **GIU NGUYEN** he thong voucher dang chon (BRGmart/Fuji,
    muc 4e), khong goi API `/vouchers/redeem` nao ca; bam **"Co, thu hoi"** moi thuc su goi
