@@ -1541,3 +1541,62 @@ tranh de tai lieu trong app bi lech voi thuc te.
 File lien quan: `src/content/guideContent.js`, `src/controllers/guide.controller.js`,
 `src/routes/guide.routes.js`, `public/guide-business.html` + `public/js/guide-business.js`,
 `public/guide-system.html` + `public/js/guide-system.js`, `public/css/guide.css`.
+
+## 17. Lich su phien ban (Changelog)
+
+So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
+dang chay dung version nao sau khi cap nhat code" o muc 3e), khong phai tang tuy y — moi dong
+duoi day tuong ung 1 lan merge thuc te, lay thang tu tieu de commit merge vao `main`. Danh sach
+nay **chi liet ke tu v1.8 tro di** (cac commit truoc do, giai doan phat trien ban dau, chua gan
+so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3.5`/`v3.6` la do
+2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
+khong phai bo sot.
+
+Ban **moi nhat (v3.32)**: tich hop nhieu he thong voucher cung luc (BRGmart + Fuji — muc 4e),
+phan quyen theo tung he thong (muc 4f), bao cao phan quyen he thong (cuoi muc 4f) va tao san
+ket noi API "Fuji" o dang ban nhap (dau muc 4e).
+
+- **v3.32** - Tao san ket noi API "Fuji" (ban nhap) + chan ket noi chua cau hinh khoi o chon
+- **v3.31** - Them bao cao phan quyen he thong voucher theo tung tai khoan/cong ty
+- **v3.30** - Them phan quyen theo tung he thong voucher va loc bao cao theo he thong
+- **v3.29** - Cho phep chon he thong voucher (BRGmart/Fuji) ngay tren man hinh Quet voucher
+- **v3.28** - Bao cao doi soat chuyen tu loc 1 ngay sang loc theo KHOANG ngay
+- **v3.27** - Them nut Sua ten cho dia diem (Locations_Detail) trong man hinh Don vi thu hoi
+- **v3.26** - Bo ma tu sinh khoi o Ma diem, chan trung ten dia diem/diem tieu
+- **v3.25** - Them form tao dia diem moi (Locations_Detail) truc tiep tren man hinh Don vi thu hoi
+- **v3.24** - Them bo loc theo Cong ty/Diem thu hoi/Tai khoan thu hoi cho 3 man hinh bao cao
+- **v3.23** - Dang nhap van tay/Face ID bo qua buoc nhap ma 2FA
+- **v3.22** - Bang Tai khoan xuong dong o MOI kich thuoc man hinh, bo cuon ngang
+- **v3.21** - Gioi han chieu cao bang Tai khoan + header dong
+- **v3.20** - Tach tab cho man hinh Tai khoan + Don vi thu hoi, them tim kiem + ghim cot
+- **v3.19** - Them nut "Sua" thu gon/mo rong dong tai khoan tren dien thoai
+- **v3.18** - Fix: tai khoan dang nhap xong bi dang xuat lien tuc sau doi mat khau+2FA
+- **v3.17** - Sua ten dong ket noi mau thanh "HCRC Voucher API Server"
+- **v3.16** - Xu ly rieng loi 429 + tao san 1 dong ket noi API Server
+- **v3.15** - Cho phep khai bao chung chi CA rieng cho tung ket noi Core API
+- **v3.14** - Hien so version tren giao dien web
+- **v3.13** - docs: huong dan nang cap tu v3.7 len v3.13
+- **v3.12** - feat: tu dong dien san form "Ket noi API" theo tai lieu doi tac
+- **v3.11** - feat: module Huong dan trong app (nghiep vu + he thong) + 2 quyen rieng
+- **v3.10** - huong dan cau hinh dung Core Voucher API cua doi tac qua "Ket noi API"
+- **v3.9** - feat: API cho doi tac tich hop truc tiep bang X-API-Key
+- **v3.8** - docs: them tai lieu API kiem tra/thu hoi voucher
+- **v3.7** - fix: kiem tra do dai ma voucher truoc khi vao DB
+- **v3.4** - Va lo hong SSRF con sot lai trong chinh fix vua merge + them thong bao 409 cho trung ma
+- **v3.3** - Va cac loi phat hien qua ra soat doi khang 3 agent sau PR #31-#35
+- **v3.2** - Nhat ky quan tri: ghi ca truoc/sau (before/after) thay vi chi gia tri moi
+- **v3.1** - xu ly nhom Medium + mot phan Low/Info tu dot audit nghiep vu+bao mat truoc
+- **v3.0** - xu ly cac muc Medium con lai: rui ro can kiet pool DB + tai lieu da-worker
+- **v2.8** - Va cac loi Critical/High tu dot ra soat nghiep vu + bao mat
+- **v2.7** - Sua cac man hinh con chua responsive tren dien thoai
+- **v2.6** - Sua loi PWA hien thi ban cu sau khi deploy
+- **v2.5** - Cai thien UI/UX bang du lieu tren dien thoai
+- **v2.4** - Fix trung dong bao cao voucher da su dung / tong hop
+- **v2.3** - Nut Xoa/Sua/Khoa/Mo tai khoan o man hinh Tai khoan
+- **v2.2** - Gan tai khoan truc tiep theo Don vi thu hoi + goi y Ma diem tu dong
+- **v2.1** - Sua loi JWT_EXPIRES_IN dang so tran bi hieu thanh mili-giay
+- **v2.0** - Them cach xac nhan version dang chay khong phu thuoc pm2
+- **v1.9** - Thong bao ro hon khi mat ket noi Core API
+- **v1.8** - Xu ly toan bo phat hien tu audit bao mat/nghiep vu/chuc nang
+
+
