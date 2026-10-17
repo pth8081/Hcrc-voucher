@@ -69,7 +69,7 @@ function render(rows, unassignedLocation) {
  */
 async function exportExcel() {
   if (!fromDateInput.value && !toDateInput.value) {
-    showToast('Vui long chon it nhat 1 moc ngay (tu ngay hoac den ngay) truoc khi xuat Excel');
+    showToast('Vui lòng chọn ít nhất 1 mốc ngày (từ ngày hoặc đến ngày) trước khi xuất Excel');
     return;
   }
   exportBtn.disabled = true;
