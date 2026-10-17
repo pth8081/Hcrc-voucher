@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tai khoan nguoi dung - HCRC Voucher Redemption</title>
+<title>Tài khoản người dùng - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -23,146 +23,146 @@
 
   <div class="container container-wide">
     <div id="notAdminNotice" class="card hidden">
-      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+      <p class="text-muted m-0">Chỉ tài khoản quản trị mới xem được trang này.</p>
     </div>
 
     <div id="usersCard">
       <div class="card">
-        <h2>Quan ly tai khoan</h2>
+        <h2>Quản lý tài khoản</h2>
         <div class="tabs">
-          <button type="button" class="tab-btn active" data-tab="create">Tao tai khoan moi</button>
-          <button type="button" class="tab-btn" data-tab="manage">Danh sach &amp; phan quyen</button>
-          <button type="button" class="tab-btn" data-tab="systemsReport">Bao cao phan quyen he thong</button>
+          <button type="button" class="tab-btn active" data-tab="create">Tạo tài khoản mới</button>
+          <button type="button" class="tab-btn" data-tab="manage">Danh sách &amp; phân quyền</button>
+          <button type="button" class="tab-btn" data-tab="systemsReport">Báo cáo phân quyền hệ thống</button>
         </div>
 
         <div id="tabCreate" class="tab-panel">
           <p class="security-note">
-            Tai khoan tao o day doc lap voi he thong Core (Core chi dung de kiem tra/cap nhat
-            voucher, khong quan ly dang nhap). Gan truc tiep <strong>Cong ty</strong> va
-            <strong>Don vi thu hoi (diem tieu)</strong> (chon tu danh sach da tao o trang "Don vi
-            thu hoi") de tai khoan nay chi thay/duoc tinh vao dung bao cao cua diem do - khong can
-            go tay ma dia diem nua.
+            Tài khoản tạo ở đây độc lập với hệ thống Core (Core chỉ dùng để kiểm tra/cập nhật
+            voucher, không quản lý đăng nhập). Gán trực tiếp <strong>Công ty</strong> và
+            <strong>Đơn vị thu hồi (điểm tiêu)</strong> (chọn từ danh sách đã tạo ở trang "Đơn vị
+            thu hồi") để tài khoản này chỉ thấy/được tính vào đúng báo cáo của điểm đó - không cần
+            gõ tay mã địa điểm nữa.
           </p>
           <div class="form-grid">
             <div>
-              <label>Ten dang nhap</label>
+              <label>Tên đăng nhập</label>
               <input id="newUsername" placeholder="vd: nhanvien02" />
             </div>
             <div>
-              <label>Mat khau</label>
-              <input id="newPassword" type="password" placeholder="It nhat 8 ky tu" />
+              <label>Mật khẩu</label>
+              <input id="newPassword" type="password" placeholder="Ít nhất 8 ký tự" />
             </div>
             <div>
-              <label>Ho ten</label>
-              <input id="newFullName" placeholder="vd: Nguyen Van A" />
+              <label>Họ tên</label>
+              <input id="newFullName" placeholder="vd: Nguyễn Văn A" />
             </div>
             <div>
-              <label>Vai tro</label>
+              <label>Vai trò</label>
               <select id="newRole">
-                <option value="0">Nhan vien</option>
-                <option value="1">Quan tri</option>
+                <option value="0">Nhân viên</option>
+                <option value="1">Quản trị</option>
               </select>
             </div>
             <div>
-              <label>Cong ty (tuy chon)</label>
+              <label>Công ty (tùy chọn)</label>
               <select id="newCompanyId">
-                <option value="">-- Chua gan cong ty --</option>
+                <option value="">-- Chưa gán công ty --</option>
               </select>
             </div>
             <div>
-              <label>Don vi thu hoi / diem tieu (tuy chon)</label>
+              <label>Đơn vị thu hồi / điểm tiêu (tùy chọn)</label>
               <select id="newRedemptionUnitId">
-                <option value="">-- Chon cong ty truoc --</option>
+                <option value="">-- Chọn công ty trước --</option>
               </select>
             </div>
           </div>
-          <button id="createUserBtn" class="btn-primary mt-6" type="button">Tao tai khoan</button>
+          <button id="createUserBtn" class="btn-primary mt-6" type="button">Tạo tài khoản</button>
         </div>
 
         <div id="tabManage" class="tab-panel hidden">
           <p class="security-note">
-            De trong <strong>"Kich hoat tu"</strong> = kich hoat ngay lap tuc; de trong
-            <strong>"Het han"</strong> = khong gioi han thoi gian su dung. Tai khoan tu dong
-            khoa/mo dung theo 2 moc thoi gian nay tai thoi diem dang nhap - khong can thao tac
-            them.
+            Để trống <strong>"Kích hoạt từ"</strong> = kích hoạt ngay lập tức; để trống
+            <strong>"Hết hạn"</strong> = không giới hạn thời gian sử dụng. Tài khoản tự động
+            khóa/mở dùng theo 2 mốc thời gian này tại thời điểm đăng nhập - không cần thao tác
+            thêm.
           </p>
           <p class="security-note">
-            <strong>Quyen tinh nang</strong> (4 cot dau) chi ap dung cho <strong>nhan vien</strong> -
-            quan tri luon co du moi quyen. <strong>Nhom quyen xem bao cao</strong>: mac dinh (de
-            trong) moi tai khoan CHI xem duoc bao cao/doanh thu cua dung cong ty gan voi dia diem
-            cua minh. Chon 1 nhom da tao o trang "Don vi thu hoi" de cap quyen xem cheo/xem nhieu
-            cong ty, hoac xem toan bo.
+            <strong>Quyền tính năng</strong> (4 cột đầu) chỉ áp dụng cho <strong>nhân viên</strong> -
+            quản trị luôn có đủ mọi quyền. <strong>Nhóm quyền xem báo cáo</strong>: mặc định (để
+            trống) mỗi tài khoản CHỈ xem được báo cáo/doanh thu của đúng công ty gắn với địa điểm
+            của mình. Chọn 1 nhóm đã tạo ở trang "Đơn vị thu hồi" để cấp quyền xem chéo/xem nhiều
+            công ty, hoặc xem toàn bộ.
           </p>
           <p class="security-note">
-            <strong>He thong voucher duoc dung</strong>: mac dinh (khong tick gi) = tai khoan duoc
-            quet/thu hoi va xem bao cao cua <strong>TOAN BO</strong> he thong voucher hien co (vd
-            BRGmart + Fuji). Tick 1 hoac nhieu he thong de GIOI HAN tai khoan chi duoc dung/xem
-            DUNG cac he thong do - dung khi cap tai khoan rieng cho doi tac (vd tai khoan doi soat
-            cho Fuji chi nen tick "Fuji").
+            <strong>Hệ thống voucher được dùng</strong>: mặc định (không tick gì) = tài khoản được
+            quét/thu hồi và xem báo cáo của <strong>TOÀN BỘ</strong> hệ thống voucher hiện có (vd
+            BRGmart + Fuji). Tick 1 hoặc nhiều hệ thống để GIỚI HẠN tài khoản chỉ được dùng/xem
+            ĐÚNG các hệ thống đó - dùng khi cấp tài khoản riêng cho đối tác (vd tài khoản đối soát
+            cho Fuji chỉ nên tick "Fuji").
           </p>
           <p class="security-note">
-            <strong>Khoa</strong>: dien san "Het han" = ngay bay gio, bam "Luu" de co hieu luc -
-            tai khoan khong dang nhap moi duoc nua nhung phien dang mo van dung toi khi tu het han
-            (JWT). <strong>Xoa</strong>: xoa mem, an khoi danh sach nay - bat "Hien tai khoan da xoa"
-            de xem lai/khoi phuc, khong mat du lieu.
+            <strong>Khóa</strong>: điền sẵn "Hết hạn" = ngày bây giờ, bấm "Lưu" để có hiệu lực -
+            tài khoản không đăng nhập mới được nữa nhưng phiên đang mở vẫn dùng tới khi tự hết hạn
+            (JWT). <strong>Xóa</strong>: xóa mềm, ẩn khỏi danh sách này - bật "Hiện tài khoản đã xóa"
+            để xem lại/khôi phục, không mất dữ liệu.
           </p>
           <div class="manage-toolbar">
-            <input id="userSearchInput" placeholder="Tim theo ten dang nhap hoac ho ten..." />
+            <input id="userSearchInput" placeholder="Tìm theo tên đăng nhập hoặc họ tên..." />
             <label class="checkbox-inline">
               <input type="checkbox" id="showDeletedCheckbox" />
-              Hien ca tai khoan da xoa
+              Hiện cả tài khoản đã xóa
             </label>
           </div>
           <div class="table-wrap users-table-wrap">
             <table id="usersTable">
               <thead>
                 <tr>
-                  <th>Ten dang nhap</th><th>Ho ten</th><th>Vai tro</th>
-                  <th>Thu hoi</th><th>Doi soat</th><th>Tong hop</th><th>Voucher da dung</th>
-                  <th>HD nghiep vu</th><th>HD he thong</th>
-                  <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
-                  <th>Don vi thu hoi</th>
-                  <th>Nhom quyen xem bao cao</th>
-                  <th>He thong voucher duoc dung</th>
-                  <th>Mat khau moi</th>
-                  <th>Hanh dong</th>
+                  <th>Tên đăng nhập</th><th>Họ tên</th><th>Vai trò</th>
+                  <th>Thu hồi</th><th>Đối soát</th><th>Tổng hợp</th><th>Voucher đã dùng</th>
+                  <th>HD nghiệp vụ</th><th>HD hệ thống</th>
+                  <th>Kích hoạt từ</th><th>Hết hạn</th><th>Trạng thái</th>
+                  <th>Đơn vị thu hồi</th>
+                  <th>Nhóm quyền xem báo cáo</th>
+                  <th>Hệ thống voucher được dùng</th>
+                  <th>Mật khẩu mới</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="usersBody"><tr><td colspan="17" class="text-muted">Dang tai...</td></tr></tbody>
+              <tbody id="usersBody"><tr><td colspan="17" class="text-muted">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>
 
         <div id="tabSystemsReport" class="tab-panel hidden">
           <p class="security-note">
-            Bang tong hop (chi xem, khong sua o day) giup kiem tra nhanh: tai khoan nao dang
-            duoc dung/xem he thong voucher nao, thuoc cong ty/don vi thu hoi nao - vd kiem tra
-            toan bo tai khoan dang co quyen voi <strong>Fuji</strong> truoc khi cap them 1 tai
-            khoan doi soat moi cho doi tac. Loc theo cong ty va/hoac he thong voucher ben duoi;
-            tai khoan <strong>"Khong gioi han"</strong> duoc tinh la CO quyen voi moi he thong
-            (xem muc 4f trong README) nen van hien ra khi loc theo 1 he thong cu the. Sua phan
-            quyen tai tab "Danh sach &amp; phan quyen".
+            Bảng tổng hợp (chỉ xem, không sửa ở đây) giúp kiểm tra nhanh: tài khoản nào đang
+            được dùng/xem hệ thống voucher nào, thuộc công ty/đơn vị thu hồi nào - vd kiểm tra
+            toàn bộ tài khoản đang có quyền với <strong>Fuji</strong> trước khi cấp thêm 1 tài
+            khoản đối soát mới cho đối tác. Lọc theo công ty và/hoặc hệ thống voucher bên dưới;
+            tài khoản <strong>"Không giới hạn"</strong> được tính là CÓ quyền với mọi hệ thống
+            (xem mục 4f trong README) nên vẫn hiện ra khi lọc theo 1 hệ thống cụ thể. Sửa phân
+            quyền tại tab "Danh sách &amp; phân quyền".
           </p>
           <div class="summary-filters">
             <div class="field">
-              <label>Cong ty</label>
-              <select id="reportFilterCompany"><option value="">Tat ca cong ty</option></select>
+              <label>Công ty</label>
+              <select id="reportFilterCompany"><option value="">Tất cả công ty</option></select>
             </div>
             <div class="field">
-              <label>He thong voucher</label>
-              <select id="reportFilterSystem"><option value="">Tat ca he thong</option></select>
+              <label>Hệ thống voucher</label>
+              <select id="reportFilterSystem"><option value="">Tất cả hệ thống</option></select>
             </div>
           </div>
           <div class="table-wrap table-responsive">
             <table id="systemsReportTable">
               <thead>
                 <tr>
-                  <th>Tai khoan</th><th>Ho ten</th><th>Vai tro</th>
-                  <th>Cong ty</th><th>Don vi thu hoi</th>
-                  <th>He thong voucher duoc dung</th>
+                  <th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th>
+                  <th>Công ty</th><th>Đơn vị thu hồi</th>
+                  <th>Hệ thống voucher được dùng</th>
                 </tr>
               </thead>
-              <tbody id="systemsReportBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
+              <tbody id="systemsReportBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>

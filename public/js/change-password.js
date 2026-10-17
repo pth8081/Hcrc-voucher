@@ -7,10 +7,10 @@ if (!getPendingTwoFactorToken()) {
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
 function clientPasswordProblems(password) {
   const problems = [];
-  if (!password || password.length < 8) problems.push('it nhat 8 ky tu');
-  if (!/[A-Za-z]/.test(password || '')) problems.push('it nhat 1 chu cai');
-  if (!/[0-9]/.test(password || '')) problems.push('it nhat 1 chu so');
-  if (!SPECIAL_CHAR_REGEX.test(password || '')) problems.push('it nhat 1 ky tu dac biet');
+  if (!password || password.length < 8) problems.push('ít nhất 8 ký tự');
+  if (!/[A-Za-z]/.test(password || '')) problems.push('ít nhất 1 chữ cái');
+  if (!/[0-9]/.test(password || '')) problems.push('ít nhất 1 chữ số');
+  if (!SPECIAL_CHAR_REGEX.test(password || '')) problems.push('ít nhất 1 ký tự đặc biệt');
   return problems;
 }
 
@@ -21,12 +21,12 @@ document.getElementById('changePasswordForm').addEventListener('submit', async (
   const confirmPassword = document.getElementById('confirmPassword').value;
 
   if (newPassword !== confirmPassword) {
-    showToast('Mat khau nhap lai khong khop');
+    showToast('Mật khẩu nhập lại không khớp');
     return;
   }
   const problems = clientPasswordProblems(newPassword);
   if (problems.length) {
-    showToast(`Mat khau chua dat yeu cau: ${problems.join(', ')}`);
+    showToast(`Mật khẩu chưa đạt yêu cầu: ${problems.join(', ')}`);
     return;
   }
 

@@ -61,7 +61,7 @@ async function loadSystemOptions() {
     // Khong chan luong quet neu loi o cho nay (vd mang cham) - chi khong hien o chon, van dung
     // dung ket noi active mac dinh cua server y het hanh vi cu (selectedConnectionId = null).
     // eslint-disable-next-line no-console
-    console.error('Khong tai duoc danh sach he thong voucher:', err.message);
+    console.error('Không tải được danh sách hệ thống voucher:', err.message);
   }
 }
 
@@ -87,7 +87,7 @@ function updateSystemSwitchUi(defaultId) {
     btn.classList.toggle('selected-alt', isSelected && !isDefault);
   });
   systemActiveBanner.className = 'system-active-banner ' + (isDefault ? 'default' : 'alt');
-  systemActiveBannerText.textContent = `Dang quet cho: He thong voucher ${selectedConnectionName}`;
+  systemActiveBannerText.textContent = `Đang quét cho: Hệ thống voucher ${selectedConnectionName}`;
 }
 
 voucherInput.addEventListener('keydown', (e) => {
@@ -148,7 +148,7 @@ function looksLikeGenuineScan(value, timestamps) {
 function rejectManualEntry() {
   focusInput();
   manualBlockedHint.classList.remove('hidden');
-  showToast('Khong cho phep nhap tay ma voucher, vui long dung may quet hoac camera');
+  showToast('Không cho phép nhập tay mã voucher, vui lòng dùng máy quét hoặc camera');
   clearTimeout(rejectManualEntry._timer);
   rejectManualEntry._timer = setTimeout(() => manualBlockedHint.classList.add('hidden'), 4000);
 }
@@ -180,33 +180,33 @@ function renderResult(voucherCode, data) {
   resultActions.innerHTML = '';
 
   if (data.status === 'UNUSED' && data.canRedeem) {
-    statusBadge.innerHTML = '<span class="status-badge status-unused">CHUA SU DUNG</span>';
+    statusBadge.innerHTML = '<span class="status-badge status-unused">CHƯA SỬ DỤNG</span>';
     resultInfo.innerHTML = `
-      <div class="info-row"><span class="k">Ma voucher</span><span class="v">${escapeHtml(voucherCode)}</span></div>
-      <div class="info-row"><span class="k">So serial</span><span class="v">${escapeHtml(data.voucherSerial || '-')}</span></div>
-      <div class="info-row"><span class="k">Menh gia</span><span class="v">${fmtMoney(data.valueAmt)}</span></div>
-      <div class="info-row"><span class="k">Ngay cap</span><span class="v">${escapeHtml(fmtDate(data.issueDate))}</span></div>
-      <div class="info-row"><span class="k">Han su dung</span><span class="v">${escapeHtml(fmtDate(data.expiryDate))}</span></div>
+      <div class="info-row"><span class="k">Mã voucher</span><span class="v">${escapeHtml(voucherCode)}</span></div>
+      <div class="info-row"><span class="k">Số serial</span><span class="v">${escapeHtml(data.voucherSerial || '-')}</span></div>
+      <div class="info-row"><span class="k">Mệnh giá</span><span class="v">${fmtMoney(data.valueAmt)}</span></div>
+      <div class="info-row"><span class="k">Ngày cấp</span><span class="v">${escapeHtml(fmtDate(data.issueDate))}</span></div>
+      <div class="info-row"><span class="k">Hạn sử dụng</span><span class="v">${escapeHtml(fmtDate(data.expiryDate))}</span></div>
     `;
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-success';
-    confirmBtn.textContent = 'Xac nhan thu hoi';
+    confirmBtn.textContent = 'Xác nhận thu hồi';
     confirmBtn.addEventListener('click', () => openRedeemConfirm(voucherCode, data));
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn-secondary';
-    cancelBtn.textContent = 'Huy / Quet ma khac';
+    cancelBtn.textContent = 'Hủy / Quét mã khác';
     cancelBtn.addEventListener('click', resetResult);
 
     resultActions.appendChild(confirmBtn);
     resultActions.appendChild(cancelBtn);
   } else if (data.status === 'USED') {
-    statusBadge.innerHTML = '<span class="status-badge status-used">DA SU DUNG</span>';
-    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.')}</p>`;
+    statusBadge.innerHTML = '<span class="status-badge status-used">ĐÃ SỬ DỤNG</span>';
+    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher này đã được sử dụng. Vui lòng quét mã voucher khác.')}</p>`;
     addContinueButton();
   } else {
-    statusBadge.innerHTML = '<span class="status-badge status-other">KHONG HOP LE</span>';
-    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher khong ton tai hoac khong hop le.')}</p>`;
+    statusBadge.innerHTML = '<span class="status-badge status-other">KHÔNG HỢP LỆ</span>';
+    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher không tồn tại hoặc không hợp lệ.')}</p>`;
     addContinueButton();
   }
 }
@@ -214,7 +214,7 @@ function renderResult(voucherCode, data) {
 function addContinueButton() {
   const btn = document.createElement('button');
   btn.className = 'btn-secondary';
-  btn.textContent = 'Quet ma khac';
+  btn.textContent = 'Quét mã khác';
   btn.addEventListener('click', resetResult);
   resultActions.appendChild(btn);
 }
@@ -264,8 +264,8 @@ async function confirmRedeem(voucherCode) {
 
     if (data.success) {
       const msg = data.pendingSync
-        ? `Da thu hoi: ${voucherCode} (dang cho dong bo voi he thong trung tam)`
-        : `Thu hoi thanh cong: ${voucherCode}`;
+        ? `Đã thu hồi: ${voucherCode} (đang chờ đồng bộ với hệ thống trung tâm)`
+        : `Thu hồi thành công: ${voucherCode}`;
       showToast(msg);
       addRecentRow({
         time: new Date(),
@@ -277,7 +277,7 @@ async function confirmRedeem(voucherCode) {
       });
       resetResult();
     } else {
-      showToast(data.message || 'Thu hoi that bai');
+      showToast(data.message || 'Thu hồi thất bại');
       resetResult();
     }
   } catch (err) {
@@ -301,12 +301,12 @@ function addRecentRow(row) {
     .map(
       (r) => `
       <tr>
-        <td data-label="Gio">${r.time.toLocaleTimeString('vi-VN')}</td>
-        <td data-label="Ma voucher">${escapeHtml(r.voucherCode)}</td>
-        <td data-label="He thong">${escapeHtml(r.connectionName || '-')}</td>
-        <td data-label="Menh gia">${fmtMoney(r.valueAmt)}</td>
+        <td data-label="Giờ">${r.time.toLocaleTimeString('vi-VN')}</td>
+        <td data-label="Mã voucher">${escapeHtml(r.voucherCode)}</td>
+        <td data-label="Hệ thống">${escapeHtml(r.connectionName || '-')}</td>
+        <td data-label="Mệnh giá">${fmtMoney(r.valueAmt)}</td>
         <td data-label="TRANS_NUM">${escapeHtml(r.transNum || '-')}</td>
-        <td data-label="Dong bo">${r.pendingSync ? '<span class="status-badge status-other">CHO DONG BO</span>' : '<span class="status-badge status-unused">DA DONG BO</span>'}</td>
+        <td data-label="Đồng bộ">${r.pendingSync ? '<span class="status-badge status-other">CHỜ ĐỒNG BỘ</span>' : '<span class="status-badge status-unused">ĐÃ ĐỒNG BỘ</span>'}</td>
       </tr>`
     )
     .join('');
@@ -340,10 +340,10 @@ function toggleCamera() {
     )
     .then(() => {
       cameraRunning = true;
-      cameraBtn.textContent = 'Dung camera';
+      cameraBtn.textContent = 'Dừng camera';
     })
     .catch((err) => {
-      showToast('Khong the mo camera: ' + err.message);
+      showToast('Không thể mở camera: ' + err.message);
       qrReaderEl.classList.add('hidden');
     })
     .finally(() => {
@@ -363,7 +363,7 @@ function stopCamera() {
     .finally(() => {
       qrReaderEl.classList.add('hidden');
       cameraRunning = false;
-      cameraBtn.textContent = 'Quet bang camera';
+      cameraBtn.textContent = 'Quét bằng camera';
       cameraBusy = false;
       cameraBtn.disabled = false;
     });

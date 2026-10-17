@@ -90,11 +90,11 @@
 #usersBody tr:not(.row-expanded) td {
   display: none;
 }
-#usersBody tr:not(.row-expanded) td[data-label="Ten dang nhap"],
-#usersBody tr:not(.row-expanded) td[data-label="Ho ten"],
-#usersBody tr:not(.row-expanded) td[data-label="Vai tro"],
+#usersBody tr:not(.row-expanded) td[data-label="Tên đăng nhập"],
+#usersBody tr:not(.row-expanded) td[data-label="Họ tên"],
+#usersBody tr:not(.row-expanded) td[data-label="Vai trò"],
 #usersBody tr:not(.row-expanded) td.state-cell,
-#usersBody tr:not(.row-expanded) td[data-label="Hanh dong"] {
+#usersBody tr:not(.row-expanded) td[data-label="Hành động"] {
   display: flex;
 }
 

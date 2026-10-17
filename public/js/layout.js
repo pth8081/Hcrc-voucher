@@ -26,22 +26,22 @@ const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // user.permissions[ten] = true moi hien (xem authService.js#issueSession - quyen duoc "chup"
 // vao session luc dang nhap, khong can goi them API o day).
 const NAV_ITEMS = [
-  { key: 'scan', href: '/index.html', label: 'Quet voucher', icon: NAV_ICONS.scan, permission: 'canRedeemVoucher' },
-  { key: 'report', href: '/report.html', label: 'Bao cao doi soat', icon: NAV_ICONS.report, permission: 'canViewReconciliation' },
-  { key: 'summary-report', href: '/summary-report.html', label: 'Bao cao tong hop', icon: NAV_ICONS.summaryReport, permission: 'canViewSummary' },
-  { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher da su dung', icon: NAV_ICONS.usedVouchers, permission: 'canViewUsedVouchers' },
-  { key: 'guide-business', href: '/guide-business.html', label: 'Huong dan nghiep vu', icon: NAV_ICONS.guide, permission: 'canViewBusinessGuide' },
-  { key: 'guide-system', href: '/guide-system.html', label: 'Huong dan he thong', icon: NAV_ICONS.guide, permission: 'canViewSystemGuide' },
-  { key: 'security', href: '/security.html', label: 'Bao mat', icon: NAV_ICONS.security },
+  { key: 'scan', href: '/index.html', label: 'Quét voucher', icon: NAV_ICONS.scan, permission: 'canRedeemVoucher' },
+  { key: 'report', href: '/report.html', label: 'Báo cáo đối soát', icon: NAV_ICONS.report, permission: 'canViewReconciliation' },
+  { key: 'summary-report', href: '/summary-report.html', label: 'Báo cáo tổng hợp', icon: NAV_ICONS.summaryReport, permission: 'canViewSummary' },
+  { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher đã sử dụng', icon: NAV_ICONS.usedVouchers, permission: 'canViewUsedVouchers' },
+  { key: 'guide-business', href: '/guide-business.html', label: 'Hướng dẫn nghiệp vụ', icon: NAV_ICONS.guide, permission: 'canViewBusinessGuide' },
+  { key: 'guide-system', href: '/guide-system.html', label: 'Hướng dẫn hệ thống', icon: NAV_ICONS.guide, permission: 'canViewSystemGuide' },
+  { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];
 
 // Chi hien voi tai khoan quan tri (role === 'admin'), gom vao 1 dropdown "Quan tri" thay vi
 // nam rai rac ngang hang voi cac muc tren - tranh topbar qua dai khi them tinh nang moi.
 const ADMIN_NAV_ITEMS = [
-  { key: 'units', href: '/units.html', label: 'Don vi thu hoi', icon: NAV_ICONS.units },
-  { key: 'connection', href: '/api-connection.html', label: 'Ket noi API', icon: NAV_ICONS.connection },
-  { key: 'users', href: '/users.html', label: 'Tai khoan', icon: NAV_ICONS.users },
-  { key: 'admin-log', href: '/admin-log.html', label: 'Nhat ky he thong', icon: NAV_ICONS.adminLog },
+  { key: 'units', href: '/units.html', label: 'Đơn vị thu hồi', icon: NAV_ICONS.units },
+  { key: 'connection', href: '/api-connection.html', label: 'Kết nối API', icon: NAV_ICONS.connection },
+  { key: 'users', href: '/users.html', label: 'Tài khoản', icon: NAV_ICONS.users },
+  { key: 'admin-log', href: '/admin-log.html', label: 'Nhật ký hệ thống', icon: NAV_ICONS.adminLog },
 ];
 
 function initials(name) {
@@ -76,10 +76,10 @@ function renderTopbar(activeKey) {
           <span class="brand-mark">${BRAND_MARK_SVG(30)}</span>
           <span>
             <span class="brand-word">HCRC</span>
-            <span class="brand-tagline">Thu hoi voucher</span>
+            <span class="brand-tagline">Thu hồi voucher</span>
           </span>
         </a>
-        <button type="button" class="topbar-toggle" id="topbarToggle" aria-label="Mo menu" aria-expanded="false">
+        <button type="button" class="topbar-toggle" id="topbarToggle" aria-label="Mở menu" aria-expanded="false">
           ${MENU_ICON}
         </button>
         <div class="topbar-panel" id="topbarPanel">
@@ -93,7 +93,7 @@ function renderTopbar(activeKey) {
             ${showAdminMenu ? `
             <div class="nav-dropdown">
               <button type="button" class="nav-link nav-dropdown-trigger ${adminMenuActive ? 'active' : ''}" id="adminMenuTrigger" aria-expanded="false">
-                ${NAV_ICONS.units}<span>Quan tri</span>${NAV_ICONS.chevron}
+                ${NAV_ICONS.units}<span>Quản trị</span>${NAV_ICONS.chevron}
               </button>
               <div class="nav-dropdown-panel" id="adminMenuPanel">
                 ${ADMIN_NAV_ITEMS.map(
@@ -110,9 +110,9 @@ function renderTopbar(activeKey) {
             <div class="user-meta">
               <span class="user-name">${escapeHtmlLayout(displayName)}</span>
               <span>
-                <a href="/security.html" id="webauthnRegisterLink" class="user-logout">Cai van tay/Face ID</a>
+                <a href="/security.html" id="webauthnRegisterLink" class="user-logout">Cài vân tay/Face ID</a>
                 &middot;
-                <a href="#" id="logoutLink" class="user-logout">Dang xuat</a>
+                <a href="#" id="logoutLink" class="user-logout">Đăng xuất</a>
                 &middot;
                 <span id="versionBadge" class="version-badge"></span>
               </span>

@@ -19,7 +19,7 @@ if ('serviceWorker' in navigator) {
     }
     reloading = true;
     if (typeof showToast === 'function') {
-      showToast('Da co ban cap nhat moi - dang tai lai...');
+      showToast('Đã có bản cập nhật mới - đang tải lại...');
     }
     setTimeout(() => window.location.reload(), 1200);
   });

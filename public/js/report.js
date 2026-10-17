@@ -23,15 +23,15 @@ function buildQuery() {
 }
 
 async function loadReport() {
-  summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Dang tai...</td></tr>';
-  detailBody.innerHTML = '<tr><td colspan="7" class="text-muted">Dang tai...</td></tr>';
+  summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Đang tải...</td></tr>';
+  detailBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải...</td></tr>';
   try {
     const data = await apiFetch(`/reports/daily?${buildQuery()}`);
     renderSummary(data.summary, data.unassignedLocation);
     renderDetails(data.details, data.unassignedLocation);
   } catch (err) {
     showToast(err.message);
-    const errHtml = `<td colspan="COLSPAN" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td>`;
+    const errHtml = `<td colspan="COLSPAN" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td>`;
     summaryBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '3')}</tr>`;
     detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '7')}</tr>`;
   }
@@ -39,20 +39,20 @@ async function loadReport() {
 
 function renderSummary(rows, unassignedLocation) {
   if (unassignedLocation) {
-    summaryBody.innerHTML = '<tr><td colspan="3" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="3" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Khong co giao dich trong khoang ngay da chon</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
   summaryBody.innerHTML = rows
     .map(
       (r) => `
       <tr>
-        <td data-label="Dia diem">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
-        <td data-label="So luong">${r.VoucherCount}</td>
-        <td data-label="Tong tien">${fmtMoney(r.TotalAmount)}</td>
+        <td data-label="Địa điểm">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="Số lượng">${r.VoucherCount}</td>
+        <td data-label="Tổng tiền">${fmtMoney(r.TotalAmount)}</td>
       </tr>`
     )
     .join('');
@@ -60,24 +60,24 @@ function renderSummary(rows, unassignedLocation) {
 
 function renderDetails(rows, unassignedLocation) {
   if (unassignedLocation) {
-    detailBody.innerHTML = '<tr><td colspan="7" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="7" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    detailBody.innerHTML = '<tr><td colspan="7" class="text-muted">Khong co giao dich trong khoang ngay da chon</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="7" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
   detailBody.innerHTML = rows
     .map(
       (r) => `
       <tr>
-        <td data-label="Ngay gio">${fmtDate(r.Created_Date)}</td>
-        <td data-label="Ma giao dich">${escapeHtml(r.TRANS_NUM || '-')}</td>
-        <td data-label="Ma voucher">${escapeHtml(r.Voucher_Code)}</td>
-        <td data-label="Nguoi thu hoi">${escapeHtml(r.User_Name || '-')}</td>
-        <td data-label="Dia diem">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
-        <td data-label="He thong">${escapeHtml(r.ConnectionName || '-')}</td>
-        <td data-label="Menh gia">${fmtMoney(r.VALUE_AMT)}</td>
+        <td data-label="Ngày giờ">${fmtDate(r.Created_Date)}</td>
+        <td data-label="Mã giao dịch">${escapeHtml(r.TRANS_NUM || '-')}</td>
+        <td data-label="Mã voucher">${escapeHtml(r.Voucher_Code)}</td>
+        <td data-label="Người thu hồi">${escapeHtml(r.User_Name || '-')}</td>
+        <td data-label="Địa điểm">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="Hệ thống">${escapeHtml(r.ConnectionName || '-')}</td>
+        <td data-label="Mệnh giá">${fmtMoney(r.VALUE_AMT)}</td>
       </tr>`
     )
     .join('');

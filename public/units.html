@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Don vi thu hoi - HCRC Voucher Redemption</title>
+<title>Đơn vị thu hồi - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -21,51 +21,51 @@
 
   <div class="container">
     <div id="notAdminNotice" class="card hidden">
-      <p class="text-muted m-0">Chi tai khoan quan tri moi xem duoc trang nay.</p>
+      <p class="text-muted m-0">Chỉ tài khoản quản trị mới xem được trang này.</p>
     </div>
 
     <div id="unitsCard">
     <div class="tabs">
-      <button type="button" class="tab-btn active" data-tab="companies">Cong ty</button>
-      <button type="button" class="tab-btn" data-tab="units">Diem tieu</button>
-      <button type="button" class="tab-btn" data-tab="access">Nhom quyen xem bao cao</button>
+      <button type="button" class="tab-btn active" data-tab="companies">Công ty</button>
+      <button type="button" class="tab-btn" data-tab="units">Điểm tiêu</button>
+      <button type="button" class="tab-btn" data-tab="access">Nhóm quyền xem báo cáo</button>
     </div>
 
     <div id="tabCompanies" class="tab-panel">
     <div class="card">
-      <h2>Them cong ty</h2>
-      <p class="hint mb-10">1 cong ty co the gan nhieu diem tieu (vd chuoi nhieu chi nhanh) - khai bao cong ty truoc, roi chon o form "Them diem tieu" ben duoi.</p>
+      <h2>Thêm công ty</h2>
+      <p class="hint mb-10">1 công ty có thể gắn nhiều điểm tiêu (vd chuỗi nhiều chi nhánh) - khai báo công ty trước, rồi chọn ở form "Thêm điểm tiêu" bên dưới.</p>
       <form id="companyForm">
-        <label>Ma cong ty *</label>
+        <label>Mã công ty *</label>
         <input id="companyCode" required />
-        <label>Ten cong ty *</label>
+        <label>Tên công ty *</label>
         <input id="companyName" required />
-        <label>Nguoi lien he</label>
+        <label>Người liên hệ</label>
         <input id="companyContactName" />
-        <label>So dien thoai</label>
+        <label>Số điện thoại</label>
         <input id="companyContactPhone" />
         <label>Email</label>
         <input id="companyContactEmail" />
-        <label>Dia chi</label>
+        <label>Địa chỉ</label>
         <input id="companyAddress" />
-        <label>Ma so thue</label>
+        <label>Mã số thuế</label>
         <input id="companyTaxCode" />
-        <label>So tai khoan ngan hang</label>
+        <label>Số tài khoản ngân hàng</label>
         <input id="companyBankAccount" />
-        <label>Ten ngan hang</label>
+        <label>Tên ngân hàng</label>
         <input id="companyBankName" />
-        <button class="btn-primary btn-block" type="submit">Luu cong ty</button>
+        <button class="btn-primary btn-block" type="submit">Lưu công ty</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Danh sach cong ty</h2>
+      <h2>Danh sách công ty</h2>
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Ma</th><th>Ten cong ty</th><th>Lien he</th><th>So diem tieu</th><th>Trang thai</th></tr>
+          <tr><th>Mã</th><th>Tên công ty</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th></tr>
         </thead>
-        <tbody id="companiesBody"><tr><td colspan="5" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="companiesBody"><tr><td colspan="5" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -73,73 +73,73 @@
 
     <div id="tabUnits" class="tab-panel hidden">
     <div class="card">
-      <h2>Them dia diem moi</h2>
+      <h2>Thêm địa điểm mới</h2>
       <p class="hint mb-10">
-        Dung khi cua hang/diem tieu CHUA TUNG co trong danh sach "Dia diem" ben duoi (vd mo chi
-        nhanh moi hoan toan). Sau khi luu, dia diem moi se tu xuat hien trong o "Dia diem" cua
-        form "Them diem tieu" ngay ben duoi de gan vao cong ty.
+        Dùng khi cửa hàng/điểm tiêu CHƯA TỪNG có trong danh sách "Địa điểm" bên dưới (vd mở chi
+        nhánh mới hoàn toàn). Sau khi lưu, địa điểm mới sẽ tự xuất hiện trong ô "Địa điểm" của
+        form "Thêm điểm tiêu" ngay bên dưới để gán vào công ty.
       </p>
       <form id="locationForm">
-        <label>Ten dia diem *</label>
+        <label>Tên địa điểm *</label>
         <input id="newLocationName" required />
-        <button class="btn-secondary btn-block" type="submit">Luu dia diem moi</button>
+        <button class="btn-secondary btn-block" type="submit">Lưu địa điểm mới</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Danh sach dia diem</h2>
-      <p class="hint mb-10">Bam "Sua" de doi lai ten 1 dia diem (vd go sai chinh ta luc tao).</p>
+      <h2>Danh sách địa điểm</h2>
+      <p class="hint mb-10">Bấm "Sửa" để đổi lại tên 1 địa điểm (vd gõ sai chính tả lúc tạo).</p>
       <div class="table-wrap table-responsive">
       <table>
-        <thead><tr><th>Ten dia diem</th><th>Trang thai</th><th>Hanh dong</th></tr></thead>
-        <tbody id="locationsBody"><tr><td colspan="3" class="text-muted">Dang tai...</td></tr></tbody>
+        <thead><tr><th>Tên địa điểm</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+        <tbody id="locationsBody"><tr><td colspan="3" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>
 
     <div class="card">
-      <h2>Them diem tieu</h2>
+      <h2>Thêm điểm tiêu</h2>
       <form id="unitForm">
-        <label>Cong ty *</label>
+        <label>Công ty *</label>
         <select id="companyId" required></select>
-        <label>Dia diem (Locations_Detail) *</label>
+        <label>Địa điểm (Locations_Detail) *</label>
         <select id="locationDetailId" required></select>
-        <label>Ma diem (PartnerCode) *</label>
-        <p class="hint mb-6">Tu go ma theo quy uoc rieng cua ban (khong gioi han so/chu) - khong con tu dong dien san.</p>
+        <label>Mã điểm (PartnerCode) *</label>
+        <p class="hint mb-6">Tự gõ mã theo quy ước riêng của bạn (không giới hạn số/chữ) - không còn tự động điền sẵn.</p>
         <input id="partnerCode" required />
-        <label>Ten diem tieu (PartnerName) *</label>
+        <label>Tên điểm tiêu (PartnerName) *</label>
         <input id="partnerName" required />
-        <label>Nguoi lien he</label>
+        <label>Người liên hệ</label>
         <input id="contactName" />
-        <label>So dien thoai</label>
+        <label>Số điện thoại</label>
         <input id="contactPhone" />
         <label>Email</label>
         <input id="contactEmail" />
-        <label>Dia chi</label>
+        <label>Địa chỉ</label>
         <input id="address" />
-        <label>Ma so thue</label>
+        <label>Mã số thuế</label>
         <input id="taxCode" />
-        <label>So tai khoan ngan hang</label>
+        <label>Số tài khoản ngân hàng</label>
         <input id="bankAccount" />
-        <label>Ten ngan hang</label>
+        <label>Tên ngân hàng</label>
         <input id="bankName" />
-        <label>Han muc thu hoi/ngay (tuy chon)</label>
-        <p class="hint mb-6">Chi de ghi chu/tham khao - he thong CHUA tu dong chan khi vuot han muc nay luc thu hoi.</p>
+        <label>Hạn mức thu hồi/ngày (tùy chọn)</label>
+        <p class="hint mb-6">Chỉ để ghi chú/tham khảo - hệ thống CHƯA tự động chặn khi vượt hạn mức này lúc thu hồi.</p>
         <input id="dailyLimitAmount" type="number" min="0" step="1000" />
-        <button class="btn-primary btn-block" type="submit">Luu diem tieu</button>
+        <button class="btn-primary btn-block" type="submit">Lưu điểm tiêu</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Danh sach diem tieu</h2>
+      <h2>Danh sách điểm tiêu</h2>
       <div class="table-wrap table-responsive">
       <table>
         <thead>
           <tr>
-            <th>Ma diem</th><th>Ten diem tieu</th><th>Cong ty</th><th>Dia diem</th><th>Lien he</th><th>Trang thai</th>
+            <th>Mã điểm</th><th>Tên điểm tiêu</th><th>Công ty</th><th>Địa điểm</th><th>Liên hệ</th><th>Trạng thái</th>
           </tr>
         </thead>
-        <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -147,36 +147,36 @@
 
     <div id="tabAccess" class="tab-panel hidden">
     <div class="card">
-      <h2>Them nhom quyen xem bao cao</h2>
+      <h2>Thêm nhóm quyền xem báo cáo</h2>
       <p class="hint mb-10">
-        Mac dinh moi tai khoan CHI xem duoc doanh thu/bao cao cua dung cong ty gan voi dia diem
-        cua minh. Tao nhom o day de cap them quyen xem CHEO sang cong ty khac, hoac xem TOAN BO -
-        roi gan tai khoan vao nhom o man hinh "Tai khoan".
+        Mặc định mỗi tài khoản CHỈ xem được doanh thu/báo cáo của đúng công ty gắn với địa điểm
+        của mình. Tạo nhóm ở đây để cấp thêm quyền xem CHÉO sang công ty khác, hoặc xem TOÀN BỘ -
+        rồi gán tài khoản vào nhóm ở màn hình "Tài khoản".
       </p>
       <form id="accessGroupForm">
-        <label>Ten nhom *</label>
+        <label>Tên nhóm *</label>
         <input id="groupName" required />
-        <label>Pham vi *</label>
+        <label>Phạm vi *</label>
         <select id="scopeType">
-          <option value="SPECIFIC">Chi xem them mot so cong ty duoc chon</option>
-          <option value="ALL">Xem toan bo tat ca cong ty</option>
+          <option value="SPECIFIC">Chỉ xem thêm một số công ty được chọn</option>
+          <option value="ALL">Xem toàn bộ tất cả công ty</option>
         </select>
         <div id="groupCompaniesField">
-          <label>Cong ty duoc xem them (ngoai cong ty cua chinh tai khoan)</label>
-          <div id="groupCompaniesList" class="hint">Dang tai danh sach cong ty...</div>
+          <label>Công ty được xem thêm (ngoài công ty của chính tài khoản)</label>
+          <div id="groupCompaniesList" class="hint">Đang tải danh sách công ty...</div>
         </div>
-        <button class="btn-primary btn-block mt-10" type="submit">Luu nhom quyen</button>
+        <button class="btn-primary btn-block mt-10" type="submit">Lưu nhóm quyền</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Danh sach nhom quyen</h2>
+      <h2>Danh sách nhóm quyền</h2>
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Ten nhom</th><th>Pham vi</th><th>Cong ty duoc xem them</th></tr>
+          <tr><th>Tên nhóm</th><th>Phạm vi</th><th>Công ty được xem thêm</th></tr>
         </thead>
-        <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

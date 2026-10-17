@@ -59,7 +59,7 @@ let editingLocationId = null;
 function renderLocationsList() {
   if (!locationsBody) return;
   if (!locationsCache.length) {
-    locationsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chua co dia diem nao</td></tr>';
+    locationsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chưa có địa điểm nào</td></tr>';
     return;
   }
   locationsBody.innerHTML = locationsCache
@@ -67,20 +67,20 @@ function renderLocationsList() {
       if (editingLocationId === d.id) {
         return `
           <tr>
-            <td data-label="Ten dia diem"><input type="text" class="edit-location-name" value="${escapeHtml(d.LocationName)}" /></td>
-            <td data-label="Trang thai">${d.Status ? 'Hoat dong' : 'Ngung'}</td>
-            <td data-label="Hanh dong" class="actions-cell">
-              <button type="button" class="btn-primary save-location-btn" data-id="${d.id}">Luu</button>
-              <button type="button" class="btn-secondary cancel-location-btn">Huy</button>
+            <td data-label="Tên địa điểm"><input type="text" class="edit-location-name" value="${escapeHtml(d.LocationName)}" /></td>
+            <td data-label="Trạng thái">${d.Status ? 'Hoạt động' : 'Ngừng'}</td>
+            <td data-label="Hành động" class="actions-cell">
+              <button type="button" class="btn-primary save-location-btn" data-id="${d.id}">Lưu</button>
+              <button type="button" class="btn-secondary cancel-location-btn">Hủy</button>
             </td>
           </tr>`;
       }
       return `
         <tr>
-          <td data-label="Ten dia diem">${escapeHtml(d.LocationName)}</td>
-          <td data-label="Trang thai">${d.Status ? 'Hoat dong' : 'Ngung'}</td>
-          <td data-label="Hanh dong" class="actions-cell">
-            <button type="button" class="btn-secondary edit-location-btn" data-id="${d.id}">Sua</button>
+          <td data-label="Tên địa điểm">${escapeHtml(d.LocationName)}</td>
+          <td data-label="Trạng thái">${d.Status ? 'Hoạt động' : 'Ngừng'}</td>
+          <td data-label="Hành động" class="actions-cell">
+            <button type="button" class="btn-secondary edit-location-btn" data-id="${d.id}">Sửa</button>
           </td>
         </tr>`;
     })
@@ -104,7 +104,7 @@ function renderLocationsList() {
       const input = locationsBody.querySelector('.edit-location-name');
       const locationName = input.value.trim();
       if (!locationName) {
-        showToast('Ten dia diem khong duoc de trong');
+        showToast('Tên địa điểm không được để trống');
         return;
       }
       btn.disabled = true;
@@ -113,7 +113,7 @@ function renderLocationsList() {
           method: 'PUT',
           body: JSON.stringify({ locationName }),
         });
-        showToast('Da cap nhat dia diem');
+        showToast('Đã cập nhật địa điểm');
         editingLocationId = null;
         await loadLocations();
       } catch (err) {
@@ -135,7 +135,7 @@ locationForm.addEventListener('submit', async (e) => {
         method: 'POST',
         body: JSON.stringify({ locationName }),
       });
-      showToast(`Da tao dia diem "${locationName}"`);
+      showToast(`Đã tạo địa điểm "${locationName}"`);
       locationForm.reset();
       await loadLocations();
       // Chon san dia diem vua tao trong form "Them diem tieu" ben duoi, de admin khong phai
@@ -162,18 +162,18 @@ async function loadCompanies() {
 
 function renderCompanies() {
   if (!companiesCache.length) {
-    companiesBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chua co cong ty nao</td></tr>';
+    companiesBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có công ty nào</td></tr>';
     return;
   }
   companiesBody.innerHTML = companiesCache
     .map(
       (c) => `
       <tr>
-        <td data-label="Ma">${escapeHtml(c.CompanyCode)}</td>
-        <td data-label="Ten cong ty">${escapeHtml(c.CompanyName)}</td>
-        <td data-label="Lien he">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
-        <td data-label="So diem tieu" id="unit-count-${c.Id}">-</td>
-        <td data-label="Trang thai">${c.Status ? 'Hoat dong' : 'Ngung'}</td>
+        <td data-label="Mã">${escapeHtml(c.CompanyCode)}</td>
+        <td data-label="Tên công ty">${escapeHtml(c.CompanyName)}</td>
+        <td data-label="Liên hệ">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
+        <td data-label="Số điểm tiêu" id="unit-count-${c.Id}">-</td>
+        <td data-label="Trạng thái">${c.Status ? 'Hoạt động' : 'Ngừng'}</td>
       </tr>`
     )
     .join('');
@@ -183,18 +183,18 @@ async function loadUnits() {
   try {
     const data = await apiFetch('/redemption-units');
     if (!data.length) {
-      unitsBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chua co diem tieu nao</td></tr>';
+      unitsBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có điểm tiêu nào</td></tr>';
     } else {
       unitsBody.innerHTML = data
         .map(
           (u) => `
           <tr>
-            <td data-label="Ma diem">${escapeHtml(u.PartnerCode)}</td>
-            <td data-label="Ten diem tieu">${escapeHtml(u.PartnerName)}</td>
-            <td data-label="Cong ty">${escapeHtml(u.CompanyName || '-')}</td>
-            <td data-label="Dia diem">${escapeHtml(u.LocationName || '-')}</td>
-            <td data-label="Lien he">${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
-            <td data-label="Trang thai">${u.Status ? 'Hoat dong' : 'Ngung'}</td>
+            <td data-label="Mã điểm">${escapeHtml(u.PartnerCode)}</td>
+            <td data-label="Tên điểm tiêu">${escapeHtml(u.PartnerName)}</td>
+            <td data-label="Công ty">${escapeHtml(u.CompanyName || '-')}</td>
+            <td data-label="Địa điểm">${escapeHtml(u.LocationName || '-')}</td>
+            <td data-label="Liên hệ">${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
+            <td data-label="Trạng thái">${u.Status ? 'Hoạt động' : 'Ngừng'}</td>
           </tr>`
         )
         .join('');
@@ -215,7 +215,7 @@ async function loadUnits() {
 
 function renderGroupCompaniesCheckboxes() {
   if (!companiesCache.length) {
-    groupCompaniesList.innerHTML = '<span class="text-muted">Chua co cong ty nao</span>';
+    groupCompaniesList.innerHTML = '<span class="text-muted">Chưa có công ty nào</span>';
     return;
   }
   groupCompaniesList.innerHTML = companiesCache
@@ -246,16 +246,16 @@ async function loadAccessGroups() {
 
 function renderAccessGroups(data) {
   if (!data.length) {
-    accessGroupsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chua co nhom quyen nao</td></tr>';
+    accessGroupsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chưa có nhóm quyền nào</td></tr>';
     return;
   }
   accessGroupsBody.innerHTML = data
     .map(
       (g) => `
       <tr>
-        <td data-label="Ten nhom">${escapeHtml(g.GroupName)}</td>
-        <td data-label="Pham vi">${g.ScopeType === 'ALL' ? 'Toan bo cong ty' : 'Chi dinh cong ty'}</td>
-        <td data-label="Cong ty duoc xem them">${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
+        <td data-label="Tên nhóm">${escapeHtml(g.GroupName)}</td>
+        <td data-label="Phạm vi">${g.ScopeType === 'ALL' ? 'Toàn bộ công ty' : 'Chỉ định công ty'}</td>
+        <td data-label="Công ty được xem thêm">${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
       </tr>`
     )
     .join('');
@@ -266,7 +266,7 @@ accessGroupForm.addEventListener('submit', async (e) => {
   const scopeType = scopeTypeSelect.value;
   const companyIds = Array.from(document.querySelectorAll('.groupCompanyCheckbox:checked')).map((el) => Number(el.value));
   if (scopeType === 'SPECIFIC' && !companyIds.length) {
-    showToast('Vui long chon it nhat 1 cong ty');
+    showToast('Vui lòng chọn ít nhất 1 công ty');
     return;
   }
   const payload = {
@@ -280,7 +280,7 @@ accessGroupForm.addEventListener('submit', async (e) => {
   await withSubmitLock(accessGroupForm, async () => {
     try {
       await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Da luu nhom quyen');
+      showToast('Đã lưu nhóm quyền');
       accessGroupForm.reset();
       toggleGroupCompaniesField();
       renderGroupCompaniesCheckboxes();
@@ -308,7 +308,7 @@ companyForm.addEventListener('submit', async (e) => {
   await withSubmitLock(companyForm, async () => {
     try {
       await apiFetch('/companies', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Da luu cong ty');
+      showToast('Đã lưu công ty');
       companyForm.reset();
       await loadCompanies();
       loadUnits();
@@ -338,7 +338,7 @@ unitForm.addEventListener('submit', async (e) => {
   await withSubmitLock(unitForm, async () => {
     try {
       await apiFetch('/redemption-units', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Da luu diem tieu');
+      showToast('Đã lưu điểm tiêu');
       unitForm.reset();
       loadUnits();
     } catch (err) {

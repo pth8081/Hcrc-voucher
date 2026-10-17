@@ -20,7 +20,7 @@ function ensureDocumentFocused() {
 /** Dang ky van tay/Face ID cho THIET BI HIEN TAI, gan voi tai khoan dang dang nhap. */
 async function registerPasskey(deviceLabel) {
   if (!webauthnSupported()) {
-    throw new Error('Trinh duyet nay khong ho tro dang nhap bang van tay/Face ID.');
+    throw new Error('Trình duyệt này không hỗ trợ đăng nhập bằng vân tay/Face ID.');
   }
   const { options, flowId } = await apiFetch('/auth/webauthn/register-options', { method: 'POST' });
   ensureDocumentFocused();
@@ -38,7 +38,7 @@ async function registerPasskey(deviceLabel) {
  */
 async function loginWithPasskey() {
   if (!webauthnSupported()) {
-    throw new Error('Trinh duyet nay khong ho tro dang nhap bang van tay/Face ID.');
+    throw new Error('Trình duyệt này không hỗ trợ đăng nhập bằng vân tay/Face ID.');
   }
   const { options, flowId } = await apiFetch('/auth/webauthn/login-options', { method: 'POST' });
   ensureDocumentFocused();

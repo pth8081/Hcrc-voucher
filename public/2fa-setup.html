@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Thiet lap xac thuc hai yeu to - HCRC Voucher Redemption</title>
+<title>Thiết lập xác thực hai yếu tố - HCRC Voucher Redemption</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -29,31 +29,31 @@
           </svg>
         </span>
         <span class="brand-word">HCRC</span>
-        <span class="brand-tagline">He thong thu hoi voucher doi tac</span>
+        <span class="brand-tagline">Hệ thống thu hồi voucher đối tác</span>
       </div>
 
-      <p class="login-title">Thiet lap xac thuc hai yeu to</p>
-      <p class="twofa-lead">Tai khoan quan tri bat buoc bat xac thuc hai yeu to (TOTP) de bao ve cau hinh he thong.</p>
+      <p class="login-title">Thiết lập xác thực hai yếu tố</p>
+      <p class="twofa-lead">Tài khoản quản trị bắt buộc bật xác thực hai yếu tố (TOTP) để bảo vệ cấu hình hệ thống.</p>
 
       <div id="passwordGate" class="hidden">
-        <p class="hint mb-10">Ban dang doi thiet bi xac thuc hai yeu to trong luc van con dang nhap - nhap lai mat khau de xac nhan chinh ban truoc khi tao ma QR moi (thiet bi cu se ngung hoat dong).</p>
-        <label>Mat khau</label>
+        <p class="hint mb-10">Bạn đang đổi thiết bị xác thực hai yếu tố trong lúc vẫn còn đăng nhập - nhập lại mật khẩu để xác nhận chính bạn trước khi tạo mã QR mới (thiết bị cũ sẽ ngừng hoạt động).</p>
+        <label>Mật khẩu</label>
         <input id="confirmPassword" type="password" autocomplete="current-password" required />
-        <button id="confirmPasswordBtn" class="btn-primary btn-block mt-10" type="button">Xac nhan mat khau</button>
+        <button id="confirmPasswordBtn" class="btn-primary btn-block mt-10" type="button">Xác nhận mật khẩu</button>
       </div>
 
       <div id="setupContent" class="hidden">
-        <div id="qrWrap" class="twofa-qr"><img id="qrImage" src="" alt="Ma QR thiet lap xac thuc hai yeu to" /></div>
-        <p class="twofa-key-label">Khong quet duoc? Nhap ma thu cong nay vao ung dung xac thuc:</p>
+        <div id="qrWrap" class="twofa-qr"><img id="qrImage" src="" alt="Mã QR thiết lập xác thực hai yếu tố" /></div>
+        <p class="twofa-key-label">Không quét được? Nhập mã thủ công này vào ứng dụng xác thực:</p>
         <p id="manualKey" class="twofa-key">...</p>
-        <p class="hint mb-10">Dung ung dung xac thuc (Google Authenticator, Microsoft Authenticator, Authy...) quet ma QR o tren, roi nhap ma 6 so ung dung do hien ra:</p>
+        <p class="hint mb-10">Dùng ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, Authy...) quét mã QR ở trên, rồi nhập mã 6 số ứng dụng đó hiện ra:</p>
 
         <form id="setupForm">
           <input id="code" class="twofa-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required />
-          <button class="btn-primary btn-block mt-10" type="submit">Xac nhan &amp; bat dau su dung</button>
+          <button class="btn-primary btn-block mt-10" type="submit">Xác nhận &amp; bắt đầu sử dụng</button>
         </form>
       </div>
-      <a id="cancelLink" class="twofa-cancel" href="/login.html">Huy, quay lai dang nhap</a>
+      <a id="cancelLink" class="twofa-cancel" href="/login.html">Hủy, quay lại đăng nhập</a>
     </div>
   </div>
 

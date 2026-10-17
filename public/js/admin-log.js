@@ -10,25 +10,26 @@ const scanBody = document.getElementById('scanBody');
 // gio duoc them vao day) - Nhat ky quan tri hien thang ma tieng Anh vd "UPDATE_USER_LOCATION"
 // thay vi nhan tieng Viet de nguoi xem hieu ngay.
 const ACTION_LABEL = {
-  CREATE_USER: 'Tao tai khoan',
-  UPDATE_USER_LOCATION: 'Doi diem tieu tai khoan',
-  UPDATE_USER_PROFILE: 'Sua ho ten/dat lai mat khau',
-  DELETE_USER: 'Xoa tai khoan',
-  RESTORE_USER: 'Khoi phuc tai khoan',
-  UPDATE_PERMISSIONS: 'Doi quyen tinh nang',
-  UPDATE_SCHEDULE: 'Doi lich hieu luc',
-  UPDATE_REPORT_ACCESS: 'Doi nhom quyen bao cao',
-  RESET_2FA: 'Go xac thuc hai yeu to',
-  CREATE_ACCESS_GROUP: 'Tao nhom quyen bao cao',
-  UPDATE_ACCESS_GROUP: 'Sua nhom quyen bao cao',
-  CREATE_REDEMPTION_UNIT: 'Tao don vi thu hoi',
-  UPDATE_REDEMPTION_UNIT: 'Sua don vi thu hoi',
-  CREATE_COMPANY: 'Tao cong ty',
-  UPDATE_COMPANY: 'Sua cong ty',
-  CREATE_API_CONNECTION: 'Tao ket noi API',
-  UPDATE_API_CONNECTION: 'Sua ket noi API',
-  ACTIVATE_API_CONNECTION: 'Kich hoat ket noi API',
-  DELETE_API_CONNECTION: 'Xoa ket noi API',
+  CREATE_USER: 'Tạo tài khoản',
+  UPDATE_USER_LOCATION: 'Đổi điểm tiêu tài khoản',
+  UPDATE_USER_PROFILE: 'Sửa họ tên/đặt lại mật khẩu',
+  DELETE_USER: 'Xóa tài khoản',
+  RESTORE_USER: 'Khôi phục tài khoản',
+  UPDATE_PERMISSIONS: 'Đổi quyền tính năng',
+  UPDATE_SCHEDULE: 'Đổi lịch hiệu lực',
+  UPDATE_REPORT_ACCESS: 'Đổi nhóm quyền báo cáo',
+  RESET_2FA: 'Gỡ xác thực hai yếu tố',
+  CREATE_ACCESS_GROUP: 'Tạo nhóm quyền báo cáo',
+  UPDATE_ACCESS_GROUP: 'Sửa nhóm quyền báo cáo',
+  CREATE_REDEMPTION_UNIT: 'Tạo đơn vị thu hồi',
+  UPDATE_REDEMPTION_UNIT: 'Sửa đơn vị thu hồi',
+  CREATE_COMPANY: 'Tạo công ty',
+  UPDATE_COMPANY: 'Sửa công ty',
+  CREATE_API_CONNECTION: 'Tạo kết nối API',
+  UPDATE_API_CONNECTION: 'Sửa kết nối API',
+  ACTIVATE_API_CONNECTION: 'Kích hoạt kết nối API',
+  DELETE_API_CONNECTION: 'Xóa kết nối API',
+  UPDATE_USER_VOUCHER_SYSTEMS: 'Đổi hệ thống voucher được dùng',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -57,15 +58,15 @@ async function loadAudit() {
           .map(
             (r) => `
         <tr>
-          <td data-label="Thoi gian">${fmtDate(r.CreatedDate)}</td>
-          <td data-label="Nguoi thuc hien">${escapeHtml(r.ActorUsername)}</td>
-          <td data-label="Hanh dong">${escapeHtml(ACTION_LABEL[r.Action] || r.Action)}</td>
-          <td data-label="Doi tuong">${escapeHtml(r.TargetUsername || '-')}</td>
-          <td class="fs-13 text-muted" data-label="Chi tiet">${escapeHtml(detailText(r.Detail))}</td>
+          <td data-label="Thời gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Người thực hiện">${escapeHtml(r.ActorUsername)}</td>
+          <td data-label="Hành động">${escapeHtml(ACTION_LABEL[r.Action] || r.Action)}</td>
+          <td data-label="Đối tượng">${escapeHtml(r.TargetUsername || '-')}</td>
+          <td class="fs-13 text-muted" data-label="Chi tiết">${escapeHtml(detailText(r.Detail))}</td>
         </tr>`
           )
           .join('')
-      : '<tr><td colspan="5" class="text-muted">Chua co nhat ky nao</td></tr>';
+      : '<tr><td colspan="5" class="text-muted">Chưa có nhật ký nào</td></tr>';
     return true;
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
@@ -82,24 +83,24 @@ async function loadScan() {
   if (toDate) params.set('toDate', toDate);
 
   try {
-    scanBody.innerHTML = '<tr><td colspan="7" class="text-muted">Dang tai...</td></tr>';
+    scanBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải...</td></tr>';
     const rows = await apiFetch(`/admin/scan-log?${params.toString()}`);
     scanBody.innerHTML = rows.length
       ? rows
           .map(
             (r) => `
         <tr>
-          <td data-label="Thoi gian">${fmtDate(r.CreatedDate)}</td>
-          <td data-label="Nguoi quet">${escapeHtml(r.UserName || '-')}</td>
-          <td data-label="Dia diem">${escapeHtml(r.LocationsDetail || '-')}</td>
-          <td data-label="Ma voucher">${escapeHtml(r.VoucherCode)}</td>
-          <td data-label="Cach quet">${escapeHtml(r.ScanMethod)}</td>
-          <td data-label="Hanh dong">${escapeHtml(r.Action)}</td>
-          <td data-label="Ket qua">${escapeHtml(r.ResultStatus)}</td>
+          <td data-label="Thời gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Người quét">${escapeHtml(r.UserName || '-')}</td>
+          <td data-label="Địa điểm">${escapeHtml(r.LocationsDetail || '-')}</td>
+          <td data-label="Mã voucher">${escapeHtml(r.VoucherCode)}</td>
+          <td data-label="Cách quét">${escapeHtml(r.ScanMethod)}</td>
+          <td data-label="Hành động">${escapeHtml(r.Action)}</td>
+          <td data-label="Kết quả">${escapeHtml(r.ResultStatus)}</td>
         </tr>`
           )
           .join('')
-      : '<tr><td colspan="7" class="text-muted">Khong co du lieu trong khoang da chon</td></tr>';
+      : '<tr><td colspan="7" class="text-muted">Không có dữ liệu trong khoảng đã chọn</td></tr>';
   } catch (err) {
     showToast(err.message);
   }

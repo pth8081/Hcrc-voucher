@@ -37,7 +37,7 @@ if (hasFullSession) {
   confirmPasswordBtn.addEventListener('click', async () => {
     const password = document.getElementById('confirmPassword').value;
     if (!password) {
-      showToast('Vui long nhap mat khau');
+      showToast('Vui lòng nhập mật khẩu');
       return;
     }
     confirmPasswordBtn.disabled = true;
@@ -64,7 +64,7 @@ document.getElementById('setupForm').addEventListener('submit', async (e) => {
         window.location.href = '/index.html';
         return;
       }
-      showToast('Da cap nhat thiet bi xac thuc hai yeu to');
+      showToast('Đã cập nhật thiết bị xác thực hai yếu tố');
       window.location.href = '/security.html';
     } catch (err) {
       showToast(err.message);

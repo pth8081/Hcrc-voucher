@@ -30,7 +30,7 @@ async function twoFaFetch(path, options = {}) {
   const res = await fetch(`/api${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.success === false) {
-    throw new Error(body.message || `Loi API (${res.status})`);
+    throw new Error(body.message || `Lỗi API (${res.status})`);
   }
   return body.data;
 }
