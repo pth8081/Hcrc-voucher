@@ -339,6 +339,46 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
   .scan-input { font-size: 16px; letter-spacing: 0.01em; padding: 14px 10px; }
 }
 
+/* Hop thoai "Ban co muon thu hoi voucher nay khong?" - chan luc bam nham/cham nham phai qua 1
+   buoc xac nhan nua truoc khi goi API thu hoi that su (xem scan.js). */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 31, 34, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.confirm-overlay.hidden { display: none; }
+.confirm-box {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 380px;
+  width: 100%;
+  padding: 24px 22px 20px;
+  text-align: center;
+}
+.confirm-box .confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 26px;
+  font-weight: 800;
+}
+.confirm-box h3 { margin: 0 0 8px; font-size: 18px; }
+.confirm-box .confirm-sub { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions button { flex: 1; }
+
 .status-badge {
   display: inline-block;
   padding: 5px 12px;

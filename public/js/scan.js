@@ -14,6 +14,12 @@ const systemSwitchCard = document.getElementById('systemSwitchCard');
 const systemSwitch = document.getElementById('systemSwitch');
 const systemActiveBanner = document.getElementById('systemActiveBanner');
 const systemActiveBannerText = document.getElementById('systemActiveBannerText');
+const confirmRedeemOverlay = document.getElementById('confirmRedeemOverlay');
+const confirmRedeemCode = document.getElementById('confirmRedeemCode');
+const confirmRedeemAmount = document.getElementById('confirmRedeemAmount');
+const confirmRedeemSystem = document.getElementById('confirmRedeemSystem');
+const confirmRedeemYesBtn = document.getElementById('confirmRedeemYesBtn');
+const confirmRedeemNoBtn = document.getElementById('confirmRedeemNoBtn');
 
 // Chi chap nhan du lieu quet (may quet HID hoac camera), khong cho phep go tay/dan/keo-tha.
 // May quet HID gia lap ban phim that nen khong the chan bang thuoc tinh readonly - thay vao do
@@ -185,7 +191,7 @@ function renderResult(voucherCode, data) {
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-success';
     confirmBtn.textContent = 'Xac nhan thu hoi';
-    confirmBtn.addEventListener('click', () => confirmRedeem(voucherCode));
+    confirmBtn.addEventListener('click', () => openRedeemConfirm(voucherCode, data));
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn-secondary';
@@ -212,6 +218,39 @@ function addContinueButton() {
   btn.addEventListener('click', resetResult);
   resultActions.appendChild(btn);
 }
+
+// Them 1 buoc xac nhan nua truoc khi goi API thu hoi that su, tranh bam nham/cham nham ngay
+// sau khi kiem tra xong (nhat la tren dien thoai, man hinh cam ung) - theo yeu cau nguoi dung.
+// Khong thay doi gi logic goi API/ghi du lieu, chi chen them 1 buoc hoi lai o phia giao dien.
+let pendingRedeemVoucherCode = null;
+
+function openRedeemConfirm(voucherCode, data) {
+  pendingRedeemVoucherCode = voucherCode;
+  confirmRedeemCode.textContent = voucherCode;
+  confirmRedeemAmount.textContent = fmtMoney(data.valueAmt);
+  confirmRedeemSystem.textContent = selectedConnectionName || 'mặc định';
+  confirmRedeemOverlay.classList.remove('hidden');
+  resultActions.querySelectorAll('button').forEach((b) => (b.disabled = true));
+}
+
+function closeRedeemConfirm() {
+  confirmRedeemOverlay.classList.add('hidden');
+  pendingRedeemVoucherCode = null;
+  resultActions.querySelectorAll('button').forEach((b) => (b.disabled = false));
+}
+
+confirmRedeemYesBtn.addEventListener('click', () => {
+  const voucherCode = pendingRedeemVoucherCode;
+  closeRedeemConfirm();
+  if (voucherCode) confirmRedeem(voucherCode);
+});
+
+confirmRedeemNoBtn.addEventListener('click', () => {
+  // "Khong" -> thoat ve man hinh scan san sang - he thong (BRGmart/Fuji) DANG CHON van giu
+  // nguyen, khong reset lai (selectedConnectionId/Name khong bi dong cham o day).
+  closeRedeemConfirm();
+  resetResult();
+});
 
 async function confirmRedeem(voucherCode) {
   try {

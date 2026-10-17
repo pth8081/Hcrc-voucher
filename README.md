@@ -1057,9 +1057,14 @@ Tra ve khi da tieu:
 Luong quet tren UI:
 1. Quet ma (may quet HID hoac camera — **khong the go tay**, xem muc 7) -> goi `/vouchers/check`.
 2. Neu **chua tieu**: hien menh gia/han dung/ngay cap + nut "Xac nhan thu hoi".
-3. Bam xac nhan -> goi `/vouchers/redeem` -> luu vao `VOUCHER_SYNC`, hien thong bao thanh cong
-   (hoac "dang cho dong bo" neu Core tam thoi mat ket noi — xem muc 4c), bang giao dich gan day
-   hien cot "Dong bo" (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
+3. Bam "Xac nhan thu hoi" -> hien **hop thoai hoi lai** "Bạn có muốn thu hồi voucher này
+   không?" (kem lai ma voucher/menh gia/he thong de xem lai lan cuoi truoc khi xac nhan that su —
+   chan bam/cham nham, dac biet tren man hinh cam ung) — bam **"Khong"** se dong hop thoai va
+   **quay ve man hinh quet san sang**, **GIU NGUYEN** he thong voucher dang chon (BRGmart/Fuji,
+   muc 4e), khong goi API `/vouchers/redeem` nao ca; bam **"Co, thu hoi"** moi thuc su goi
+   `/vouchers/redeem` -> luu vao `VOUCHER_SYNC`, hien thong bao thanh cong (hoac "dang cho dong
+   bo" neu Core tam thoi mat ket noi — xem muc 4c), bang giao dich gan day hien cot "Dong bo"
+   (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
 4. Neu **da tieu**: hien canh bao do, chi con nut "Quet ma khac" — khong cho thu hoi.
 
 ## 7. Hieu nang
