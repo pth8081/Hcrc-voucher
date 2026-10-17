@@ -7,6 +7,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.classList.add('active');
     document.getElementById('tabCreate').classList.toggle('hidden', btn.dataset.tab !== 'create');
     document.getElementById('tabManage').classList.toggle('hidden', btn.dataset.tab !== 'manage');
+    document.getElementById('tabSystemsReport').classList.toggle('hidden', btn.dataset.tab !== 'systemsReport');
   });
 });
 
@@ -38,6 +39,7 @@ let accessGroupsCache = [];
 let companiesCache = [];
 let redemptionUnitsCache = [];
 let voucherConnectionsCache = [];
+let usersCache = [];
 
 const PERM_FIELDS = [
   'canRedeemVoucher',
@@ -85,15 +87,90 @@ async function load() {
     companiesCache = companies;
     redemptionUnitsCache = units;
     voucherConnectionsCache = connections;
+    usersCache = users;
     renderNewCompanyOptions();
     renderUsers(users);
     applyUserSearchFilter();
+    renderReportFilterOptions();
+    renderSystemsReport();
   } catch (err) {
     notAdminNotice.classList.remove('hidden');
     usersCard.classList.add('hidden');
   }
 }
 showDeletedCheckbox.addEventListener('change', load);
+
+/** Tim Don vi thu hoi (va qua do, Cong ty) ma 1 tai khoan dang gan, dua vao LocationCode -
+ * dung chung logic voi o chon "Don vi thu hoi" trong tab "Danh sach & phan quyen" (xem
+ * renderUsers() o tren) de bao cao luon khop voi du lieu dang sua. */
+function findUnitForUser(user) {
+  if (!user.locationsDetail) return null;
+  return redemptionUnitsCache.find((u) => u.LocationCode === user.locationsDetail) || null;
+}
+
+function renderReportFilterOptions() {
+  const companySelect = document.getElementById('reportFilterCompany');
+  const currentCompany = companySelect.value;
+  companySelect.innerHTML =
+    '<option value="">Tat ca cong ty</option>' +
+    companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
+  companySelect.value = currentCompany;
+
+  const systemSelect = document.getElementById('reportFilterSystem');
+  const currentSystem = systemSelect.value;
+  systemSelect.innerHTML =
+    '<option value="">Tat ca he thong</option>' +
+    voucherConnectionsCache.map((c) => `<option value="${c.id}">${escapeHtmlLayout(c.name)}</option>`).join('');
+  systemSelect.value = currentSystem;
+}
+document.getElementById('reportFilterCompany').addEventListener('change', renderSystemsReport);
+document.getElementById('reportFilterSystem').addEventListener('change', renderSystemsReport);
+
+/** Bang tong hop CHI XEM (tab "Bao cao phan quyen he thong") - loc hoan toan phia trinh duyet
+ * tren du lieu da tai (giong applyUserSearchFilter), khong goi API rieng. Tai khoan "khong
+ * gioi han" (voucherSystems rong) duoc tinh la dang duoc dung/xem MOI he thong hien co, nen
+ * van khop khi loc theo 1 he thong cu the - dung quy uoc da dung trong userVoucherSystemService.js. */
+function renderSystemsReport() {
+  const body = document.getElementById('systemsReportBody');
+  const companyFilter = document.getElementById('reportFilterCompany').value;
+  const systemFilter = document.getElementById('reportFilterSystem').value ? Number(document.getElementById('reportFilterSystem').value) : null;
+
+  const rows = usersCache
+    .filter((u) => !u.isDeleted)
+    .map((u) => {
+      const unit = findUnitForUser(u);
+      return { user: u, unit };
+    })
+    .filter(({ unit }) => !companyFilter || (unit && String(unit.CompanyId) === String(companyFilter)))
+    .filter(({ user }) => {
+      if (!systemFilter) return true;
+      if (!user.voucherSystems || !user.voucherSystems.length) return true; // khong gioi han = co quyen voi moi he thong
+      return user.voucherSystems.some((s) => s.connectionId === systemFilter);
+    });
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="text-muted">Khong co tai khoan nao khop voi bo loc</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows
+    .map(({ user: u, unit }) => {
+      const isAdmin = Number(u.role) === 1;
+      const systemsBadge = (u.voucherSystems || []).length
+        ? u.voucherSystems.map((s) => `<span class="status-badge status-other">${escapeHtmlLayout(s.connectionName)}</span>`).join(' ')
+        : '<span class="status-badge status-unused">Khong gioi han (toan bo he thong)</span>';
+      return `
+      <tr>
+        <td data-label="Tai khoan">${escapeHtmlLayout(u.username)}</td>
+        <td data-label="Ho ten">${escapeHtmlLayout(u.fullName || '')}</td>
+        <td data-label="Vai tro">${isAdmin ? 'Quan tri' : 'Nhan vien'}</td>
+        <td data-label="Cong ty">${unit && unit.CompanyName ? escapeHtmlLayout(unit.CompanyName) : '<span class="text-muted">Chua gan</span>'}</td>
+        <td data-label="Don vi thu hoi">${unit ? escapeHtmlLayout(unit.PartnerName) : '<span class="text-muted">Chua gan</span>'}</td>
+        <td data-label="He thong voucher duoc dung">${systemsBadge}</td>
+      </tr>`;
+    })
+    .join('');
+}
 
 /** Nhan dien nhanh: "CompanyName - PartnerName (LocationCode)" - du de phan biet cac diem tieu
  * trung ten o cong ty khac nhau, ma van gon trong 1 dropdown. */

@@ -32,6 +32,7 @@
         <div class="tabs">
           <button type="button" class="tab-btn active" data-tab="create">Tao tai khoan moi</button>
           <button type="button" class="tab-btn" data-tab="manage">Danh sach &amp; phan quyen</button>
+          <button type="button" class="tab-btn" data-tab="systemsReport">Bao cao phan quyen he thong</button>
         </div>
 
         <div id="tabCreate" class="tab-panel">
@@ -128,6 +129,40 @@
                 </tr>
               </thead>
               <tbody id="usersBody"><tr><td colspan="17" class="text-muted">Dang tai...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tabSystemsReport" class="tab-panel hidden">
+          <p class="security-note">
+            Bang tong hop (chi xem, khong sua o day) giup kiem tra nhanh: tai khoan nao dang
+            duoc dung/xem he thong voucher nao, thuoc cong ty/don vi thu hoi nao - vd kiem tra
+            toan bo tai khoan dang co quyen voi <strong>Fuji</strong> truoc khi cap them 1 tai
+            khoan doi soat moi cho doi tac. Loc theo cong ty va/hoac he thong voucher ben duoi;
+            tai khoan <strong>"Khong gioi han"</strong> duoc tinh la CO quyen voi moi he thong
+            (xem muc 4f trong README) nen van hien ra khi loc theo 1 he thong cu the. Sua phan
+            quyen tai tab "Danh sach &amp; phan quyen".
+          </p>
+          <div class="summary-filters">
+            <div class="field">
+              <label>Cong ty</label>
+              <select id="reportFilterCompany"><option value="">Tat ca cong ty</option></select>
+            </div>
+            <div class="field">
+              <label>He thong voucher</label>
+              <select id="reportFilterSystem"><option value="">Tat ca he thong</option></select>
+            </div>
+          </div>
+          <div class="table-wrap table-responsive">
+            <table id="systemsReportTable">
+              <thead>
+                <tr>
+                  <th>Tai khoan</th><th>Ho ten</th><th>Vai tro</th>
+                  <th>Cong ty</th><th>Don vi thu hoi</th>
+                  <th>He thong voucher duoc dung</th>
+                </tr>
+              </thead>
+              <tbody id="systemsReportBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
             </table>
           </div>
         </div>

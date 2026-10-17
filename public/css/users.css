@@ -97,3 +97,12 @@
 #usersBody tr:not(.row-expanded) td[data-label="Hanh dong"] {
   display: flex;
 }
+
+/* Bo loc tren tab "Bao cao phan quyen he thong" - cung cach trinh bay voi bo loc bao cao
+   (summary-report.css) nhung khai bao rieng o day de khong phai nap them 1 stylesheet khac
+   chi vi 1 vai dong CSS. */
+.summary-filters { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.summary-filters .field { display: flex; flex-direction: column; }
+.summary-filters label { margin-bottom: 6px; }
+.summary-filters input, .summary-filters select { margin-bottom: 0; }
+#systemsReportTable .status-badge { margin: 2px 4px 2px 0; }

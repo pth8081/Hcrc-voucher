@@ -933,6 +933,16 @@ Bao cao ap dung tuong tu qua `report.controller.js#resolveConnectionFilter` — 
 API quan tri: `PUT /api/users/:userId/voucher-systems` — `{ connectionIds: [...] }` (chi admin,
 co ghi nhat ky he thong — muc 15c).
 
+**Kiem tra nhanh phan quyen tren toan bo tai khoan/cong ty:** man hinh "Tai khoan" co them tab
+**"Bao cao phan quyen he thong"** (chi xem, khong sua o do — sua tai tab "Danh sach & phan
+quyen") liet ke MOI tai khoan kem Cong ty/Don vi thu hoi dang gan va he thong voucher dang
+duoc dung, co the loc theo cong ty va/hoac theo 1 he thong cu the (vd loc rieng "Fuji" de xem
+toan bo tai khoan dang co quyen voi Fuji, xuyen suot moi cong ty) — dung de ra soat truoc khi
+cap them 1 tai khoan doi soat moi cho doi tac. Tai khoan **"Khong gioi han"** van hien ra khi
+loc theo 1 he thong cu the, vi ho **DANG** co quyen voi he thong do (dung quy uoc cua
+`userVoucherSystemService.js`). Bang nay doc hoan toan tu du lieu da tai cua trang (khong goi
+them API rieng), loc ngay trong trinh duyet.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
