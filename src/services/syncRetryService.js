@@ -24,8 +24,13 @@ async function fetchPendingBatch() {
     .input('maxAttempts', sql.Int, MAX_ATTEMPTS)
     .query(`
       SELECT TOP (@batchSize) v.Id, v.TRANS_NUM, v.Voucher_Code, v.User_Name,
-             v.Locations_Group, v.Locations_Detail, v.Created_Date
+             v.Locations_Group, v.Locations_Detail, v.Created_Date, c.ConnectionId
       FROM dbo.VOUCHER_SYNC v
+      -- He thong voucher (BRGmart/Fuji...) da xu ly giao dich nay luc thu hoi - PHAI goi lai
+      -- DUNG he thong nay khi dong bo lai, khong duoc mac dinh ve "ket noi active" hien tai (co
+      -- the da doi sang he thong khac luc job nay chay). NULL (giao dich cu truoc khi co tinh
+      -- nang nay, hoac app chi dung 1 ket noi .env) -> resolveConnection() tu fallback ve active.
+      LEFT JOIN dbo.VoucherRedemptionConnections c ON c.TransNum = v.TRANS_NUM
       WHERE v.Sync = 'N'
         AND (
           SELECT COUNT(*) FROM dbo.Voucher_Exelogs e
@@ -82,6 +87,7 @@ async function processPendingSyncs() {
         locationsGroup: row.Locations_Group,
         locationsDetail: row.Locations_Detail,
         transNum: row.TRANS_NUM,
+        connectionId: row.ConnectionId,
       });
 
       const alreadyReflected = !result.success && result.status === VOUCHER_STATUS.USED;

@@ -6,6 +6,7 @@ const redemptionUnitService = require('../services/redemptionUnitService');
 const auditLogService = require('../services/auditLogService');
 const authService = require('../services/authService');
 const sessionRevalidation = require('../utils/sessionRevalidation');
+const userVoucherSystemService = require('../services/userVoucherSystemService');
 
 /** redemptionUnitId (neu co) luon uu tien - tra ve LocationCode that cua Don vi thu hoi da
  * chon, thay the moi gia tri locationsDetail go tay. Nem loi 400 neu chon 1 id khong ton tai. */
@@ -24,9 +25,10 @@ async function resolveLocationsDetail({ redemptionUnitId, locationsDetail }) {
 async function list(req, res, next) {
   try {
     const includeDeleted = req.query.includeDeleted === 'true';
-    const [withSchedule, withAccess] = await Promise.all([
+    const [withSchedule, withAccess, voucherSystemsByUserId] = await Promise.all([
       userScheduleService.listAllWithSchedule(includeDeleted),
       reportAccessService.listUserAccess(),
+      userVoucherSystemService.listUserAccess(),
     ]);
     const accessByUserId = new Map(withAccess.map((a) => [a.userId, a]));
     const data = await Promise.all(
@@ -38,6 +40,8 @@ async function list(req, res, next) {
           reportAccessGroupId: access ? access.groupId : null,
           reportAccessGroupName: access ? access.groupName : null,
           permissions,
+          // Mang rong = khong gioi han (duoc dung/xem TOAN BO he thong) - xem userVoucherSystemService.js
+          voucherSystems: voucherSystemsByUserId.get(u.userId) || [],
         };
       })
     );
@@ -245,6 +249,26 @@ async function updateReportAccess(req, res, next) {
   }
 }
 
+async function updateVoucherSystems(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
+    const before = await userVoucherSystemService.getAllowedConnectionIds(userId);
+    const { connectionIds, username } = req.body;
+    const normalized = Array.isArray(connectionIds) ? connectionIds.map(Number).filter((n) => Number.isInteger(n)) : [];
+    await userVoucherSystemService.setAllowedConnections(userId, normalized);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_USER_VOUCHER_SYSTEMS',
+      targetUsername: username || String(req.params.userId),
+      detail: { before: { connectionIds: before }, after: { connectionIds: normalized } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   list,
   create,
@@ -254,4 +278,5 @@ module.exports = {
   updateLocation,
   updateProfile,
   updateDeleteStatus,
+  updateVoucherSystems,
 };

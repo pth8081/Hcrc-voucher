@@ -28,5 +28,10 @@ router.get(
   requireFeature(['canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers']),
   controller.filterRedeemers
 );
+router.get(
+  '/filters/systems',
+  requireFeature(['canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers']),
+  controller.filterSystems
+);
 
 module.exports = router;

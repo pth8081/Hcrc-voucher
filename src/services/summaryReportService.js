@@ -16,7 +16,7 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
  * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
  * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId }) {
+async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds }) {
   const pool = await getPool();
   const request = pool.request().input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
 
@@ -46,6 +46,20 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
     request.input('userId', sql.Int, userId);
     extraFilter += ' AND vs.userid = @userId';
   }
+  // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
+  // thich day du y nghia null/[]/[...]; dung lai y het logic (khong import duoc ham do o day vi
+  // request/alias khac nhau, nhung cung 1 quy uoc).
+  if (connectionIds !== null && connectionIds !== undefined) {
+    if (!connectionIds.length) {
+      extraFilter += ' AND 1 = 0';
+    } else {
+      const placeholders = connectionIds.map((id, i) => {
+        request.input(`connId${i}`, sql.Int, id);
+        return `@connId${i}`;
+      });
+      extraFilter += ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+    }
+  }
 
   const result = await request.query(`
       SELECT
@@ -69,6 +83,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
       ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
+      LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
       WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}${extraFilter}
       ORDER BY rc.CompanyName, ru.PartnerName, vs.Created_Date
     `);

@@ -29,7 +29,7 @@ const MAX_LIST_ROWS = 3000;
  * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
  * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, maxRows }) {
+async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, maxRows }) {
   const pool = await getPool();
   const request = pool.request();
 
@@ -72,12 +72,25 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     request.input('userId', sql.Int, userId);
     extraFilter += ' AND vs.userid = @userId';
   }
+  // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
+  // thich day du y nghia null/[]/[...].
+  if (connectionIds !== null && connectionIds !== undefined) {
+    if (!connectionIds.length) {
+      extraFilter += ' AND 1 = 0';
+    } else {
+      const placeholders = connectionIds.map((id, i) => {
+        request.input(`connId${i}`, sql.Int, id);
+        return `@connId${i}`;
+      });
+      extraFilter += ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+    }
+  }
 
   const result = await request.query(`
     SELECT ${topClause}
       vs.Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
-      ru.PartnerName, rc.CompanyName
+      ru.PartnerName, rc.CompanyName, vrc.ConnectionName
     FROM dbo.VOUCHER_SYNC vs
     LEFT JOIN (
       -- M8: xem ghi chu chi tiet o summaryReportService.js (cung 1 loi, cung cach sua) - uu tien
@@ -91,6 +104,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     ) ld ON ld.LocationCode = LTRIM(RTRIM(vs.Locations_Detail)) AND ld.rn = 1
     LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
     LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
+    LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
     WHERE 1 = 1${dateFilter}${locationFilter}${extraFilter}
     ORDER BY vs.Created_Date DESC
   `);
@@ -104,6 +118,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     locationsDetail: row.Locations_Detail,
     companyName: row.CompanyName || UNASSIGNED_COMPANY,
     pointName: row.PartnerName || row.Location_DetailName || row.Locations_Detail || UNASSIGNED_POINT,
+    connectionName: row.ConnectionName || null,
     valueAmt: Number(row.VALUE_AMT || 0),
     synced: row.Sync === 'Y',
   }));
@@ -135,6 +150,7 @@ async function buildExcelBuffer(rows) {
     { header: 'Nguoi tieu', key: 'userName', width: 24 },
     { header: 'Cong ty', key: 'companyName', width: 26 },
     { header: 'Diem tieu', key: 'pointName', width: 26 },
+    { header: 'He thong', key: 'connectionName', width: 16 },
     { header: 'Ma dia diem', key: 'locationsDetail', width: 14 },
     { header: 'So tien', key: 'valueAmt', width: 14 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
@@ -150,6 +166,7 @@ async function buildExcelBuffer(rows) {
       userName: sanitizeExcelText(row.userName),
       companyName: sanitizeExcelText(row.companyName),
       pointName: sanitizeExcelText(row.pointName),
+      connectionName: sanitizeExcelText(row.connectionName || '-'),
       locationsDetail: sanitizeExcelText(row.locationsDetail),
       createdDate: row.createdDate ? new Date(row.createdDate) : null,
       syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',

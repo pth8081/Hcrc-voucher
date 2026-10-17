@@ -32,6 +32,7 @@
         <div class="tabs">
           <button type="button" class="tab-btn active" data-tab="create">Tao tai khoan moi</button>
           <button type="button" class="tab-btn" data-tab="manage">Danh sach &amp; phan quyen</button>
+          <button type="button" class="tab-btn" data-tab="systemsReport">Bao cao phan quyen he thong</button>
         </div>
 
         <div id="tabCreate" class="tab-panel">
@@ -93,6 +94,13 @@
             cong ty, hoac xem toan bo.
           </p>
           <p class="security-note">
+            <strong>He thong voucher duoc dung</strong>: mac dinh (khong tick gi) = tai khoan duoc
+            quet/thu hoi va xem bao cao cua <strong>TOAN BO</strong> he thong voucher hien co (vd
+            BRGmart + Fuji). Tick 1 hoac nhieu he thong de GIOI HAN tai khoan chi duoc dung/xem
+            DUNG cac he thong do - dung khi cap tai khoan rieng cho doi tac (vd tai khoan doi soat
+            cho Fuji chi nen tick "Fuji").
+          </p>
+          <p class="security-note">
             <strong>Khoa</strong>: dien san "Het han" = ngay bay gio, bam "Luu" de co hieu luc -
             tai khoan khong dang nhap moi duoc nua nhung phien dang mo van dung toi khi tu het han
             (JWT). <strong>Xoa</strong>: xoa mem, an khoi danh sach nay - bat "Hien tai khoan da xoa"
@@ -115,11 +123,46 @@
                   <th>Kich hoat tu</th><th>Het han</th><th>Trang thai</th>
                   <th>Don vi thu hoi</th>
                   <th>Nhom quyen xem bao cao</th>
+                  <th>He thong voucher duoc dung</th>
                   <th>Mat khau moi</th>
                   <th>Hanh dong</th>
                 </tr>
               </thead>
-              <tbody id="usersBody"><tr><td colspan="16" class="text-muted">Dang tai...</td></tr></tbody>
+              <tbody id="usersBody"><tr><td colspan="17" class="text-muted">Dang tai...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tabSystemsReport" class="tab-panel hidden">
+          <p class="security-note">
+            Bang tong hop (chi xem, khong sua o day) giup kiem tra nhanh: tai khoan nao dang
+            duoc dung/xem he thong voucher nao, thuoc cong ty/don vi thu hoi nao - vd kiem tra
+            toan bo tai khoan dang co quyen voi <strong>Fuji</strong> truoc khi cap them 1 tai
+            khoan doi soat moi cho doi tac. Loc theo cong ty va/hoac he thong voucher ben duoi;
+            tai khoan <strong>"Khong gioi han"</strong> duoc tinh la CO quyen voi moi he thong
+            (xem muc 4f trong README) nen van hien ra khi loc theo 1 he thong cu the. Sua phan
+            quyen tai tab "Danh sach &amp; phan quyen".
+          </p>
+          <div class="summary-filters">
+            <div class="field">
+              <label>Cong ty</label>
+              <select id="reportFilterCompany"><option value="">Tat ca cong ty</option></select>
+            </div>
+            <div class="field">
+              <label>He thong voucher</label>
+              <select id="reportFilterSystem"><option value="">Tat ca he thong</option></select>
+            </div>
+          </div>
+          <div class="table-wrap table-responsive">
+            <table id="systemsReportTable">
+              <thead>
+                <tr>
+                  <th>Tai khoan</th><th>Ho ten</th><th>Vai tro</th>
+                  <th>Cong ty</th><th>Don vi thu hoi</th>
+                  <th>He thong voucher duoc dung</th>
+                </tr>
+              </thead>
+              <tbody id="systemsReportBody"><tr><td colspan="6" class="text-muted">Dang tai...</td></tr></tbody>
             </table>
           </div>
         </div>
