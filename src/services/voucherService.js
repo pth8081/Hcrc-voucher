@@ -2,11 +2,45 @@ const { sql, getPool } = require('../config/db');
 const coreVoucherService = require('./coreVoucherService');
 const systemLogService = require('./systemLogService');
 const locationService = require('./locationService');
+const userVoucherSystemService = require('./userVoucherSystemService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
 const { SYNC_PROC_NAME } = require('../utils/syncConstants');
 
 const { VOUCHER_STATUS } = coreVoucherService;
+
+/**
+ * Doi chieu `connectionId` nguoi dung gui len (co the de trong) voi danh sach he thong voucher
+ * TAI KHOAN DO duoc phep dung (xem userVoucherSystemService.js) - BAT BUOC kiem tra lai o server,
+ * khong the chi dua vao o chon tren man hinh Quet voucher (client co the bi sua/bo qua). Tra ve
+ * connectionId THAT SU se dung (co the khac voi gia tri nguoi dung gui, neu ho chi duoc dung
+ * dung 1 he thong va khong gui gi ca).
+ */
+async function resolveAllowedConnectionId(userId, requestedConnectionId) {
+  const allowed = await userVoucherSystemService.getAllowedConnectionIds(userId);
+  if (allowed === null) return requestedConnectionId; // khong gioi han - giu nguyen lua chon (hoac null = dung ket noi active mac dinh)
+
+  if (!allowed.length) {
+    const err = new Error('Tai khoan chua duoc cap quyen dung he thong voucher nao');
+    err.statusCode = 403;
+    err.publicMessage = 'Tai khoan cua ban chua duoc cap quyen su dung he thong voucher nao, vui long lien he quan tri vien.';
+    throw err;
+  }
+  if (requestedConnectionId) {
+    if (!allowed.includes(Number(requestedConnectionId))) {
+      const err = new Error('Khong co quyen dung he thong voucher nay');
+      err.statusCode = 403;
+      err.publicMessage = 'Tai khoan cua ban khong co quyen su dung he thong voucher da chon.';
+      throw err;
+    }
+    return requestedConnectionId;
+  }
+  if (allowed.length === 1) return allowed[0];
+  const err = new Error('Can chon ro he thong voucher');
+  err.statusCode = 400;
+  err.publicMessage = 'Tai khoan cua ban duoc dung nhieu he thong voucher - vui long chon ro he thong truoc khi quet.';
+  throw err;
+}
 
 /**
  * Buoc 1: Quet ma -> doi chieu voi Core API xem voucher da tieu hay chua.
@@ -22,8 +56,9 @@ const { VOUCHER_STATUS } = coreVoucherService;
  * neu KHONG thay o local van PHAI hoi Core nhu cu, vi khong the ket luan "con dung duoc" chi
  * vi local chua co (co the da bi tieu qua kenh khac ngoai app nay).
  */
-async function checkVoucher({ voucherCode, user, scanMethod, connectionId }) {
+async function checkVoucher({ voucherCode, user, scanMethod, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
+  const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
 
   const localRedeemed = await findLocalRedemption(voucherCode);
   if (localRedeemed) {
@@ -106,8 +141,9 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId }) {
  * goi Core nen 2 request trung ma se tu dong xep hang, request thu 2 se thay ngay o buoc
  * kiem tra "da co ban ghi" ma KHONG can goi Core nua.
  */
-async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId }) {
+async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
+  const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
 
   // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
   // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),

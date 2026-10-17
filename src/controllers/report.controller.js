@@ -2,6 +2,8 @@ const reportService = require('../services/reportService');
 const summaryReportService = require('../services/summaryReportService');
 const usedVoucherReportService = require('../services/usedVoucherReportService');
 const reportAccessService = require('../services/reportAccessService');
+const apiConnectionService = require('../services/apiConnectionService');
+const userVoucherSystemService = require('../services/userVoucherSystemService');
 
 async function resolveScope(req) {
   return reportAccessService.resolveVisibleLocationCodes({
@@ -9,6 +11,25 @@ async function resolveScope(req) {
     ownLocationsDetail: req.user.locationsDetail,
     role: req.user.role,
   });
+}
+
+/**
+ * Tinh danh sach he thong voucher (connectionIds) DUOC PHEP xem trong bao cao - KET HOP gioi
+ * han theo tai khoan (userVoucherSystemService.js, vd tai khoan doi soat cua Fuji chi duoc xem
+ * Fuji) VA lua chon o loc "He thong" tren man hinh (neu co). Day la bo loc BAT BUOC (khong chi
+ * tuy chon nhu Cong ty/Diem/Tai khoan) - 1 tai khoan bi gioi han KHONG the bo qua bang cach
+ * khong chon gi hoac sua query string, vi luon duoc tinh lai o server theo dung quyen that su.
+ */
+async function resolveConnectionFilter(req) {
+  const allowed = await userVoucherSystemService.getAllowedConnectionIds(req.user.userId);
+  const requested = req.query.connectionId ? Number(req.query.connectionId) : null;
+  if (allowed === null) {
+    return requested ? [requested] : null;
+  }
+  if (requested) {
+    return allowed.includes(requested) ? [requested] : [];
+  }
+  return allowed;
 }
 
 /** Doc 3 tham so loc chung "Cong ty thu / Diem thu hoi / Tai khoan thu hoi" dung cho ca 4 bao
@@ -53,12 +74,14 @@ async function daily(req, res, next) {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao doi soat');
     const locationsDetail = req.query.locationsDetail || null;
     const { codes, unassigned } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
     const data = await reportService.dailyReconciliation({
       fromDate,
       toDate,
       locationsDetail,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
+      connectionIds,
     });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
@@ -70,11 +93,13 @@ async function summary(req, res, next) {
   try {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
     const { codes, unassigned } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
     const data = await summaryReportService.consolidatedReport({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
+      connectionIds,
     });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
@@ -98,6 +123,7 @@ async function usedVouchers(req, res, next) {
   try {
     const { fromDate, toDate } = parseDateRange(req.query);
     const { codes, unassigned } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
     // H11: truoc day khong gioi han gi ca - goi khong tham so co the keo ve toan bo lich su
     // nhieu nam roi render thang vao 1 bang HTML, rui ro treo trinh duyet/qua tai server. Xem
     // MAX_LIST_ROWS trong usedVoucherReportService.js. `truncated` bao cho giao dien biet de
@@ -112,6 +138,7 @@ async function usedVouchers(req, res, next) {
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
+      connectionIds,
       maxRows: maxRows + 1,
     });
     const truncated = rows.length > maxRows;
@@ -132,11 +159,13 @@ async function usedVouchersExport(req, res, next) {
       throw err;
     }
     const { codes } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
     const rows = await usedVoucherReportService.listUsedVouchers({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
+      connectionIds,
       maxRows: usedVoucherReportService.MAX_EXPORT_ROWS,
     });
     const buffer = await usedVoucherReportService.buildExcelBuffer(rows);
@@ -186,6 +215,22 @@ async function filterRedeemers(req, res, next) {
   }
 }
 
+/** Danh sach he thong voucher de hien thi o loc "He thong" - CHI gom cac he thong tai khoan nay
+ * duoc phep xem (userVoucherSystemService.js), giong het bo loc thuc te se bi ap dung khi xem
+ * bao cao (resolveConnectionFilter). 1 tai khoan bi gioi han CHI Fuji se chi thay "Fuji" o day. */
+async function filterSystems(req, res, next) {
+  try {
+    const [all, allowed] = await Promise.all([
+      apiConnectionService.listOptions(),
+      userVoucherSystemService.getAllowedConnectionIds(req.user.userId),
+    ]);
+    const data = allowed === null ? all : all.filter((c) => allowed.includes(c.id));
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   daily,
   summary,
@@ -194,4 +239,5 @@ module.exports = {
   filterCompanies,
   filterRedemptionUnits,
   filterRedeemers,
+  filterSystems,
 };

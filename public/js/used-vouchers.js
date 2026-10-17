@@ -22,7 +22,7 @@ function buildQuery() {
 
 async function loadReport() {
   try {
-    reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Dang tai...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Dang tai...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
     render(data.rows, data.unassignedLocation);
     if (data.truncated) {
@@ -30,17 +30,17 @@ async function loadReport() {
     }
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="8" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="9" class="text-danger">Loi tai du lieu: ${escapeHtml(err.message)}. Vui long thu lai.</td></tr>`;
   }
 }
 
 function render(rows, unassignedLocation) {
   if (unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="8" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-danger">Tai khoan cua ban chua duoc gan dia diem/nhom quyen xem bao cao - vui long lien he quan tri vien.</td></tr>';
     return;
   }
   if (!rows.length) {
-    reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Khong co voucher nao trong khoang da chon</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Khong co voucher nao trong khoang da chon</td></tr>';
     return;
   }
 
@@ -54,6 +54,7 @@ function render(rows, unassignedLocation) {
         <td data-label="Nguoi tieu">${escapeHtml(row.userName || '-')}</td>
         <td data-label="Cong ty">${escapeHtml(row.companyName)}</td>
         <td data-label="Diem tieu">${escapeHtml(row.pointName)}</td>
+        <td data-label="He thong">${escapeHtml(row.connectionName || '-')}</td>
         <td data-label="So tien">${fmtMoney(row.valueAmt)}</td>
         <td data-label="Dong bo">${row.synced ? 'Da dong bo' : '<span class="text-muted">Cho dong bo</span>'}</td>
       </tr>`

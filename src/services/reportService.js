@@ -35,11 +35,36 @@ const LOCATION_MAPPING_JOIN = `
   LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
 `;
 
+// VoucherRedemptionConnections: bang app tu tao, khoa theo TRANS_NUM, ghi lai HE THONG VOUCHER
+// (BRGmart/Fuji...) da xu ly 1 giao dich - xem sql/027_create_voucher_redemption_connections.sql.
+// LEFT JOIN (khong phai INNER) de khong lam mat cac dong CU (truoc khi co tinh nang nhieu he
+// thong) chua co ban ghi tuong ung, khi KHONG loc theo he thong.
+const VOUCHER_CONNECTION_JOIN = `
+  LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
+`;
+
+/**
+ * Loc theo he thong voucher (connectionIds): null = khong loc (xem toan bo), [] = khong duoc
+ * xem he thong nao (tai khoan bi khoa het quyen), [...] = chi xem dung cac Id do. Dung CA cho
+ * loc tuy chon nguoi dung chon (1 phan tu) LAN cho gioi han quyen theo tai khoan (co the nhieu
+ * phan tu) - xem report.controller.js#resolveConnectionFilter. Can VOUCHER_CONNECTION_JOIN
+ * (alias vrc) da co san trong cau truy van goi ham nay.
+ */
+function buildConnectionFilter(request, connectionIds) {
+  if (connectionIds === null) return '';
+  if (!connectionIds.length) return ' AND 1 = 0';
+  const placeholders = connectionIds.map((id, i) => {
+    request.input(`connId${i}`, sql.Int, id);
+    return `@connId${i}`;
+  });
+  return ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+}
+
 /** Loc THEM theo cong ty/diem thu hoi/tai khoan thu hoi (tuy chon, bo qua neu khong truyen) -
  * dung chung cho ca 3 bao cao (doi soat, tong hop, danh sach voucher da su dung). Can
  * LOCATION_MAPPING_JOIN (alias ru/rc) da co san trong cau truy van goi ham nay, va bang chinh
  * phai la VOUCHER_SYNC voi alias "vs" (cho vs.userid). */
-function buildExtraFilters(request, { companyId, redemptionUnitId, userId }) {
+function buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds }) {
   let filter = '';
   if (companyId) {
     request.input('filterCompanyId', sql.Int, companyId);
@@ -53,6 +78,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId }) {
     request.input('filterUserId', sql.Int, userId);
     filter += ' AND vs.userid = @filterUserId';
   }
+  filter += buildConnectionFilter(request, connectionIds !== undefined ? connectionIds : null);
   return filter;
 }
 
@@ -62,7 +88,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId }) {
  * Core system. Truoc day chi loc dung 1 ngay (tham so `date`) - doi sang khoang ngay theo yeu
  * cau nguoi dung, giong cach 2 bao cao con lai (tong hop, danh sach voucher da su dung) da lam.
  */
-async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId }) {
+async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds }) {
   const pool = await getPool();
   const request = pool.request();
   request.input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
@@ -72,7 +98,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     filter += ' AND vs.Locations_Detail = @locationsDetail';
   }
   filter += buildLocationCodeFilter(request, visibleLocationCodes, 'vs.Locations_Detail');
-  filter += buildExtraFilters(request, { companyId, redemptionUnitId, userId });
+  filter += buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds });
 
   const summary = await request.query(`
     SELECT
@@ -81,6 +107,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
       SUM(vs.VALUE_AMT) AS TotalAmount
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
+    ${VOUCHER_CONNECTION_JOIN}
     WHERE ${filter}
     GROUP BY vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName
     ORDER BY vs.Location_DetailName
@@ -94,15 +121,16 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     detailFilter += ' AND vs.Locations_Detail = @locationsDetail';
   }
   detailFilter += buildLocationCodeFilter(detailRequest, visibleLocationCodes, 'vs.Locations_Detail');
-  detailFilter += buildExtraFilters(detailRequest, { companyId, redemptionUnitId, userId });
+  detailFilter += buildExtraFilters(detailRequest, { companyId, redemptionUnitId, userId, connectionIds });
 
   const details = await detailRequest.query(`
     SELECT
       vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
-      vs.VALUE_AMT, vs.Sync
+      vs.VALUE_AMT, vs.Sync, vrc.ConnectionName
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
+    ${VOUCHER_CONNECTION_JOIN}
     WHERE ${detailFilter}
     ORDER BY vs.Created_Date DESC
   `);

@@ -37,6 +37,7 @@ function fromLocalInputValue(value) {
 let accessGroupsCache = [];
 let companiesCache = [];
 let redemptionUnitsCache = [];
+let voucherConnectionsCache = [];
 
 const PERM_FIELDS = [
   'canRedeemVoucher',
@@ -73,15 +74,17 @@ userSearchInput.addEventListener('input', applyUserSearchFilter);
 async function load() {
   try {
     const includeDeleted = showDeletedCheckbox.checked ? 'true' : 'false';
-    const [users, groups, companies, units] = await Promise.all([
+    const [users, groups, companies, units, connections] = await Promise.all([
       apiFetch(`/users?includeDeleted=${includeDeleted}`),
       apiFetch('/access-groups').catch(() => []),
       apiFetch('/companies').catch(() => []),
       apiFetch('/redemption-units').catch(() => []),
+      apiFetch('/api-connections').catch(() => []),
     ]);
     accessGroupsCache = groups;
     companiesCache = companies;
     redemptionUnitsCache = units;
+    voucherConnectionsCache = connections;
     renderNewCompanyOptions();
     renderUsers(users);
     applyUserSearchFilter();
@@ -166,6 +169,21 @@ function renderUsers(users) {
             <option value="">Mac dinh (chi cong ty cua minh)</option>
             ${groupOptions}
           </select>
+        </td>
+        <td data-label="He thong voucher duoc dung">
+          <div class="voucher-system-checkboxes">
+            ${voucherConnectionsCache
+              .map(
+                (c) => `
+              <label class="checkbox-inline">
+                <input type="checkbox" class="voucher-system-checkbox" data-id="${c.id}" ${
+                  (u.voucherSystems || []).some((s) => s.connectionId === c.id) ? 'checked' : ''
+                } />
+                ${escapeHtmlLayout(c.name)}
+              </label>`
+              )
+              .join('') || '<span class="text-muted">Chua co he thong nao</span>'}
+          </div>
         </td>
         <td data-label="Mat khau moi"><input type="password" class="edit-password" placeholder="De trong = giu nguyen" autocomplete="new-password" /></td>
         <td data-label="Hanh dong">
@@ -276,6 +294,7 @@ async function saveUser(tr) {
     const el = tr.querySelector(`.perm-${field}`);
     permissions[field] = !!(el && el.checked);
   });
+  const connectionIds = Array.from(tr.querySelectorAll('.voucher-system-checkbox:checked')).map((el) => Number(el.dataset.id));
 
   const saveBtn = tr.querySelector('.save-btn');
   saveBtn.disabled = true;
@@ -307,6 +326,13 @@ async function saveUser(tr) {
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId, username }),
+      }),
+    },
+    {
+      label: 'He thong voucher duoc dung',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/voucher-systems`, {
+        method: 'PUT',
+        body: JSON.stringify({ connectionIds, username }),
       }),
     },
     {

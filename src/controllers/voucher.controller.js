@@ -1,5 +1,6 @@
 const voucherService = require('../services/voucherService');
 const apiConnectionService = require('../services/apiConnectionService');
+const userVoucherSystemService = require('../services/userVoucherSystemService');
 
 // Dot ra soat sau phat hien: cot Voucher_Code trong VOUCHER_SYNC/goi Core API deu dung
 // sql.NVarChar(24) (xem voucherService.js, apiConnectionService.js) - truoc day khong kiem tra
@@ -54,10 +55,16 @@ async function redeem(req, res, next) {
 }
 
 /** Danh sach he thong voucher de chon tren man hinh Quet voucher - xem apiConnectionService.js#
- * listOptions (rut gon, khong lo chi tiet cau hinh/secret cho nhan vien khong phai admin). */
+ * listOptions (rut gon, khong lo chi tiet cau hinh/secret cho nhan vien khong phai admin). Loc
+ * lai theo DUNG he thong tai khoan nay duoc phep dung (userVoucherSystemService.js) - 1 tai
+ * khoan bi gioi han chi Fuji se khong con thay BRGmart trong danh sach de chon. */
 async function systems(req, res, next) {
   try {
-    const data = await apiConnectionService.listOptions();
+    const [all, allowed] = await Promise.all([
+      apiConnectionService.listOptions(),
+      userVoucherSystemService.getAllowedConnectionIds(req.user.userId),
+    ]);
+    const data = allowed === null ? all : all.filter((c) => allowed.includes(c.id));
     res.json({ success: true, data });
   } catch (err) {
     next(err);

@@ -901,6 +901,38 @@ goc** thay vi mac dinh goi nham sang ket noi active hien tai (co the da doi sang
 luc do) — day la diem bat buoc phai co khi tich hop nhieu he thong, neu khong se co nguy co gui
 nham 1 giao dich cua he thong A sang he thong B luc dong bo lai.
 
+### 4f. Phan quyen theo TUNG he thong voucher (vd chi cho dung/xem Fuji)
+
+Khi da co nhieu he thong voucher (muc 4e), can gioi han: vd 1 tai khoan chi duoc quet/thu hoi
+**Fuji** (khong duoc dung BRGmart), hoac 1 tai khoan doi soat cua doi tac Fuji chi duoc **xem
+bao cao cua Fuji** o nhung diem ho duoc cap. Man hinh **"Tai khoan"** (`/users.html`, cot
+"He thong voucher duoc dung") cho tick chon 0..n he thong moi tai khoan:
+
+- **Khong tick gi (mac dinh)**: **khong gioi han** — tai khoan duoc dung/xem **toan bo** he
+  thong voucher hien co, giong hanh vi cu truoc khi co tinh nang nay (khong anh huong tai khoan
+  dang dung).
+- **Tick dung 1 he thong**: man hinh Quet voucher **tu an o chon he thong** (khong can chon vi
+  chi co 1 lua chon), luon dung dung he thong do; man hinh bao cao cung **tu dong loc** chi ra
+  du lieu cua he thong do, khong hien o chon "He thong" (chi 1 lua chon thi khong can chon).
+- **Tick nhieu he thong**: man hinh Quet voucher **hien o chon** de nhan vien tu chon truoc khi
+  quet (bat buoc chon, xem muc 4e); man hinh bao cao hien o chon "He thong" de loc xem rieng
+  tung he thong hoac de trong de xem gom tat ca he thong duoc phep.
+
+Du lieu: `sql/028_create_user_voucher_systems.sql` (bang `UserVoucherSystems`, khoa chinh
+`(UserId, ConnectionId)` — app tu quan ly, khong dung chung voi Core). Logic tap trung o
+`src/services/userVoucherSystemService.js` (`getAllowedConnectionIds` — tra ve `null` = khong
+gioi han, `[]`/`[...]` = danh sach ma ket noi duoc phep), theo dung quy uoc da dung cho phan
+quyen xem bao cao theo cong ty (muc 13).
+
+**Bat buoc kiem tra lai o server, khong tin client:** `voucherService.js#resolveAllowedConnectionId`
+luon tu tinh lai danh sach duoc phep tu DB truoc khi quet/thu hoi — tai khoan bi gioi han ma
+client co gang gui `connectionId` khong duoc phep se bi chan (loi 403), tai khoan duoc phep
+nhieu he thong ma khong gui `connectionId` nao (chua chon) cung bi chan, bat buoc chon ro truoc.
+Bao cao ap dung tuong tu qua `report.controller.js#resolveConnectionFilter` — xem muc 13a.
+
+API quan tri: `PUT /api/users/:userId/voucher-systems` — `{ connectionIds: [...] }` (chi admin,
+co ghi nhat ky he thong — muc 15c).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1340,6 +1372,27 @@ khong vo tinh thay duoc du lieu cong ty khac.
 
 API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
 `PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin).
+
+### 13a. Loc bao cao theo HE THONG voucher (vd tai khoan doi soat rieng cho Fuji)
+
+Doc lap voi pham vi theo cong ty o tren, bao cao con duoc loc theo **he thong voucher**
+(BRGmart/Fuji..., xem muc 4e/4f) dua tren quyen `UserVoucherSystems` cua tai khoan dang dang
+nhap. Dung cho truong hop cap 1 tai khoan doi soat rieng cho doi tac Fuji: tick cho tai khoan
+do CHI quyen "Fuji" (muc 4f) la bao cao cua ho **tu dong chi con thay giao dich Fuji**, ket hop
+VOI pham vi cong ty/dia diem ho da duoc gan — ap dung cho ca 3 bao cao (doi soat, tong hop,
+danh sach voucher da su dung ke ca xuat Excel), tuong tu cach pham vi cong ty hoat dong.
+
+O chon **"He thong"** tren 3 man hinh bao cao chi **hien ra khi tai khoan duoc phep > 1 he
+thong** (giong o chon luc quet, muc 4f) — chon 1 he thong de xem rieng, de trong de xem gom
+tat ca he thong duoc phep. Day chi la UI tien loi: **thuc thi thuc su nam o server**, ham
+`report.controller.js#resolveConnectionFilter` luon tu tinh lai danh sach he thong duoc phep
+tu DB (`userVoucherSystemService.getAllowedConnectionIds`) roi moi giao voi `connectionId`
+client gui (neu co) — tai khoan bi gioi han Fuji co gang gui `connectionId` cua BRGmart se
+nhan ve **ket qua rong** (khong xem duoc gi), khong bao gio lo du lieu he thong khac. Du lieu
+he thong cua moi dong giao dich lay tu bang `VoucherRedemptionConnections` (muc 4e, JOIN theo
+`TRANS_NUM` vi `VOUCHER_SYNC` khong duoc sua cau truc).
+
+API: `GET /api/reports/filters/systems` (danh sach he thong tai khoan dang nhap duoc phep chon).
 
 ## 14. Bat buoc doi mat khau trong lan dang nhap dau tien
 

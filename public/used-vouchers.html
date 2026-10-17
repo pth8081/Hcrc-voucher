@@ -50,6 +50,10 @@
           <label>Tai khoan thu hoi</label>
           <select id="filterUser"><option value="">Dang tai...</option></select>
         </div>
+        <div class="field hidden" id="filterSystemField">
+          <label>He thong voucher</label>
+          <select id="filterSystem"><option value="">Dang tai...</option></select>
+        </div>
         <button id="loadBtn" class="btn-primary">Xem danh sach</button>
         <button id="exportBtn" class="btn-secondary">Xuat Excel</button>
       </div>
@@ -61,10 +65,10 @@
         <thead>
           <tr>
             <th>Ngay tieu</th><th>Ma giao dich</th><th>Ma voucher</th><th>Nguoi tieu</th>
-            <th>Cong ty</th><th>Diem tieu</th><th>So tien</th><th>Dong bo</th>
+            <th>Cong ty</th><th>Diem tieu</th><th>He thong</th><th>So tien</th><th>Dong bo</th>
           </tr>
         </thead>
-        <tbody id="reportBody"><tr><td colspan="8" class="text-muted">Dang tai...</td></tr></tbody>
+        <tbody id="reportBody"><tr><td colspan="9" class="text-muted">Dang tai...</td></tr></tbody>
       </table>
       </div>
     </div>
