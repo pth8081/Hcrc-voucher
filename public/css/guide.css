@@ -24,3 +24,21 @@
   padding: 1px 5px;
 }
 #guideBody strong { color: var(--ink-900); }
+
+/* So do minh hoa luong xu ly (SVG tinh, nhung trong SYSTEM_GUIDE_HTML - xem guideContent.js) -
+   co svg width:100% de tu dong thu nho tren man hinh hep (mobile) ma khong vo layout. */
+#guideBody .guide-figure {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 10px 16px;
+  margin: 14px 0 18px;
+}
+#guideBody .guide-figure svg { display: block; margin: 0 auto; width: 100%; height: auto; }
+#guideBody .guide-figure .cap {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  font-style: italic;
+}
