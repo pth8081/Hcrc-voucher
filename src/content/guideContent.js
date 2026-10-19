@@ -189,6 +189,36 @@ voucher đã dùng hay chưa - Core Voucher API luôn là nguồn dữ liệu du
 chuyển sang "Đã đồng bộ", kiểm tra lại kết nối ở mục 2 phía trên - khả năng cao Core đang mất kết
 nối kéo dài hoặc cấu hình endpoint đã bị sai.</p>
 
+<h2>2b. Tích hợp đa hệ thống voucher (vd HCRC &amp; Fuji)</h2>
+<p>Ngoài hệ thống voucher mặc định, ứng dụng có thể tích hợp <strong>đồng thời nhiều hệ thống
+voucher</strong> của nhiều đối tác khác nhau cùng lúc (vd hệ thống hiện tại + "Fuji") - đây là
+2 luồng xử lý <strong>tách biệt hoàn toàn</strong> ở phía Core, nhưng hội tụ về <strong>chung 1
+lớp ứng dụng và 1 bộ dữ liệu</strong> để báo cáo/đối soát thống nhất:</p>
+<ul>
+  <li>Mỗi hệ thống là <strong>1 kết nối riêng</strong> khai báo ở menu "Kết nối API" (mục 2 phía
+    trên) - có Base URL, kiểu xác thực và ánh xạ field riêng; 2 kết nối có thể <strong>trùng Base
+    URL</strong> (vd cùng 1 cổng API gateway) vì ứng dụng phân biệt bằng <strong>Id nội
+    bộ</strong>, không phải Base URL.</li>
+  <li>Khi có từ 2 kết nối "sẵn sàng" trở lên, màn hình "Quét voucher" sẽ hiện thêm ô chọn
+    <strong>"Hệ thống voucher"</strong> để nhân viên chọn trước khi quét - mã kết nối được gửi
+    kèm mỗi lần kiểm tra/thu hồi để dùng <strong>đúng hệ thống đó</strong> thay vì luôn lấy kết
+    nối "Kích hoạt" mặc định.</li>
+  <li>Dữ liệu <strong>không tách DB riêng</strong> cho từng hệ thống - vẫn ghi chung vào
+    <code>VOUCHER_SYNC</code> (tránh phân mảnh báo cáo/đối soát), nhưng luôn gắn tên hệ thống để
+    lọc/truy vết riêng (ô lọc "Hệ thống" có ở cả 3 màn báo cáo).</li>
+  <li><strong>Điểm bắt buộc phải đúng</strong> khi 1 giao dịch rơi vào trạng thái "Chờ đồng bộ"
+    (mục 2a phía trên): hệ thống ghi nhớ đúng hệ thống gốc đã xử lý giao dịch đó, để tiến trình
+    nền gọi lại <strong>đúng hệ thống</strong> - tránh gửi nhầm 1 giao dịch của hệ thống A sang
+    hệ thống B lúc đồng bộ lại.</li>
+  <li>Có thể <strong>giới hạn 1 tài khoản chỉ dùng/xem đúng 1 (hoặc vài) hệ thống cụ thể</strong>
+    ở màn hình "Tài khoản", cột "Hệ thống voucher được dùng" (mục 1 phía trên) - ví dụ cấp 1 tài
+    khoản đối soát riêng cho đối tác Fuji sẽ chỉ thấy được giao dịch/báo cáo của Fuji, không lẫn
+    với dữ liệu của hệ thống còn lại.</li>
+</ul>
+<p class="hint">Hệ thống đã có sẵn 1 kết nối "Fuji" ở dạng <strong>bản nháp</strong> (chưa điền
+API Key) - chỉ cần vào "Kết nối API", sửa dòng "Fuji", điền đúng API Key do đối tác cung cấp rồi
+lưu lại là dùng song song được ngay 2 hệ thống, không cần tạo kết nối mới.</p>
+
 <h2>3. Bảo mật quản trị</h2>
 <ul>
   <li><strong>Xác thực hai yếu tố (2FA) bắt buộc</strong> với mọi tài khoản quản trị: lần đăng
