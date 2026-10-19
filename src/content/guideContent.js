@@ -156,6 +156,39 @@ buộc phải có ít nhất 1 kết nối đang "Kích hoạt"</strong> thì m�
 <code>X-API-Key</code>) được trình bày chi tiết trong tài liệu kỹ thuật repo (README.md mục
 4a) - liên hệ đội phát triển nếu cần tham khảo khi cấu hình với 1 đối tác mới.</p>
 
+<h2>2a. Luồng xử lý 1 giao dịch quét – thu hồi</h2>
+<p>Hiểu đúng luồng xử lý dưới đây giúp bạn (quản trị) giải thích được cho nhân viên vì sao có
+trạng thái "Chờ đồng bộ", và biết cần kiểm tra ở đâu khi có sự cố:</p>
+<ol>
+  <li><strong>Quét mã (kiểm tra)</strong>: app gọi ngay sang Core Voucher API (qua kết nối đang
+    "Kích hoạt" ở mục 2 phía trên) để hỏi trạng thái voucher - còn dùng được / đã sử dụng / hết
+    hạn / đã hủy. Bước này <strong>chưa đổi trạng thái</strong> gì ở Core, quét lại nhiều lần
+    không ảnh hưởng.</li>
+  <li><strong>Nhân viên bấm "Xác nhận thu hồi"</strong> (sau khi xác nhận lại ở hộp thoại hỏi
+    lại): app mới gọi tiếp sang Core API để báo thu hồi thật - đây là bước thật sự đổi trạng thái
+    voucher thành "đã dùng" phía Core.</li>
+  <li>Core phản hồi theo 1 trong 2 trường hợp:
+    <ul>
+      <li><strong>Thành công</strong>: app ghi 1 dòng vào bảng <code>VOUCHER_SYNC</code> với cờ
+        <strong>"Đã đồng bộ"</strong> - đây chính là nguồn dữ liệu hiển thị ở cả 3 loại báo cáo
+        (xem mục "Các loại báo cáo" ở Hướng dẫn nghiệp vụ).</li>
+      <li><strong>Core mất kết nối tạm thời</strong> (timeout, đang bảo trì...): app
+        <strong>vẫn cho nhân viên thu hồi thành công ngay tại quầy</strong> (không bắt khách hàng
+        chờ), ghi vào <code>VOUCHER_SYNC</code> với cờ <strong>"Chờ đồng bộ"</strong> như 1 hàng
+        đợi. Một tiến trình chạy nền sẽ tự động gọi lại Core định kỳ cho tới khi thành công -
+        quản trị viên <strong>không cần thao tác gì thêm</strong>.</li>
+    </ul>
+  </li>
+  <li>Mọi lượt quét/thu hồi (kể cả thất bại) được ghi vào "Hoạt động quét/thu hồi" (mục 6 bên
+    dưới) để tra soát, chống gian lận; riêng mỗi lần tiến trình nền chạy lại (thành công hay thất
+    bại) được ghi vào 1 nhật ký đồng bộ hệ thống riêng.</li>
+</ol>
+<p class="hint">Nguyên tắc quan trọng nhất: app <strong>không bao giờ tự quyết định</strong> 1
+voucher đã dùng hay chưa - Core Voucher API luôn là nguồn dữ liệu duy nhất đúng, app chỉ ghi lại
+để phục vụ đối soát/báo cáo. Nếu thấy nhiều giao dịch kẹt ở "Chờ đồng bộ" liên tục không tự
+chuyển sang "Đã đồng bộ", kiểm tra lại kết nối ở mục 2 phía trên - khả năng cao Core đang mất kết
+nối kéo dài hoặc cấu hình endpoint đã bị sai.</p>
+
 <h2>3. Bảo mật quản trị</h2>
 <ul>
   <li><strong>Xác thực hai yếu tố (2FA) bắt buộc</strong> với mọi tài khoản quản trị: lần đăng
