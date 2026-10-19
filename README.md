@@ -1595,10 +1595,29 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.32)**: tich hop nhieu he thong voucher cung luc (BRGmart + Fuji — muc 4e),
-phan quyen theo tung he thong (muc 4f), bao cao phan quyen he thong (cuoi muc 4f) va tao san
-ket noi API "Fuji" o dang ban nhap (dau muc 4e).
+Ban **moi nhat (v3.44)**: bo sung Changelog cho cac ban v3.33-v3.43 (truoc do danh sach nay
+dung o v3.32). Ban truoc do (v3.43): tu luu font Inter trong app thay vi goi Google Fonts CDN —
+hoat dong dung ca khi may chu khong co Internet (muc 6a); them nut Xuat Excel cho Bao cao doi
+soat va Bao cao tong hop (muc 12/12b); bo sung 2 muc moi vao Huong dan he thong — luong xu ly
+quet - thu hoi va tich hop da he thong voucher (HCRC & Fuji), ca 2 kem so do minh hoa.
 
+- **v3.44** - Bo sung Changelog cho cac ban v3.33-v3.43 (danh sach nay truoc do dung o v3.32,
+  chua duoc cap nhat tiep theo sau cac lan merge gan day)
+- **v3.43** - Tu luu font Inter trong app (khong goi Google Fonts CDN nua) - giao dien hien thi
+  dung font ngay ca khi may chu khong co ket noi Internet ra ngoai, CSP thu hep theo (bo
+  allowlist fonts.googleapis.com/fonts.gstatic.com, chi con `'self'`)
+- **v3.42** - Dong bo font Inter cho 2 so do SVG moi them trong Huong dan he thong
+- **v3.41** - Them so do minh hoa (SVG) cho 2 muc moi cua Huong dan he thong (luong quet - thu
+  hoi, tich hop da he thong voucher)
+- **v3.40** - Bo sung muc tich hop da he thong voucher (HCRC & Fuji) vao Huong dan he thong
+- **v3.39** - Bo sung muc luong xu ly 1 giao dich quet - thu hoi vao Huong dan he thong
+- **v3.38** - Them nut Xuat Excel cho Bao cao doi soat va Bao cao tong hop (truoc day chi co o
+  bao cao Voucher da su dung)
+- **v3.37** - Them dau tieng Viet cho giao dien (dot 2/2 - hoan tat toan bo cac man hinh con lai)
+- **v3.36** - Them dau tieng Viet cho giao dien (dot 1/2 - nhieu man hinh)
+- **v3.35** - Sua loi chinh ta: dien dung dau tieng Viet cho hop thoai xac nhan thu hoi
+- **v3.34** - Them hop thoai xac nhan truoc khi thu hoi voucher (tranh bam nham/cham nham)
+- **v3.33** - Them muc Lich su phien ban (Changelog) nay vao README
 - **v3.32** - Tao san ket noi API "Fuji" (ban nhap) + chan ket noi chua cau hinh khoi o chon
 - **v3.31** - Them bao cao phan quyen he thong voucher theo tung tai khoan/cong ty
 - **v3.30** - Them phan quyen theo tung he thong voucher va loc bao cao theo he thong
