@@ -1,4 +1,10 @@
+const ExcelJS = require('exceljs');
 const { sql, getPool } = require('../config/db');
+
+// Gioi han so dong toi da cho CHI TIET khi xuat Excel (cung muc voi MAX_EXPORT_ROWS trong
+// usedVoucherReportService.js) - bang Tong hop theo dia diem khong can gioi han vi so dong luon
+// nho (so luong dia diem thuc te, khong phai so giao dich).
+const MAX_EXPORT_ROWS = 20000;
 
 /**
  * Them dieu kien loc theo danh sach ma dia diem duoc phep xem (xem reportAccessService.js).
@@ -88,7 +94,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId, conne
  * Core system. Truoc day chi loc dung 1 ngay (tham so `date`) - doi sang khoang ngay theo yeu
  * cau nguoi dung, giong cach 2 bao cao con lai (tong hop, danh sach voucher da su dung) da lam.
  */
-async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds }) {
+async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, maxDetailRows }) {
   const pool = await getPool();
   const request = pool.request();
   request.input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
@@ -123,8 +129,11 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
   detailFilter += buildLocationCodeFilter(detailRequest, visibleLocationCodes, 'vs.Locations_Detail');
   detailFilter += buildExtraFilters(detailRequest, { companyId, redemptionUnitId, userId, connectionIds });
 
+  const topClause = maxDetailRows ? 'TOP (@maxDetailRows)' : '';
+  if (maxDetailRows) detailRequest.input('maxDetailRows', sql.Int, maxDetailRows);
+
   const details = await detailRequest.query(`
-    SELECT
+    SELECT ${topClause}
       vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
       vs.VALUE_AMT, vs.Sync, vrc.ConnectionName
@@ -194,4 +203,80 @@ async function listFilterRedeemers(visibleLocationCodes) {
   return result.recordset;
 }
 
-module.exports = { dailyReconciliation, listFilterCompanies, listFilterRedemptionUnits, listFilterRedeemers };
+// L1: xem giai thich day du o usedVoucherReportService.js - them 1 dau nhay don o dau chuoi NEU
+// bat dau bang =/+/-/@ de ep hien thi nhu van ban thuan tuy, tranh 1 so trinh xem file dien giai
+// nham thanh cong thuc.
+const FORMULA_PREFIX_REGEX = /^[=+\-@\t\r]/;
+function sanitizeExcelText(value) {
+  if (value === null || value === undefined) return value;
+  const str = String(value);
+  return FORMULA_PREFIX_REGEX.test(str) ? `'${str}` : str;
+}
+
+/**
+ * Xuat Bao cao doi soat ra Excel - 2 sheet: "Tong hop theo dia diem" (giong bang tong hop tren
+ * man hinh) va "Chi tiet giao dich" (giong bang chi tiet tren man hinh, co gioi han MAX_EXPORT_ROWS).
+ */
+async function buildReconciliationExcelBuffer({ summary, details }) {
+  const workbook = new ExcelJS.Workbook();
+
+  const summarySheet = workbook.addWorksheet('Tong hop theo dia diem');
+  summarySheet.columns = [
+    { header: 'Nhom dia diem', key: 'groupName', width: 22 },
+    { header: 'Dia diem', key: 'pointName', width: 28 },
+    { header: 'So luong', key: 'voucherCount', width: 14 },
+    { header: 'Tong tien', key: 'totalAmount', width: 16 },
+  ];
+  summarySheet.getRow(1).font = { bold: true };
+  summary.forEach((row) => {
+    summarySheet.addRow({
+      groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
+      pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
+      voucherCount: row.VoucherCount,
+      totalAmount: Number(row.TotalAmount || 0),
+    });
+  });
+  summarySheet.getColumn('totalAmount').numFmt = '#,##0';
+
+  const detailSheet = workbook.addWorksheet('Chi tiet giao dich');
+  detailSheet.columns = [
+    { header: 'Ngay gio', key: 'createdDate', width: 20 },
+    { header: 'Ma giao dich', key: 'transNum', width: 22 },
+    { header: 'Ma voucher', key: 'voucherCode', width: 18 },
+    { header: 'Serial', key: 'voucherSerial', width: 18 },
+    { header: 'Nguoi thu hoi', key: 'userName', width: 24 },
+    { header: 'Nhom dia diem', key: 'groupName', width: 22 },
+    { header: 'Dia diem', key: 'pointName', width: 28 },
+    { header: 'He thong', key: 'connectionName', width: 16 },
+    { header: 'Menh gia', key: 'valueAmt', width: 14 },
+    { header: 'Dong bo', key: 'syncedLabel', width: 14 },
+  ];
+  detailSheet.getRow(1).font = { bold: true };
+  details.forEach((row) => {
+    detailSheet.addRow({
+      createdDate: row.Created_Date ? new Date(row.Created_Date) : null,
+      transNum: sanitizeExcelText(row.TRANS_NUM),
+      voucherCode: sanitizeExcelText(row.Voucher_Code),
+      voucherSerial: sanitizeExcelText(row.Voucher_Serial),
+      userName: sanitizeExcelText(row.User_Name),
+      groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
+      pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
+      connectionName: sanitizeExcelText(row.ConnectionName || '-'),
+      valueAmt: Number(row.VALUE_AMT || 0),
+      syncedLabel: row.Sync === 'Y' ? 'Da dong bo' : 'Cho dong bo',
+    });
+  });
+  detailSheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
+  detailSheet.getColumn('valueAmt').numFmt = '#,##0';
+
+  return workbook.xlsx.writeBuffer();
+}
+
+module.exports = {
+  dailyReconciliation,
+  listFilterCompanies,
+  listFilterRedemptionUnits,
+  listFilterRedeemers,
+  buildReconciliationExcelBuffer,
+  MAX_EXPORT_ROWS,
+};

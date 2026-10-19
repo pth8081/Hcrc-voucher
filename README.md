@@ -978,7 +978,9 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) - `{ voucherCode, scanMethod, connectionId? }` |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) - `{ voucherCode, scanMethod, connectionId? }` |
 | GET | `/api/reports/daily?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo KHOANG ngay (nhom theo dia diem tai khoan), toi da 366 ngay |
+| GET | `/api/reports/daily/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat bao cao doi soat (2 sheet: Tong hop theo dia diem + Chi tiet giao dich) ra file Excel (.xlsx) |
 | GET | `/api/reports/summary?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
+| GET | `/api/reports/summary/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat bao cao tong hop (2 sheet: Tong hop theo cong ty-diem + Chi tiet giao dich) ra file Excel (.xlsx) |
 | GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
 | GET | `/api/reports/used-vouchers/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
 | GET | `/api/reports/filters/companies` | Danh sach cong ty de hien thi o loc "Cong ty thu" (da scope theo quyen xem bao cao) — muc 12d |
@@ -1042,9 +1044,11 @@ Tra ve khi da tieu:
 - `login.html`: dang nhap.
 - `index.html`: man hinh quet chinh — 1 o input nhan du lieu tu may scan HID (tu dong focus, Enter = kiem tra) va nut "Quet bang camera" (dung thu vien `html5-qrcode` qua CDN) cho dien thoai/tablet khong co may scan roi.
 - `units.html`: **(admin)** quan ly cong ty + diem tieu voucher (them/xem) — xem muc 12.
-- `report.html`: bao cao doi soat theo ngay, theo tung dia diem tai khoan dang nhap.
+- `report.html`: bao cao doi soat theo ngay, theo tung dia diem tai khoan dang nhap, co nut
+  **xuat Excel** (2 sheet: Tong hop theo dia diem + Chi tiet giao dich).
 - `summary-report.html`: bao cao tong hop theo khoang ngay, nhom Cong ty -> Diem tieu, cong don
-  2 cap + tong toan bo cong ty — tach biet voi `report.html` — xem muc 12.
+  2 cap + tong toan bo cong ty — tach biet voi `report.html` — xem muc 12. Co nut **xuat Excel**
+  (2 sheet: Tong hop theo cong ty-diem + Chi tiet giao dich) — xem muc 12b.
 - `used-vouchers.html`: danh sach PHANG toan bo voucher da su dung (khong cong don), loc theo
   ngay tuy chon, co nut **xuat Excel** — xem muc 12c.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
@@ -1333,6 +1337,12 @@ song) — noi voi `Locations_Detail` (theo ma) roi noi tiep sang `RedemptionUnit
 (`src/services/summaryReportService.js`). Cot "Nguoi tieu" doc truc tiep tu `User_Name` da luu
 san trong `VOUCHER_SYNC` luc thu hoi — khong can truy van them.
 
+- **Nut "Xuat Excel"** (cung co che voi muc 12c — `fetch()` kem header `Authorization` roi tai ve
+  qua blob) — xuat ra file `.xlsx` gom **2 sheet**: "Tong hop theo cong ty-diem" (giong bang phan
+  cap tren man hinh, da cong don) va "Chi tiet giao dich" (PHANG, 1 dong/giao dich kem ten
+  cong ty/diem tieu, de loc/pivot rieng trong Excel) — toi da 20.000 dong chi tiet moi lan xuat
+  (`src/services/summaryReportService.js#buildSummaryExcelBuffer`).
+
 ### 12c. Danh sach toan bo voucher da su dung + xuat Excel (`/used-vouchers.html`)
 
 Khac voi "Bao cao tong hop" (12b, cong don theo Cong ty -> Diem tieu), trang nay hien **1 dong =
@@ -1479,8 +1489,8 @@ ten khac han de tranh nham):
 | Quyen | Mac dinh (tai khoan moi tao) | Anh huong |
 |---|---|---|
 | Thu hoi voucher | **Bat** | `POST /api/vouchers/check`, `/redeem` + an/hien muc "Quet voucher" |
-| Xem bao cao doi soat | **Bat** | `GET /api/reports/daily` + an/hien muc "Bao cao doi soat" |
-| Xem bao cao tong hop | Tat | `GET /api/reports/summary` + an/hien muc "Bao cao tong hop" |
+| Xem bao cao doi soat | **Bat** | `GET /api/reports/daily[/export]` + an/hien muc "Bao cao doi soat" |
+| Xem bao cao tong hop | Tat | `GET /api/reports/summary[/export]` + an/hien muc "Bao cao tong hop" |
 | Xem voucher da su dung | Tat | `GET /api/reports/used-vouchers[/export]` + an/hien muc "Voucher da su dung" |
 | Xem huong dan nghiep vu | **Bat** | `GET /api/guides/business` + an/hien muc "Huong dan nghiep vu" — xem muc 16 |
 | Xem huong dan he thong | Tat | `GET /api/guides/system` + an/hien muc "Huong dan he thong" — xem muc 16 |
