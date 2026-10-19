@@ -89,6 +89,32 @@ async function daily(req, res, next) {
   }
 }
 
+async function dailyExport(req, res, next) {
+  try {
+    const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao doi soat');
+    const locationsDetail = req.query.locationsDetail || null;
+    const { codes } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
+    const { summary, details } = await reportService.dailyReconciliation({
+      fromDate,
+      toDate,
+      locationsDetail,
+      visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
+      connectionIds,
+      maxDetailRows: reportService.MAX_EXPORT_ROWS,
+    });
+    const buffer = await reportService.buildReconciliationExcelBuffer({ summary, details });
+
+    const fileName = `bao-cao-doi-soat_${fromDate}_${toDate}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function summary(req, res, next) {
   try {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
@@ -102,6 +128,30 @@ async function summary(req, res, next) {
       connectionIds,
     });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function summaryExport(req, res, next) {
+  try {
+    const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
+    const { codes } = await resolveScope(req);
+    const connectionIds = await resolveConnectionFilter(req);
+    const data = await summaryReportService.consolidatedReport({
+      fromDate,
+      toDate,
+      visibleLocationCodes: codes,
+      ...parseExtraFilters(req.query),
+      connectionIds,
+      maxRows: summaryReportService.MAX_EXPORT_ROWS,
+    });
+    const buffer = await summaryReportService.buildSummaryExcelBuffer(data);
+
+    const fileName = `bao-cao-tong-hop_${fromDate}_${toDate}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(Buffer.from(buffer));
   } catch (err) {
     next(err);
   }
@@ -233,7 +283,9 @@ async function filterSystems(req, res, next) {
 
 module.exports = {
   daily,
+  dailyExport,
   summary,
+  summaryExport,
   usedVouchers,
   usedVouchersExport,
   filterCompanies,

@@ -6,7 +6,9 @@ const controller = require('../controllers/report.controller');
 const router = express.Router();
 router.use(authenticate);
 router.get('/daily', requireFeature('canViewReconciliation'), controller.daily);
+router.get('/daily/export', requireFeature('canViewReconciliation'), controller.dailyExport);
 router.get('/summary', requireFeature('canViewSummary'), controller.summary);
+router.get('/summary/export', requireFeature('canViewSummary'), controller.summaryExport);
 router.get('/used-vouchers', requireFeature('canViewUsedVouchers'), controller.usedVouchers);
 router.get('/used-vouchers/export', requireFeature('canViewUsedVouchers'), controller.usedVouchersExport);
 

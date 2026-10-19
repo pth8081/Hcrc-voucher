@@ -1,7 +1,12 @@
+const ExcelJS = require('exceljs');
 const { sql, getPool } = require('../config/db');
 
 const UNASSIGNED_COMPANY = 'Chua gan cong ty';
 const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
+
+// Gioi han so dong giao dich toi da khi XUAT Excel (cung muc voi reportService.js/
+// usedVoucherReportService.js) - khong anh huong man hinh xem thuong (khong truyen maxRows).
+const MAX_EXPORT_ROWS = 20000;
 
 /**
  * Bao cao TONG HOP thu hoi voucher theo khoang ngay - tach biet voi "Bao cao doi soat"
@@ -16,7 +21,7 @@ const UNASSIGNED_POINT = 'Chua xac dinh diem tieu';
  * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
  * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds }) {
+async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, maxRows }) {
   const pool = await getPool();
   const request = pool.request().input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
 
@@ -61,8 +66,11 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
     }
   }
 
+  const topClause = maxRows ? 'TOP (@maxRows)' : '';
+  if (maxRows) request.input('maxRows', sql.Int, maxRows);
+
   const result = await request.query(`
-      SELECT
+      SELECT ${topClause}
         vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
         vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
         ru.PartnerName, ru.CompanyId, rc.CompanyName
@@ -145,4 +153,89 @@ function buildHierarchy(rows) {
   return { companies, grandTotal };
 }
 
-module.exports = { consolidatedReport };
+// L1: xem giai thich day du o usedVoucherReportService.js.
+const FORMULA_PREFIX_REGEX = /^[=+\-@\t\r]/;
+function sanitizeExcelText(value) {
+  if (value === null || value === undefined) return value;
+  const str = String(value);
+  return FORMULA_PREFIX_REGEX.test(str) ? `'${str}` : str;
+}
+
+/**
+ * Xuat Bao cao tong hop ra Excel - 2 sheet: "Tong hop theo cong ty-diem" (cong don giong cac
+ * dong Cong ty/Diem tieu tren man hinh) va "Chi tiet giao dich" (PHANG, 1 dong/giao dich, kem
+ * ten cong ty/diem tieu o moi dong de de loc/pivot trong Excel).
+ */
+async function buildSummaryExcelBuffer({ companies, grandTotal }) {
+  const workbook = new ExcelJS.Workbook();
+
+  const summarySheet = workbook.addWorksheet('Tong hop theo cong ty-diem');
+  summarySheet.columns = [
+    { header: 'Cong ty', key: 'companyName', width: 28 },
+    { header: 'Diem tieu', key: 'pointName', width: 28 },
+    { header: 'So voucher', key: 'count', width: 14 },
+    { header: 'Menh gia', key: 'amount', width: 16 },
+  ];
+  summarySheet.getRow(1).font = { bold: true };
+  companies.forEach((company) => {
+    summarySheet.addRow({
+      companyName: sanitizeExcelText(company.companyName),
+      pointName: '',
+      count: company.count,
+      amount: company.amount,
+    });
+    company.points.forEach((point) => {
+      summarySheet.addRow({
+        companyName: '',
+        pointName: sanitizeExcelText(point.pointName),
+        count: point.count,
+        amount: point.amount,
+      });
+    });
+  });
+  const summaryTotalRow = summarySheet.addRow({
+    companyName: 'TONG TOAN BO CONG TY',
+    pointName: '',
+    count: grandTotal.count,
+    amount: grandTotal.amount,
+  });
+  summaryTotalRow.font = { bold: true };
+  summarySheet.getColumn('amount').numFmt = '#,##0';
+
+  const detailSheet = workbook.addWorksheet('Chi tiet giao dich');
+  detailSheet.columns = [
+    { header: 'Cong ty', key: 'companyName', width: 28 },
+    { header: 'Diem tieu', key: 'pointName', width: 28 },
+    { header: 'Ngay tieu', key: 'createdDate', width: 20 },
+    { header: 'Nguoi tieu', key: 'userName', width: 24 },
+    { header: 'Ma giao dich', key: 'transNum', width: 22 },
+    { header: 'Ma voucher', key: 'voucherCode', width: 18 },
+    { header: 'Serial', key: 'voucherSerial', width: 18 },
+    { header: 'Menh gia', key: 'valueAmt', width: 14 },
+    { header: 'Dong bo', key: 'syncedLabel', width: 14 },
+  ];
+  detailSheet.getRow(1).font = { bold: true };
+  companies.forEach((company) => {
+    company.points.forEach((point) => {
+      point.rows.forEach((row) => {
+        detailSheet.addRow({
+          companyName: sanitizeExcelText(company.companyName),
+          pointName: sanitizeExcelText(point.pointName),
+          createdDate: row.createdDate ? new Date(row.createdDate) : null,
+          userName: sanitizeExcelText(row.userName),
+          transNum: sanitizeExcelText(row.transNum),
+          voucherCode: sanitizeExcelText(row.voucherCode),
+          voucherSerial: sanitizeExcelText(row.voucherSerial),
+          valueAmt: row.valueAmt,
+          syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',
+        });
+      });
+    });
+  });
+  detailSheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
+  detailSheet.getColumn('valueAmt').numFmt = '#,##0';
+
+  return workbook.xlsx.writeBuffer();
+}
+
+module.exports = { consolidatedReport, buildSummaryExcelBuffer, MAX_EXPORT_ROWS };

@@ -4,6 +4,7 @@ renderTopbar('summary-report');
 const fromDateInput = document.getElementById('fromDate');
 const toDateInput = document.getElementById('toDate');
 const reportBody = document.getElementById('reportBody');
+const exportBtn = document.getElementById('exportBtn');
 
 const today = new Date();
 const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -11,6 +12,7 @@ fromDateInput.value = firstOfMonth.toISOString().slice(0, 10);
 toDateInput.value = today.toISOString().slice(0, 10);
 
 document.getElementById('loadBtn').addEventListener('click', loadReport);
+exportBtn.addEventListener('click', exportExcel);
 initReportFilters();
 loadReport();
 
@@ -88,6 +90,33 @@ function render(data) {
     </tr>`);
 
   reportBody.innerHTML = rowsHtml.join('');
+}
+
+/** Xuat Excel PHAI di qua fetch() kem header Authorization (xem used-vouchers.js#exportExcel). */
+async function exportExcel() {
+  exportBtn.disabled = true;
+  try {
+    const res = await fetch(`/api/reports/summary/export?${buildQuery()}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Loi xuat Excel (${res.status})`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bao-cao-tong-hop_${fromDateInput.value}_${toDateInput.value}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    exportBtn.disabled = false;
+  }
 }
 
 function escapeHtml(str) {

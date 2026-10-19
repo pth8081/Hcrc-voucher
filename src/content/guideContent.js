@@ -156,6 +156,206 @@ buộc phải có ít nhất 1 kết nối đang "Kích hoạt"</strong> thì m�
 <code>X-API-Key</code>) được trình bày chi tiết trong tài liệu kỹ thuật repo (README.md mục
 4a) - liên hệ đội phát triển nếu cần tham khảo khi cấu hình với 1 đối tác mới.</p>
 
+<h2>2a. Luồng xử lý 1 giao dịch quét – thu hồi</h2>
+<p>Hiểu đúng luồng xử lý dưới đây giúp bạn (quản trị) giải thích được cho nhân viên vì sao có
+trạng thái "Chờ đồng bộ", và biết cần kiểm tra ở đâu khi có sự cố:</p>
+
+<div class="guide-figure">
+  <svg viewBox="0 0 1040 900" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="gArrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+      </marker>
+    </defs>
+    <g font-size="11.5" font-weight="700" fill="#1f2937">
+      <rect x="45" y="12" width="110" height="34" rx="6" fill="#fff4e8" stroke="#c07a33"/>
+      <text x="100" y="33" text-anchor="middle">Nhân viên thu hồi</text>
+      <rect x="262" y="12" width="116" height="34" rx="6" fill="#eef2f6" stroke="#9aa3af"/>
+      <text x="320" y="33" text-anchor="middle">Giao diện quét</text>
+      <rect x="482" y="12" width="116" height="34" rx="6" fill="#eef2f6" stroke="#9aa3af"/>
+      <text x="540" y="33" text-anchor="middle">Voucher API</text>
+      <rect x="692" y="12" width="116" height="34" rx="6" fill="#eef2f6" stroke="#9aa3af"/>
+      <text x="750" y="33" text-anchor="middle">VOUCHER_SYNC</text>
+      <rect x="892" y="12" width="116" height="34" rx="6" fill="#fff4e8" stroke="#c07a33"/>
+      <text x="950" y="33" text-anchor="middle">Core Voucher API</text>
+    </g>
+    <g stroke="#c3c9d1" stroke-width="1.2" stroke-dasharray="3 3">
+      <line x1="100" y1="46" x2="100" y2="876"/>
+      <line x1="320" y1="46" x2="320" y2="876"/>
+      <line x1="540" y1="46" x2="540" y2="876"/>
+      <line x1="750" y1="46" x2="750" y2="876"/>
+      <line x1="950" y1="46" x2="950" y2="876"/>
+    </g>
+    <rect x="60" y="345" width="930" height="500" fill="none" stroke="#8a4a16" stroke-width="1.3"/>
+    <path d="M60,345 L150,345 L150,361 L138,373 L60,373 Z" fill="#fff4e8" stroke="#8a4a16" stroke-width="1.2"/>
+    <text x="70" y="364" font-size="11" font-weight="700" fill="#8a4a16">ALT</text>
+    <text x="158" y="364" font-size="11" fill="#5b4632">[ Voucher CHƯA tiêu ]</text>
+    <rect x="490" y="470" width="480" height="260" fill="none" stroke="#9aa3af" stroke-width="1.1"/>
+    <path d="M490,470 L580,470 L580,486 L568,498 L490,498 Z" fill="#eef2f6" stroke="#9aa3af" stroke-width="1"/>
+    <text x="500" y="489" font-size="10.5" font-weight="700" fill="#374151">ALT</text>
+    <text x="588" y="489" font-size="10.5" fill="#4b5563">[ Core phản hồi THÀNH CÔNG ]</text>
+    <line x1="490" y1="585" x2="970" y2="585" stroke="#9aa3af" stroke-width="1" stroke-dasharray="6 3"/>
+    <text x="500" y="600" font-size="10.5" fill="#4b5563">else [ Core MẤT KẾT NỐI (timeout, bảo trì&hellip;) ]</text>
+    <g font-size="11" fill="#1f2937">
+      <line x1="100" y1="90" x2="320" y2="90" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="210" y="83" text-anchor="middle">1. Quét mã voucher</text>
+      <line x1="320" y1="120" x2="540" y2="120" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="430" y="113" text-anchor="middle">2. POST /api/vouchers/check</text>
+      <line x1="540" y1="150" x2="950" y2="150" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="745" y="143" text-anchor="middle">3. Kiểm tra trạng thái voucher</text>
+      <line x1="950" y1="180" x2="540" y2="180" stroke="#374151" stroke-width="1.4" stroke-dasharray="6 3" marker-end="url(#gArrow2)"/>
+      <text x="745" y="173" text-anchor="middle">4. UNUSED / USED / EXPIRED / CANCELLED</text>
+      <line x1="540" y1="210" x2="320" y2="210" stroke="#374151" stroke-width="1.4" stroke-dasharray="6 3" marker-end="url(#gArrow2)"/>
+      <text x="430" y="203" text-anchor="middle">5. Kết quả kiểm tra</text>
+      <line x1="100" y1="400" x2="320" y2="400" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="210" y="393" text-anchor="middle">6. Bấm "Xác nhận thu hồi"</text>
+      <line x1="320" y1="430" x2="540" y2="430" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="430" y="423" text-anchor="middle">7. POST /api/vouchers/redeem</text>
+      <line x1="540" y1="446" x2="950" y2="446" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="745" y="439" text-anchor="middle">8. Báo thu hồi (redeem)</text>
+      <line x1="950" y1="520" x2="540" y2="520" stroke="#374151" stroke-width="1.4" stroke-dasharray="6 3" marker-end="url(#gArrow2)"/>
+      <text x="745" y="513" text-anchor="middle">9. success = true</text>
+      <line x1="540" y1="550" x2="750" y2="550" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="645" y="543" text-anchor="middle">10. Ghi VOUCHER_SYNC, Sync = Y</text>
+      <line x1="540" y1="625" x2="750" y2="625" stroke="#374151" stroke-width="1.4" marker-end="url(#gArrow2)"/>
+      <text x="645" y="618" text-anchor="middle">11. Ghi VOUCHER_SYNC, Sync = N (vào hàng đợi)</text>
+    </g>
+    <rect x="560" y="645" width="400" height="48" rx="4" fill="#fff8e6" stroke="#e7cf8c" stroke-width="1"/>
+    <text x="760" y="663" text-anchor="middle" font-size="10" fill="#6b5410">Job nền (syncRetryService) sẽ tự động gọi lại Core</text>
+    <text x="760" y="678" text-anchor="middle" font-size="10" fill="#6b5410">định kỳ cho tới khi thành công.</text>
+    <g font-size="11" fill="#1f2937">
+      <line x1="540" y1="770" x2="320" y2="770" stroke="#374151" stroke-width="1.4" stroke-dasharray="6 3" marker-end="url(#gArrow2)"/>
+      <text x="430" y="763" text-anchor="middle">12. Báo thu hồi thành công cho nhân viên</text>
+    </g>
+    <line x1="60" y1="800" x2="990" y2="800" stroke="#8a4a16" stroke-width="1" stroke-dasharray="6 3"/>
+    <text x="70" y="815" font-size="11" fill="#5b4632">else [ Voucher ĐÃ tiêu ]</text>
+    <g font-size="11" fill="#1f2937">
+      <line x1="540" y1="828" x2="320" y2="828" stroke="#374151" stroke-width="1.4" stroke-dasharray="6 3" marker-end="url(#gArrow2)"/>
+      <text x="430" y="816" text-anchor="middle">13. Từ chối, hiện cảnh báo đỏ,</text>
+      <text x="430" y="846" text-anchor="middle" font-size="10">bắt buộc quét mã khác</text>
+    </g>
+  </svg>
+  <div class="cap">Trình tự xử lý 1 lượt quét – thu hồi, bao gồm nhánh Core mất kết nối tạm thời</div>
+</div>
+
+<ol>
+  <li><strong>Quét mã (kiểm tra)</strong>: app gọi ngay sang Core Voucher API (qua kết nối đang
+    "Kích hoạt" ở mục 2 phía trên) để hỏi trạng thái voucher - còn dùng được / đã sử dụng / hết
+    hạn / đã hủy. Bước này <strong>chưa đổi trạng thái</strong> gì ở Core, quét lại nhiều lần
+    không ảnh hưởng.</li>
+  <li><strong>Nhân viên bấm "Xác nhận thu hồi"</strong> (sau khi xác nhận lại ở hộp thoại hỏi
+    lại): app mới gọi tiếp sang Core API để báo thu hồi thật - đây là bước thật sự đổi trạng thái
+    voucher thành "đã dùng" phía Core.</li>
+  <li>Core phản hồi theo 1 trong 2 trường hợp:
+    <ul>
+      <li><strong>Thành công</strong>: app ghi 1 dòng vào bảng <code>VOUCHER_SYNC</code> với cờ
+        <strong>"Đã đồng bộ"</strong> - đây chính là nguồn dữ liệu hiển thị ở cả 3 loại báo cáo
+        (xem mục "Các loại báo cáo" ở Hướng dẫn nghiệp vụ).</li>
+      <li><strong>Core mất kết nối tạm thời</strong> (timeout, đang bảo trì...): app
+        <strong>vẫn cho nhân viên thu hồi thành công ngay tại quầy</strong> (không bắt khách hàng
+        chờ), ghi vào <code>VOUCHER_SYNC</code> với cờ <strong>"Chờ đồng bộ"</strong> như 1 hàng
+        đợi. Một tiến trình chạy nền sẽ tự động gọi lại Core định kỳ cho tới khi thành công -
+        quản trị viên <strong>không cần thao tác gì thêm</strong>.</li>
+    </ul>
+  </li>
+  <li>Mọi lượt quét/thu hồi (kể cả thất bại) được ghi vào "Hoạt động quét/thu hồi" (mục 6 bên
+    dưới) để tra soát, chống gian lận; riêng mỗi lần tiến trình nền chạy lại (thành công hay thất
+    bại) được ghi vào 1 nhật ký đồng bộ hệ thống riêng.</li>
+</ol>
+<p class="hint">Nguyên tắc quan trọng nhất: app <strong>không bao giờ tự quyết định</strong> 1
+voucher đã dùng hay chưa - Core Voucher API luôn là nguồn dữ liệu duy nhất đúng, app chỉ ghi lại
+để phục vụ đối soát/báo cáo. Nếu thấy nhiều giao dịch kẹt ở "Chờ đồng bộ" liên tục không tự
+chuyển sang "Đã đồng bộ", kiểm tra lại kết nối ở mục 2 phía trên - khả năng cao Core đang mất kết
+nối kéo dài hoặc cấu hình endpoint đã bị sai.</p>
+
+<h2>2b. Tích hợp đa hệ thống voucher (vd HCRC &amp; Fuji)</h2>
+<p>Ngoài hệ thống voucher mặc định, ứng dụng có thể tích hợp <strong>đồng thời nhiều hệ thống
+voucher</strong> của nhiều đối tác khác nhau cùng lúc (vd hệ thống hiện tại + "Fuji") - đây là
+2 luồng xử lý <strong>tách biệt hoàn toàn</strong> ở phía Core, nhưng hội tụ về <strong>chung 1
+lớp ứng dụng và 1 bộ dữ liệu</strong> để báo cáo/đối soát thống nhất:</p>
+
+<div class="guide-figure">
+  <svg viewBox="0 0 1040 740" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="gArrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>
+      </marker>
+    </defs>
+    <rect x="320" y="16" width="400" height="60" rx="8" fill="#fff" stroke="#9a9184" stroke-width="1.4"/>
+    <text x="520" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2937">Màn hình Quét voucher</text>
+    <text x="520" y="56" text-anchor="middle" font-size="10" fill="#6b7280">Nhân viên chọn hệ thống trước khi quét (nếu ≥ 2 kết nối sẵn sàng)</text>
+    <path d="M460,76 C 400,110 300,120 250,138" fill="none" stroke="#4b5563" stroke-width="1.6" marker-end="url(#gArrow3)"/>
+    <path d="M580,76 C 640,110 740,120 790,138" fill="none" stroke="#4b5563" stroke-width="1.6" marker-end="url(#gArrow3)"/>
+    <text x="330" y="100" text-anchor="middle" font-size="9.5" fill="#6b7280">connectionId = HCRC</text>
+    <text x="710" y="100" text-anchor="middle" font-size="9.5" fill="#6b7280">connectionId = Fuji</text>
+    <rect x="100" y="140" width="300" height="60" rx="6" fill="#fff4e8" stroke="#c07a33" stroke-width="1.4"/>
+    <text x="250" y="164" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8a4a16">Kết nối API: HCRC</text>
+    <text x="250" y="180" text-anchor="middle" font-size="9.5" fill="#a9733f">ApiConnections Id=1 — mặc định "active"</text>
+    <text x="250" y="192" text-anchor="middle" font-size="9.5" fill="#a9733f">Base URL + API Key + mapping riêng</text>
+    <rect x="640" y="140" width="300" height="60" rx="6" fill="#eaf1ff" stroke="#2563eb" stroke-width="1.4"/>
+    <text x="790" y="164" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1d4ed8">Kết nối API: Fuji</text>
+    <text x="790" y="180" text-anchor="middle" font-size="9.5" fill="#3b5ec9">ApiConnections Id=2 — tích hợp thêm sau</text>
+    <text x="790" y="192" text-anchor="middle" font-size="9.5" fill="#3b5ec9">Base URL + API Key + mapping riêng</text>
+    <path d="M250,200 L250,250" fill="none" stroke="#8a4a16" stroke-width="1.6" marker-end="url(#gArrow3)"/>
+    <path d="M790,200 L790,250" fill="none" stroke="#1d4ed8" stroke-width="1.6" marker-end="url(#gArrow3)"/>
+    <rect x="100" y="252" width="300" height="60" rx="6" fill="#fff" stroke="#c07a33" stroke-width="1.6"/>
+    <text x="250" y="276" text-anchor="middle" font-size="12" font-weight="700" fill="#8a4a16">Core Voucher API</text>
+    <text x="250" y="292" text-anchor="middle" font-size="10.5" fill="#6b7280">của HCRC</text>
+    <rect x="640" y="252" width="300" height="60" rx="6" fill="#fff" stroke="#2563eb" stroke-width="1.6"/>
+    <text x="790" y="276" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">Core Voucher API</text>
+    <text x="790" y="292" text-anchor="middle" font-size="10.5" fill="#6b7280">của Fuji</text>
+    <path d="M250,312 C 250,370 420,392 480,400" fill="none" stroke="#8a4a16" stroke-width="1.5" marker-end="url(#gArrow3)"/>
+    <path d="M790,312 C 790,370 620,392 560,400" fill="none" stroke="#1d4ed8" stroke-width="1.5" marker-end="url(#gArrow3)"/>
+    <rect x="190" y="402" width="660" height="66" rx="8" fill="#fff" stroke="#9a9184" stroke-width="1.5"/>
+    <text x="520" y="426" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2937">VOUCHER_SYNC (bảng dùng chung, không tách riêng theo hệ thống)</text>
+    <text x="520" y="443" text-anchor="middle" font-size="10" fill="#6b7280">Mỗi dòng luôn ghi rõ <tspan font-weight="700" fill="#1f2937">ConnectionName</tspan> = "HCRC" hoặc "Fuji" để truy vết/báo cáo</text>
+    <text x="520" y="459" text-anchor="middle" font-size="10" fill="#6b7280">theo từng hệ thống (ô lọc "Hệ thống" ở 3 màn báo cáo)</text>
+    <path d="M520,468 L520,494" fill="none" stroke="#4b5563" stroke-width="1.5" marker-end="url(#gArrow3)"/>
+    <rect x="140" y="496" width="760" height="70" rx="6" fill="#fff8e6" stroke="#e7cf8c" stroke-width="1"/>
+    <text x="520" y="518" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6b5410">VoucherRedemptionConnections (khóa theo TRANS_NUM)</text>
+    <text x="520" y="535" text-anchor="middle" font-size="10" fill="#6b5410">Ghi lại ĐÚNG hệ thống đã xử lý giao dịch "chờ đồng bộ" (mục 2a) — để tiến trình nền</text>
+    <text x="520" y="550" text-anchor="middle" font-size="10" fill="#6b5410">gọi lại ĐÚNG hệ thống gốc, không gửi nhầm Fuji sang HCRC hay ngược lại</text>
+    <rect x="100" y="590" width="300" height="100" rx="6" fill="#faf9f7" stroke="#d8d2c6" stroke-width="1.2"/>
+    <text x="250" y="612" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a4a16">Phân quyền theo hệ thống</text>
+    <text x="250" y="630" text-anchor="middle" font-size="9.5" fill="#4b5563">1 tài khoản có thể bị giới hạn</text>
+    <text x="250" y="644" text-anchor="middle" font-size="9.5" fill="#4b5563">chỉ quét/thu hồi/xem báo cáo</text>
+    <text x="250" y="658" text-anchor="middle" font-size="9.5" fill="#4b5563">đúng 1 hệ thống (vd chỉ HCRC)</text>
+    <text x="250" y="674" text-anchor="middle" font-size="9.5" fill="#4b5563">— bảng UserVoucherSystems</text>
+    <rect x="640" y="590" width="300" height="100" rx="6" fill="#f5f8ff" stroke="#c7d6f5" stroke-width="1.2"/>
+    <text x="790" y="612" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1d4ed8">Tài khoản đối soát riêng</text>
+    <text x="790" y="630" text-anchor="middle" font-size="9.5" fill="#4b5563">Vd 1 tài khoản đối soát</text>
+    <text x="790" y="644" text-anchor="middle" font-size="9.5" fill="#4b5563">của đối tác Fuji chỉ thấy</text>
+    <text x="790" y="658" text-anchor="middle" font-size="9.5" fill="#4b5563">đúng giao dịch/báo cáo</text>
+    <text x="790" y="674" text-anchor="middle" font-size="9.5" fill="#4b5563">của hệ thống Fuji</text>
+  </svg>
+  <div class="cap">2 luồng Core tách biệt (HCRC/Fuji) hội tụ về chung 1 lớp dữ liệu ứng dụng, có gắn nhãn hệ thống để truy vết và phân quyền riêng</div>
+</div>
+
+<ul>
+  <li>Mỗi hệ thống là <strong>1 kết nối riêng</strong> khai báo ở menu "Kết nối API" (mục 2 phía
+    trên) - có Base URL, kiểu xác thực và ánh xạ field riêng; 2 kết nối có thể <strong>trùng Base
+    URL</strong> (vd cùng 1 cổng API gateway) vì ứng dụng phân biệt bằng <strong>Id nội
+    bộ</strong>, không phải Base URL.</li>
+  <li>Khi có từ 2 kết nối "sẵn sàng" trở lên, màn hình "Quét voucher" sẽ hiện thêm ô chọn
+    <strong>"Hệ thống voucher"</strong> để nhân viên chọn trước khi quét - mã kết nối được gửi
+    kèm mỗi lần kiểm tra/thu hồi để dùng <strong>đúng hệ thống đó</strong> thay vì luôn lấy kết
+    nối "Kích hoạt" mặc định.</li>
+  <li>Dữ liệu <strong>không tách DB riêng</strong> cho từng hệ thống - vẫn ghi chung vào
+    <code>VOUCHER_SYNC</code> (tránh phân mảnh báo cáo/đối soát), nhưng luôn gắn tên hệ thống để
+    lọc/truy vết riêng (ô lọc "Hệ thống" có ở cả 3 màn báo cáo).</li>
+  <li><strong>Điểm bắt buộc phải đúng</strong> khi 1 giao dịch rơi vào trạng thái "Chờ đồng bộ"
+    (mục 2a phía trên): hệ thống ghi nhớ đúng hệ thống gốc đã xử lý giao dịch đó, để tiến trình
+    nền gọi lại <strong>đúng hệ thống</strong> - tránh gửi nhầm 1 giao dịch của hệ thống A sang
+    hệ thống B lúc đồng bộ lại.</li>
+  <li>Có thể <strong>giới hạn 1 tài khoản chỉ dùng/xem đúng 1 (hoặc vài) hệ thống cụ thể</strong>
+    ở màn hình "Tài khoản", cột "Hệ thống voucher được dùng" (mục 1 phía trên) - ví dụ cấp 1 tài
+    khoản đối soát riêng cho đối tác Fuji sẽ chỉ thấy được giao dịch/báo cáo của Fuji, không lẫn
+    với dữ liệu của hệ thống còn lại.</li>
+</ul>
+<p class="hint">Hệ thống đã có sẵn 1 kết nối "Fuji" ở dạng <strong>bản nháp</strong> (chưa điền
+API Key) - chỉ cần vào "Kết nối API", sửa dòng "Fuji", điền đúng API Key do đối tác cung cấp rồi
+lưu lại là dùng song song được ngay 2 hệ thống, không cần tạo kết nối mới.</p>
+
 <h2>3. Bảo mật quản trị</h2>
 <ul>
   <li><strong>Xác thực hai yếu tố (2FA) bắt buộc</strong> với mọi tài khoản quản trị: lần đăng
