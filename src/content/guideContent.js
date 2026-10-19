@@ -161,7 +161,7 @@ buộc phải có ít nhất 1 kết nối đang "Kích hoạt"</strong> thì m�
 trạng thái "Chờ đồng bộ", và biết cần kiểm tra ở đâu khi có sự cố:</p>
 
 <div class="guide-figure">
-  <svg viewBox="0 0 1040 900" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1040 900" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="gArrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
@@ -275,7 +275,7 @@ voucher</strong> của nhiều đối tác khác nhau cùng lúc (vd hệ thốn
 lớp ứng dụng và 1 bộ dữ liệu</strong> để báo cáo/đối soát thống nhất:</p>
 
 <div class="guide-figure">
-  <svg viewBox="0 0 1040 740" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1040 740" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="gArrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>

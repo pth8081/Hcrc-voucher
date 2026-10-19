@@ -1071,6 +1071,32 @@ Luong quet tren UI:
    (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
 4. Neu **da tieu**: hien canh bao do, chi con nut "Quet ma khac" — khong cho thu hoi.
 
+### 6a. Font chu (Inter, tu luu offline)
+
+Toan bo giao dien dung font **Inter** (`--font-sans` trong `public/css/style.css`). Truoc day nap
+qua Google Fonts CDN (`<link href="https://fonts.googleapis.com/css2?family=Inter...">` o moi
+trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
+(`public/fonts/inter/*.woff2`, khai bao qua `@font-face` o `public/css/fonts.css`, nap truoc
+`style.css` o moi trang), **khong con goi ra Internet nua**:
+
+- **Vi sao doi**: may chu trien khai thuc te co the KHONG co ket noi Internet ra ngoai (hoac bi
+  chan boi tuong lua/proxy noi bo) - khi do CDN Google Fonts khong tai duoc, trinh duyet se tu
+  dong roi ve font he thong mac dinh (khac tong voi thiet ke), va bo CSP styleSrc/fontSrc truoc
+  do phai allowlist them 2 host ngoai (`fonts.googleapis.com`, `fonts.gstatic.com`) du khong con
+  can toi.
+- Chi dong goi **3 subset font thuc su can** cho noi dung cua app (tieng Viet + Latin co ban):
+  `latin`, `latin-ext`, `vietnamese` (bo qua cyrillic/greek) - **5 muc do dam** (400/500/600/700/
+  800) **x 3 subset = 15 file `.woff2`**, tong dung luong ~340KB. Moi `@font-face` khai bao
+  `unicode-range` rieng nen trinh duyet **chi tai dung file chua ky tu dang hien thi** (khong tai
+  het 15 file cung luc) - giu nguyen co che toi uu nhu khi goi qua Google Fonts, chi khac nguon
+  la noi bo thay vi CDN.
+- Nguon file: trich xuat tu goi npm `@fontsource/inter` (giay phep **SIL Open Font License
+  1.1** - tu do dung lai/phan phoi lai, xem `public/fonts/inter/LICENSE`) - **khong phu thuoc
+  goi npm nay luc chay** (khong co trong `package.json`, chi la buoc lay file 1 lan luc phat
+  trien).
+- CSP (`src/app.js`) da duoc **thu hep theo** - `styleSrc`/`fontSrc` gio chi con `'self'`, khong
+  con allowlist Google Fonts nua (xem muc 8).
+
 ## 7. Hieu nang
 
 - Response (JSON API lan file tinh JS/CSS/HTML) duoc **nen gzip** qua middleware `compression`
@@ -1080,10 +1106,12 @@ Luong quet tren UI:
 
 - **CSP nghiem ngat, khong `unsafe-inline`/`unsafe-eval`** (`src/app.js`, qua `helmet`): toan bo
   CSS/JS nam trong file rieng (khong con the `<style>`/`<script>` inline hay thuoc tinh
-  `style="..."` trong bat ky trang nao), script-src/style-src/font-src chi allowlist dung cac
-  host thuc su can (Google Fonts, `unpkg.com` cho thu vien quet QR). Helmet cung tu bat kem cac
-  header bao mat khac (`X-Content-Type-Options`, `X-Frame-Options: DENY`,
-  `Referrer-Policy`, HSTS...).
+  `style="..."` trong bat ky trang nao), script-src chi allowlist dung host thuc su can
+  (`unpkg.com` cho thu vien quet QR); style-src/font-src chi `'self'` - font **Inter** da duoc
+  **tu luu trong app** (`public/fonts/inter/`, nap qua `public/css/fonts.css`) thay vi goi ra
+  Google Fonts, hoat dong dung du khi may chu KHONG co ket noi Internet ra ngoai - xem muc 6a.
+  Helmet cung tu bat kem cac header bao mat khac (`X-Content-Type-Options`,
+  `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS...).
 - **Chong XSS**: moi du lieu dong hien thi ra trang (ke ca response tu Core API — nguon du lieu
   ben ngoai, rui ro cao nhat) deu di qua `escapeHtml()` truoc khi ghep vao `innerHTML`, hoac dung
   `.textContent` (khong parse HTML) cho cac khoi hien thi JSON tho — xem `public/js/*.js`.
