@@ -21,16 +21,20 @@ function createApp() {
 
   // CSP nghiem ngat: KHONG unsafe-inline / unsafe-eval o bat ky directive nao.
   // Moi CSS/JS deu nam trong file rieng (khong con <style>/<script> inline hay
-  // thuoc tinh style="..."), chi allowlist dung cac host ben ngoai thuc su can:
-  // Google Fonts (style/font) va unpkg (thu vien quet QR bang camera).
+  // thuoc tinh style="..."), chi allowlist dung 1 host ben ngoai thuc su can: unpkg
+  // (thu vien quet QR bang camera). Font Inter da TU LUU trong app (public/fonts/inter/,
+  // xem public/css/fonts.css) tu ban nay - khong con goi ra Google Fonts nua (truoc day
+  // styleSrc/fontSrc co allowlist fonts.googleapis.com/fonts.gstatic.com), vua bot 1 host
+  // ngoai CSP vua dam bao giao dien van dung font dung ngay ca khi may chu KHONG co ket
+  // noi Internet ra ngoai.
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://unpkg.com'],
-          styleSrc: ["'self'", 'https://fonts.googleapis.com'],
-          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+          styleSrc: ["'self'"],
+          fontSrc: ["'self'"],
           imgSrc: ["'self'", 'data:'],
           mediaSrc: ["'self'", 'blob:'],
           connectSrc: ["'self'"],
@@ -43,9 +47,9 @@ function createApp() {
           upgradeInsecureRequests: [],
         },
       },
-      // Tat COEP: cac host ben ngoai (fonts.gstatic.com, unpkg.com) khong luon tra ve
-      // header Cross-Origin-Resource-Policy phu hop, bat COEP se lam gian doan viec
-      // tai font/thu vien camera. Cac header bao mat khac cua helmet van giu nguyen.
+      // Tat COEP: unpkg.com (thu vien quet QR bang camera) khong luon tra ve header
+      // Cross-Origin-Resource-Policy phu hop, bat COEP se lam gian doan viec tai thu vien
+      // do. Cac header bao mat khac cua helmet van giu nguyen.
       crossOriginEmbedderPolicy: false,
       // L3: khai bao ro rang thay vi de mac dinh cua helmet (co the doi giua cac phien ban) -
       // 1 nam + includeSubDomains, ep trinh duyet LUON goi qua HTTPS voi domain nay sau lan
