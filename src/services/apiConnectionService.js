@@ -313,12 +313,21 @@ async function update(id, data) {
     .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null);
 
+  // L8 (loi that da xay ra): form Sua tren FE luon gui authToken/basicPassword la CHUOI RONG
+  // khi admin de trong o do (dung y muon GIU NGUYEN secret da luu - placeholder "Da luu - de
+  // trong de giu nguyen"), KHONG GUI hang so KEEP_SECRET nhu thiet ke ban dau mong doi. Dieu
+  // kien cu chi loai tru `undefined`/KEEP_SECRET nen van coi chuoi rong la "doi sang secret
+  // moi" -> encrypt('') tra ve NULL (xem utils/crypto.js) -> XOA MAT secret dang hoat dong chi
+  // vi admin sua 1 truong khac (vd doi Ten) ma khong go lai Key - khien ket noi do bien mat khoi
+  // o chon he thong tren man Quet voucher (apiConnectionService.js#listOptions chi liet ke ket
+  // noi co secret KHAC NULL). Sua dung ca falsy (chuoi rong) GIONG het KEEP_SECRET: chi ghi de
+  // secret khi admin THAT SU go gia tri moi vao o do.
   let secretSet = '';
-  if (data.authToken !== undefined && data.authToken !== KEEP_SECRET) {
+  if (data.authToken && data.authToken !== KEEP_SECRET) {
     request.input('authTokenEncrypted', sql.NVarChar(1000), encrypt(data.authToken));
     secretSet += ', AuthTokenEncrypted = @authTokenEncrypted';
   }
-  if (data.basicPassword !== undefined && data.basicPassword !== KEEP_SECRET) {
+  if (data.basicPassword && data.basicPassword !== KEEP_SECRET) {
     request.input('basicPasswordEncrypted', sql.NVarChar(1000), encrypt(data.basicPassword));
     secretSet += ', BasicPasswordEncrypted = @basicPasswordEncrypted';
   }
