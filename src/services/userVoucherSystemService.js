@@ -23,6 +23,44 @@ async function getAllowedConnectionIds(userId) {
   return result.recordset.map((r) => r.ConnectionId);
 }
 
+/**
+ * He thong voucher duoc phep dung CHUNG cho toan bo tai khoan dang gan dung 1 diem thu hoi
+ * (Users.Locations_Detail = locationCode, bo qua tai khoan da bi xoa mem) - dung de loc o chon
+ * "He thong voucher" tren 3 man hinh bao cao khi admin da chon 1 "Diem thu hoi" cu the (xem
+ * report.controller.js#filterSystems). Cung quy uoc null/[]/[...] nhu getAllowedConnectionIds:
+ * null = khong gioi han (co it nhat 1 tai khoan tai diem nay duoc dung TOAN BO he thong, nen
+ * xem nhu ca diem khong gioi han), [] = diem nay khong co tai khoan nao (hoac tat ca tai khoan
+ * deu bi khoa het, thuc te khong xay ra vi 1 tai khoan it nhat phai co 1 he thong duoc dung),
+ * [...] = hop cac he thong ma IT NHAT 1 tai khoan tai diem nay duoc dung.
+ */
+async function getAllowedConnectionIdsForLocation(locationCode) {
+  const pool = await getPool();
+  const usersResult = await pool
+    .request()
+    .input('code', sql.NVarChar(100), locationCode)
+    .query(`
+      SELECT u.UserID
+      FROM dbo.Users u
+      LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
+      WHERE LTRIM(RTRIM(u.Locations_Detail)) = @code AND ISNULL(s.IsDeleted, 0) = 0
+    `);
+  const userIds = usersResult.recordset.map((r) => r.UserID);
+  if (!userIds.length) return [];
+
+  const request = pool.request();
+  const placeholders = userIds.map((id, i) => {
+    request.input(`u${i}`, sql.Int, id);
+    return `@u${i}`;
+  });
+  const restrictionResult = await request.query(
+    `SELECT UserId, ConnectionId FROM dbo.UserVoucherSystems WHERE UserId IN (${placeholders.join(', ')})`
+  );
+  const restrictedUserIds = new Set(restrictionResult.recordset.map((r) => r.UserId));
+  const hasUnrestrictedUser = userIds.some((id) => !restrictedUserIds.has(id));
+  if (hasUnrestrictedUser) return null;
+  return [...new Set(restrictionResult.recordset.map((r) => r.ConnectionId))];
+}
+
 async function isConnectionAllowedForUser(userId, connectionId) {
   const allowed = await getAllowedConnectionIds(userId);
   if (allowed === null) return true;
@@ -73,6 +111,7 @@ async function setAllowedConnections(userId, connectionIds) {
 
 module.exports = {
   getAllowedConnectionIds,
+  getAllowedConnectionIdsForLocation,
   isConnectionAllowedForUser,
   listUserAccess,
   setAllowedConnections,

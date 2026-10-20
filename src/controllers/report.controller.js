@@ -4,6 +4,7 @@ const usedVoucherReportService = require('../services/usedVoucherReportService')
 const reportAccessService = require('../services/reportAccessService');
 const apiConnectionService = require('../services/apiConnectionService');
 const userVoucherSystemService = require('../services/userVoucherSystemService');
+const redemptionUnitService = require('../services/redemptionUnitService');
 
 async function resolveScope(req) {
   return reportAccessService.resolveVisibleLocationCodes({
@@ -255,10 +256,23 @@ async function filterRedemptionUnits(req, res, next) {
   }
 }
 
+/** Diem thu hoi (redemptionUnitId) dang chon, neu co -> tra ve dung LocationCode cua diem do de
+ * loc tiep o filterRedeemers/filterSystems. Dung chung, tra null neu khong truyen/khong ton tai
+ * (bo qua loc them, giu nguyen hanh vi cu - khong nem loi vi day chi la 1 o loc tuy chon). */
+async function resolveFilterLocationCode(req) {
+  const redemptionUnitId = req.query.redemptionUnitId ? Number(req.query.redemptionUnitId) : null;
+  if (!redemptionUnitId) return null;
+  return redemptionUnitService.getLocationCodeById(redemptionUnitId);
+}
+
+/** M11: nhan them redemptionUnitId (tuy chon, tu o chon "Diem thu hoi" dang chon tren man hinh
+ * bao cao) de loc danh sach CHI con cac tai khoan DANG gan dung diem do - xem
+ * reportService.js#listFilterRedeemers. */
 async function filterRedeemers(req, res, next) {
   try {
     const { codes } = await resolveScope(req);
-    const redeemers = await reportService.listFilterRedeemers(codes);
+    const locationCode = await resolveFilterLocationCode(req);
+    const redeemers = await reportService.listFilterRedeemers(codes, locationCode);
     res.json({ success: true, data: redeemers });
   } catch (err) {
     next(err);
@@ -267,14 +281,25 @@ async function filterRedeemers(req, res, next) {
 
 /** Danh sach he thong voucher de hien thi o loc "He thong" - CHI gom cac he thong tai khoan nay
  * duoc phep xem (userVoucherSystemService.js), giong het bo loc thuc te se bi ap dung khi xem
- * bao cao (resolveConnectionFilter). 1 tai khoan bi gioi han CHI Fuji se chi thay "Fuji" o day. */
+ * bao cao (resolveConnectionFilter). 1 tai khoan bi gioi han CHI Fuji se chi thay "Fuji" o day.
+ * M11: neu co chon them "Diem thu hoi" (redemptionUnitId), loc tiep CHI con he thong duoc IT
+ * NHAT 1 tai khoan dang gan dung diem do duoc phep dung (userVoucherSystemService.js#getAllowedConnectionIdsForLocation)
+ * - giao voi quyen cua chinh tai khoan dang xem bao cao (khong bao gio hien thi vuot qua quyen
+ * cua nguoi dang xem, du diem do co tai khoan duoc dung he thong rong hon). */
 async function filterSystems(req, res, next) {
   try {
     const [all, allowed] = await Promise.all([
       apiConnectionService.listOptions(),
       userVoucherSystemService.getAllowedConnectionIds(req.user.userId),
     ]);
-    const data = allowed === null ? all : all.filter((c) => allowed.includes(c.id));
+    let data = allowed === null ? all : all.filter((c) => allowed.includes(c.id));
+
+    const locationCode = await resolveFilterLocationCode(req);
+    if (locationCode) {
+      const unitAllowed = await userVoucherSystemService.getAllowedConnectionIdsForLocation(locationCode);
+      if (unitAllowed !== null) data = data.filter((c) => unitAllowed.includes(c.id));
+    }
+
     res.json({ success: true, data });
   } catch (err) {
     next(err);

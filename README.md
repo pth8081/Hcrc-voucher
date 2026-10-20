@@ -1429,6 +1429,23 @@ ngoai pham vi do trong dropdown, tranh lo thong tin cong ty khac qua danh sach l
 dung chung logic voi `requireFeature` cho phep bat ky quyen nao trong 3 quyen xem bao cao goi
 duoc, xem `src/middleware/requireFeature.js`).
 
+**M11 (loi that da bao cao): chon 1 "Diem thu hoi" cu the gio se tu dong loc lai CA o "Tai khoan
+thu hoi" LAN o "He thong voucher"** - truoc day 2 o nay luon hien TOAN BO gia tri trong pham vi
+xem cua tai khoan dang nhap, khong lien quan gi den Diem thu hoi dang chon, nen chon duoc 1 to
+hop "Diem + Tai khoan/He thong khong lien quan gi nhau that su" (vd 1 tai khoan chua bao gio
+duoc gan diem do) se luon ra bao cao rong, gay nham lan tuong nham la loi:
+
+- **"Tai khoan thu hoi"** gio liet ke dung cac tai khoan **DANG duoc gan** (`Users.Locations_Detail`)
+  dung diem dang chon - doi nguon du lieu tu lich su giao dich (`VOUCHER_SYNC`) sang chinh bang
+  `Users` (bo qua tai khoan da xoa mem), vi muc dich la "tai khoan nao dang truc o diem nay" chu
+  khong phai "tai khoan nao tung co giao dich o diem nay" (`reportService.js#listFilterRedeemers`).
+- **"He thong voucher"** gio chi con liet ke he thong duoc **IT NHAT 1 tai khoan dang gan dung
+  diem do** duoc phep dung (`userVoucherSystemService.js#getAllowedConnectionIdsForLocation`) -
+  giao them voi quyen cua chinh tai khoan dang xem bao cao (khong bao gio hien vuot qua quyen
+  cua nguoi dang xem).
+- Bo chon lai "Tat ca diem thu hoi" (hoac doi cong ty) se tra ca 2 o nay ve lai danh sach day du
+  (khong loc theo diem).
+
 ## 13. Phan quyen xem bao cao theo cong ty
 
 Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
@@ -1617,13 +1634,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.46)**: them nut **Sua/Xoa** cho 3 danh sach o man hinh "Don vi thu hoi" (Cong
-ty, Diem tieu, Nhom quyen xem bao cao - truoc day chi them/xem duoc) - xem muc 12a/13. Ban truoc
-do (v3.45): fix loi nghiem trong o man "Ket noi API" — sua 1 ket noi da co san ma de trong o
-"Gia tri API Key" (dung y giu nguyen) truoc day se **xoa mat secret dang hoat dong**, khien ket
-noi do bien mat khoi o chon he thong tren man Quet voucher (muc 4). Chi tiet cac ban cu hon xem
-danh sach day du ben duoi.
+Ban **moi nhat (v3.47)**: fix loi logic o loc bao cao - chon 1 **"Diem thu hoi"** cu the gio tu
+dong loc lai dung o **"Tai khoan thu hoi"** va **"He thong voucher"** (truoc day 2 o nay khong
+lien quan gi den Diem dang chon, chon duoc 1 to hop khong thuc su ton tai nen bao cao luon ra
+rong) - xem muc 12d. Ban truoc do (v3.46): them nut **Sua/Xoa** cho 3 danh sach o man hinh "Don
+vi thu hoi" (Cong ty, Diem tieu, Nhom quyen xem bao cao). Chi tiet cac ban cu hon xem danh sach
+day du ben duoi.
 
+- **v3.47** - Fix loi logic: chon 1 "Diem thu hoi" o bo loc bao cao gio tu dong loc lai dung o
+  "Tai khoan thu hoi" (chi con tai khoan DANG gan diem do) va "He thong voucher" (chi con he
+  thong duoc tai khoan tai diem do dung) - truoc day 2 o nay khong loc theo Diem dang chon, chon
+  duoc to hop khong thuc su ton tai khien bao cao luon ra rong.
 - **v3.46** - Them nut Sua/Xoa cho 3 danh sach o man hinh "Don vi thu hoi" (truoc day chi
   them/xem duoc): Cong ty, Diem tieu, Nhom quyen xem bao cao - xoa bi chan neu con du lieu phu
   thuoc (Cong ty con Diem tieu / Diem tieu con nhan vien hoat dong / Nhom quyen dang gan cho tai
