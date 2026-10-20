@@ -190,15 +190,29 @@ async function listFilterRedemptionUnits(visibleLocationCodes, companyId) {
   return result.recordset;
 }
 
-async function listFilterRedeemers(visibleLocationCodes) {
+/**
+ * M11 (loi that da bao cao): truoc day liet ke tai khoan tu LICH SU giao dich (DISTINCT
+ * vs.userid trong VOUCHER_SYNC) - khong lien quan gi den tai khoan do CO DANG duoc gan dung
+ * "Diem thu hoi" dang loc hay khong, nen chon 1 Diem thu hoi van thay duoc ca nhung tai khoan
+ * chua bao gio/khong con gan diem do trong o chon "Tai khoan thu hoi" (ket hop lai se luon ra
+ * bao cao rong, gay nham lan). Doi nguon sang chinh bang `Users` (theo dung gan ket hien tai,
+ * Users.Locations_Detail), loc THEM dung locationCode cua Diem thu hoi dang chon neu co - xem
+ * report.controller.js#filterRedeemers. Bo qua tai khoan da bi xoa mem (UserAccountSchedule).
+ */
+async function listFilterRedeemers(visibleLocationCodes, locationCode) {
   const pool = await getPool();
   const request = pool.request();
-  const filter = buildLocationCodeFilter(request, visibleLocationCodes, 'vs.Locations_Detail');
+  let filter = buildLocationCodeFilter(request, visibleLocationCodes, 'u.Locations_Detail');
+  if (locationCode) {
+    request.input('locationCode', sql.NVarChar(100), locationCode);
+    filter += ' AND LTRIM(RTRIM(u.Locations_Detail)) = @locationCode';
+  }
   const result = await request.query(`
-    SELECT DISTINCT vs.userid AS userId, vs.User_Name AS userName
-    FROM dbo.VOUCHER_SYNC vs
-    WHERE vs.userid IS NOT NULL${filter}
-    ORDER BY vs.User_Name
+    SELECT DISTINCT u.UserID AS userId, u.FullName AS userName
+    FROM dbo.Users u
+    LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
+    WHERE u.Locations_Detail IS NOT NULL AND ISNULL(s.IsDeleted, 0) = 0${filter}
+    ORDER BY u.FullName
   `);
   return result.recordset;
 }

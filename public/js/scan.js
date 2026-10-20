@@ -4,6 +4,8 @@ renderTopbar('scan');
 const voucherInput = document.getElementById('voucherInput');
 const cameraBtn = document.getElementById('cameraBtn');
 const qrReaderEl = document.getElementById('qr-reader');
+const scanHero = document.getElementById('scanHero');
+const scanInputGroup = document.getElementById('scanInputGroup');
 const resultCard = document.getElementById('resultCard');
 const statusBadge = document.getElementById('statusBadge');
 const resultInfo = document.getElementById('resultInfo');
@@ -341,6 +343,11 @@ function toggleCamera() {
     .then(() => {
       cameraRunning = true;
       cameraBtn.textContent = 'Dừng camera';
+      // An bot phan gioi thieu/o nhap HID (khong can khi dang quet bang camera) de khung camera
+      // hien gan dau trang, khong phai keo xuong moi thay - theo phan anh cua nguoi dung tren mobile.
+      scanHero.classList.add('hidden');
+      scanInputGroup.classList.add('hidden');
+      qrReaderEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     })
     .catch((err) => {
       showToast('Không thể mở camera: ' + err.message);
@@ -362,6 +369,8 @@ function stopCamera() {
     .catch(() => {})
     .finally(() => {
       qrReaderEl.classList.add('hidden');
+      scanHero.classList.remove('hidden');
+      scanInputGroup.classList.remove('hidden');
       cameraRunning = false;
       cameraBtn.textContent = 'Quét bằng camera';
       cameraBusy = false;

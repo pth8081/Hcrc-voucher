@@ -28,7 +28,7 @@
     </div>
 
     <div class="card">
-      <div class="scan-hero">
+      <div class="scan-hero" id="scanHero">
         <span class="scan-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 8V5a2 2 0 0 1 2-2h3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3M7 12h10"/>
@@ -41,14 +41,16 @@
         </p>
       </div>
 
-      <label>Đưa máy quét vào đây và bấm quét</label>
-      <input
-        id="voucherInput"
-        class="scan-input"
-        placeholder="Đang chờ tín hiệu quét..."
-        autocomplete="off"
-        inputmode="none"
-      />
+      <div id="scanInputGroup">
+        <label>Đưa máy quét vào đây và bấm quét</label>
+        <input
+          id="voucherInput"
+          class="scan-input"
+          placeholder="Đang chờ tín hiệu quét..."
+          autocomplete="off"
+          inputmode="none"
+        />
+      </div>
       <div id="manualBlockedHint" class="warn-inline hidden">
         Không nhận diện được thao tác quét. Vui lòng dùng máy quét hoặc camera, không gõ tay.
       </div>
