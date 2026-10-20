@@ -1074,6 +1074,15 @@ Luong quet tren UI:
    (DA DONG BO / CHO DONG BO), tu dong focus lai o quet cho ma tiep theo.
 4. Neu **da tieu**: hien canh bao do, chi con nut "Quet ma khac" — khong cho thu hoi.
 
+**Bo cuc gon tren man hinh dien thoai khi bat camera (loi da bao cao):** truoc day bam "Quet bang
+camera" chi hien THEM khung camera o CUOI the (duoi phan gioi thieu + o nhap HID van con nguyen o
+tren), khien tren man hinh dien thoai (nhat la may man hinh nho) phai **cuon xuong moi thay duoc
+khung camera** de quet. Da sua: ngay khi camera bat thanh cong, phan gioi thieu ("San sang quet
+voucher" + doan huong dan) va o nhap danh cho may quet HID se **tu dong an di** (khong can khi dang
+dung camera), khung camera duoc dua len gon ngay duoi nut "Dung camera" va trang **tu cuon toi**
+khung camera — khong can nguoi dung tu keo xuong nua. Tat camera se hien lai dung nhu cu de dung
+duoc may quet HID binh thuong.
+
 ### 6a. Font chu (Inter, tu luu offline)
 
 Toan bo giao dien dung font **Inter** (`--font-sans` trong `public/css/style.css`). Truoc day nap
@@ -1634,13 +1643,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.47)**: fix loi logic o loc bao cao - chon 1 **"Diem thu hoi"** cu the gio tu
-dong loc lai dung o **"Tai khoan thu hoi"** va **"He thong voucher"** (truoc day 2 o nay khong
-lien quan gi den Diem dang chon, chon duoc 1 to hop khong thuc su ton tai nen bao cao luon ra
-rong) - xem muc 12d. Ban truoc do (v3.46): them nut **Sua/Xoa** cho 3 danh sach o man hinh "Don
-vi thu hoi" (Cong ty, Diem tieu, Nhom quyen xem bao cao). Chi tiet cac ban cu hon xem danh sach
-day du ben duoi.
+Ban **moi nhat (v3.48)**: fix UX man hinh Quet voucher tren dien thoai - bam "Quet bang camera"
+truoc day phai **cuon xuong moi thay khung camera** (bi phan gioi thieu + o nhap HID chiem het man
+hinh tren), gio tu dong an phan khong can thiet va cuon toi khung camera ngay - xem muc 6. Ban
+truoc do (v3.47): fix loi logic o loc bao cao - chon 1 **"Diem thu hoi"** cu the gio tu dong loc
+lai dung o **"Tai khoan thu hoi"** va **"He thong voucher"** (truoc day 2 o nay khong lien quan gi
+den Diem dang chon, chon duoc 1 to hop khong thuc su ton tai nen bao cao luon ra rong) - xem muc
+12d. Chi tiet cac ban cu hon xem danh sach day du ben duoi.
 
+- **v3.48** - Fix UX man hinh Quet voucher tren dien thoai: bam "Quet bang camera" gio tu dong an
+  phan gioi thieu + o nhap HID (khong can khi dang dung camera) va tu cuon toi khung camera, thay
+  vi phai cuon xuong moi thay duoc nhu truoc - xem muc 6.
 - **v3.47** - Fix loi logic: chon 1 "Diem thu hoi" o bo loc bao cao gio tu dong loc lai dung o
   "Tai khoan thu hoi" (chi con tai khoan DANG gan diem do) va "He thong voucher" (chi con he
   thong duoc tai khoan tai diem do dung) - truoc day 2 o nay khong loc theo Diem dang chon, chon
