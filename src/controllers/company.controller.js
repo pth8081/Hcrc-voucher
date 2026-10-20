@@ -59,4 +59,24 @@ async function update(req, res, next) {
   }
 }
 
-module.exports = { list, create, update };
+async function remove(req, res, next) {
+  try {
+    const companyId = Number(req.params.id);
+    const before = await companyService.getById(companyId);
+    if (!before) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay cong ty nay' });
+    }
+    await companyService.remove(companyId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'DELETE_COMPANY',
+      targetUsername: before.CompanyName,
+      detail: { before: { companyCode: before.CompanyCode, companyName: before.CompanyName }, after: null },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, create, update, remove };

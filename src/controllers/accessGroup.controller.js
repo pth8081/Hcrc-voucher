@@ -66,4 +66,24 @@ async function update(req, res, next) {
   }
 }
 
-module.exports = { list, create, update };
+async function remove(req, res, next) {
+  try {
+    const groupId = Number(req.params.id);
+    const before = await reportAccessService.getGroupById(groupId);
+    if (!before) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay nhom quyen nay' });
+    }
+    await reportAccessService.removeGroup(groupId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'DELETE_ACCESS_GROUP',
+      targetUsername: before.groupName,
+      detail: { before: { groupName: before.groupName, scopeType: before.scopeType, companyIds: before.companyIds }, after: null },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, create, update, remove };
