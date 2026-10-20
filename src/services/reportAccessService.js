@@ -196,11 +196,36 @@ async function setUserGroup(userId, groupId, updatedBy) {
     `);
 }
 
+/** Xoa 1 nhom quyen xem bao cao - CHAN neu con tai khoan nao dang duoc gan vao nhom nay
+ * (UserReportAccess.GroupId co FK toi bang nay, xem sql/011), tra ve loi 409 ro rang. Phai go
+ * gan (doi ve "mac dinh") het tai khoan truoc khi xoa duoc nhom. Xoa truoc danh sach cong ty
+ * "duoc xem them" cua nhom (ReportAccessGroupCompanies) - thuoc ve chinh nhom nay, khong phai
+ * du lieu rieng can giu lai. */
+async function removeGroup(groupId) {
+  const pool = await getPool();
+
+  const userCount = await pool
+    .request()
+    .input('id', sql.Int, groupId)
+    .query('SELECT COUNT(*) AS cnt FROM dbo.UserReportAccess WHERE GroupId = @id');
+  const count = userCount.recordset[0].cnt;
+  if (count > 0) {
+    const err = new Error('Nhom quyen dang duoc gan cho tai khoan, khong the xoa');
+    err.statusCode = 409;
+    err.publicMessage = `Nhóm quyền này đang được gán cho ${count} tài khoản - vui lòng gỡ gán (đổi về "mặc định") các tài khoản đó ở màn hình "Tài khoản" trước khi xóa nhóm quyền.`;
+    throw err;
+  }
+
+  await pool.request().input('id', sql.Int, groupId).query('DELETE FROM dbo.ReportAccessGroupCompanies WHERE GroupId = @id');
+  await pool.request().input('id', sql.Int, groupId).query('DELETE FROM dbo.ReportAccessGroups WHERE Id = @id');
+}
+
 module.exports = {
   resolveVisibleLocationCodes,
   listGroups,
   createGroup,
   updateGroup,
+  removeGroup,
   getGroupById,
   getUserGroup,
   listUserAccess,

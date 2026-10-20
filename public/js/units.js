@@ -26,8 +26,28 @@ const scopeTypeSelect = document.getElementById('scopeType');
 const groupCompaniesField = document.getElementById('groupCompaniesField');
 const groupCompaniesList = document.getElementById('groupCompaniesList');
 
+const companyFormTitle = document.getElementById('companyFormTitle');
+const companySubmitBtn = document.getElementById('companySubmitBtn');
+const companyCancelBtn = document.getElementById('companyCancelBtn');
+const unitFormTitle = document.getElementById('unitFormTitle');
+const unitSubmitBtn = document.getElementById('unitSubmitBtn');
+const unitCancelBtn = document.getElementById('unitCancelBtn');
+const accessGroupFormTitle = document.getElementById('accessGroupFormTitle');
+const accessGroupSubmitBtn = document.getElementById('accessGroupSubmitBtn');
+const accessGroupCancelBtn = document.getElementById('accessGroupCancelBtn');
+
 let companiesCache = [];
 let locationsCache = [];
+let unitsCache = [];
+let accessGroupsCache = [];
+// Dung chung 1 "mo hinh sua" cho ca 3 danh sach (Cong ty/Diem tieu/Nhom quyen): bam "Sua" tren 1
+// dong se DO LAI chinh form "Them..." o tren (gon hon rat nhieu so voi sua ngay tren dong bang,
+// vi cac form nay co toi 9-10 truong) - giong het cach man "Ket noi API" lam, dung
+// editingXxxId !== null de biet dang o che do sua, PUT thay vi POST luc luu, "Huy sua" de quay
+// lai che do tao moi ma khong luu gi.
+let editingCompanyId = null;
+let editingUnitId = null;
+let editingAccessGroupId = null;
 
 (async function init() {
   try {
@@ -162,7 +182,7 @@ async function loadCompanies() {
 
 function renderCompanies() {
   if (!companiesCache.length) {
-    companiesBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có công ty nào</td></tr>';
+    companiesBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có công ty nào</td></tr>';
     return;
   }
   companiesBody.innerHTML = companiesCache
@@ -174,40 +194,156 @@ function renderCompanies() {
         <td data-label="Liên hệ">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
         <td data-label="Số điểm tiêu" id="unit-count-${c.Id}">-</td>
         <td data-label="Trạng thái">${c.Status ? 'Hoạt động' : 'Ngừng'}</td>
+        <td data-label="Hành động" class="actions-cell">
+          <button type="button" class="btn-secondary edit-company-btn" data-id="${c.Id}">Sửa</button>
+          <button type="button" class="btn-danger delete-company-btn" data-id="${c.Id}">Xóa</button>
+        </td>
       </tr>`
     )
     .join('');
+
+  companiesBody.querySelectorAll('.edit-company-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const company = companiesCache.find((c) => c.Id === Number(btn.dataset.id));
+      if (company) populateCompanyForm(company);
+    });
+  });
+  companiesBody.querySelectorAll('.delete-company-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteCompany(Number(btn.dataset.id)));
+  });
+}
+
+function populateCompanyForm(c) {
+  editingCompanyId = c.Id;
+  companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
+  document.getElementById('companyCode').value = c.CompanyCode || '';
+  document.getElementById('companyName').value = c.CompanyName || '';
+  document.getElementById('companyContactName').value = c.ContactName || '';
+  document.getElementById('companyContactPhone').value = c.ContactPhone || '';
+  document.getElementById('companyContactEmail').value = c.ContactEmail || '';
+  document.getElementById('companyAddress').value = c.Address || '';
+  document.getElementById('companyTaxCode').value = c.TaxCode || '';
+  document.getElementById('companyBankAccount').value = c.BankAccount || '';
+  document.getElementById('companyBankName').value = c.BankName || '';
+  companySubmitBtn.textContent = 'Cập nhật công ty';
+  companyCancelBtn.classList.remove('hidden');
+  companyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetCompanyForm() {
+  editingCompanyId = null;
+  companyFormTitle.textContent = 'Thêm công ty';
+  companyForm.reset();
+  companySubmitBtn.textContent = 'Lưu công ty';
+  companyCancelBtn.classList.add('hidden');
+}
+companyCancelBtn.addEventListener('click', resetCompanyForm);
+
+async function deleteCompany(id) {
+  const company = companiesCache.find((c) => c.Id === id);
+  if (!company) return;
+  if (!confirm(`Xóa công ty "${company.CompanyName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/companies/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa công ty');
+    if (editingCompanyId === id) resetCompanyForm();
+    await loadCompanies();
+    await loadUnits();
+  } catch (err) {
+    showToast(err.message);
+  }
 }
 
 async function loadUnits() {
   try {
-    const data = await apiFetch('/redemption-units');
-    if (!data.length) {
-      unitsBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có điểm tiêu nào</td></tr>';
-    } else {
-      unitsBody.innerHTML = data
-        .map(
-          (u) => `
-          <tr>
-            <td data-label="Mã điểm">${escapeHtml(u.PartnerCode)}</td>
-            <td data-label="Tên điểm tiêu">${escapeHtml(u.PartnerName)}</td>
-            <td data-label="Công ty">${escapeHtml(u.CompanyName || '-')}</td>
-            <td data-label="Địa điểm">${escapeHtml(u.LocationName || '-')}</td>
-            <td data-label="Liên hệ">${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
-            <td data-label="Trạng thái">${u.Status ? 'Hoạt động' : 'Ngừng'}</td>
-          </tr>`
-        )
-        .join('');
-    }
+    unitsCache = await apiFetch('/redemption-units');
+    renderUnits();
 
     const countByCompany = {};
-    data.forEach((u) => {
+    unitsCache.forEach((u) => {
       if (u.CompanyId) countByCompany[u.CompanyId] = (countByCompany[u.CompanyId] || 0) + 1;
     });
     companiesCache.forEach((c) => {
       const cell = document.getElementById(`unit-count-${c.Id}`);
       if (cell) cell.textContent = countByCompany[c.Id] || 0;
     });
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function renderUnits() {
+  if (!unitsCache.length) {
+    unitsBody.innerHTML = '<tr><td colspan="7" class="text-muted">Chưa có điểm tiêu nào</td></tr>';
+    return;
+  }
+  unitsBody.innerHTML = unitsCache
+    .map(
+      (u) => `
+      <tr>
+        <td data-label="Mã điểm">${escapeHtml(u.PartnerCode)}</td>
+        <td data-label="Tên điểm tiêu">${escapeHtml(u.PartnerName)}</td>
+        <td data-label="Công ty">${escapeHtml(u.CompanyName || '-')}</td>
+        <td data-label="Địa điểm">${escapeHtml(u.LocationName || '-')}</td>
+        <td data-label="Liên hệ">${escapeHtml(u.ContactName || '-')} ${u.ContactPhone ? '(' + escapeHtml(u.ContactPhone) + ')' : ''}</td>
+        <td data-label="Trạng thái">${u.Status ? 'Hoạt động' : 'Ngừng'}</td>
+        <td data-label="Hành động" class="actions-cell">
+          <button type="button" class="btn-secondary edit-unit-btn" data-id="${u.Id}">Sửa</button>
+          <button type="button" class="btn-danger delete-unit-btn" data-id="${u.Id}">Xóa</button>
+        </td>
+      </tr>`
+    )
+    .join('');
+
+  unitsBody.querySelectorAll('.edit-unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const unit = unitsCache.find((u) => u.Id === Number(btn.dataset.id));
+      if (unit) populateUnitForm(unit);
+    });
+  });
+  unitsBody.querySelectorAll('.delete-unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteUnit(Number(btn.dataset.id)));
+  });
+}
+
+function populateUnitForm(u) {
+  editingUnitId = u.Id;
+  unitFormTitle.textContent = `Sửa điểm tiêu: ${u.PartnerName}`;
+  companySelect.value = String(u.CompanyId || '');
+  locationSelect.value = String(u.LocationDetailId || '');
+  document.getElementById('partnerCode').value = u.PartnerCode || '';
+  document.getElementById('partnerName').value = u.PartnerName || '';
+  document.getElementById('contactName').value = u.ContactName || '';
+  document.getElementById('contactPhone').value = u.ContactPhone || '';
+  document.getElementById('contactEmail').value = u.ContactEmail || '';
+  document.getElementById('address').value = u.Address || '';
+  document.getElementById('taxCode').value = u.TaxCode || '';
+  document.getElementById('bankAccount').value = u.BankAccount || '';
+  document.getElementById('bankName').value = u.BankName || '';
+  document.getElementById('dailyLimitAmount').value = u.DailyLimitAmount || '';
+  unitSubmitBtn.textContent = 'Cập nhật điểm tiêu';
+  unitCancelBtn.classList.remove('hidden');
+  unitForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetUnitForm() {
+  editingUnitId = null;
+  unitFormTitle.textContent = 'Thêm điểm tiêu';
+  unitForm.reset();
+  unitSubmitBtn.textContent = 'Lưu điểm tiêu';
+  unitCancelBtn.classList.add('hidden');
+}
+unitCancelBtn.addEventListener('click', resetUnitForm);
+
+async function deleteUnit(id) {
+  const unit = unitsCache.find((u) => u.Id === id);
+  if (!unit) return;
+  if (!confirm(`Xóa điểm tiêu "${unit.PartnerName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/redemption-units/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa điểm tiêu');
+    if (editingUnitId === id) resetUnitForm();
+    await loadUnits();
   } catch (err) {
     showToast(err.message);
   }
@@ -237,8 +373,8 @@ toggleGroupCompaniesField();
 
 async function loadAccessGroups() {
   try {
-    const data = await apiFetch('/access-groups');
-    renderAccessGroups(data);
+    accessGroupsCache = await apiFetch('/access-groups');
+    renderAccessGroups(accessGroupsCache);
   } catch (err) {
     showToast(err.message);
   }
@@ -246,7 +382,7 @@ async function loadAccessGroups() {
 
 function renderAccessGroups(data) {
   if (!data.length) {
-    accessGroupsBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chưa có nhóm quyền nào</td></tr>';
+    accessGroupsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có nhóm quyền nào</td></tr>';
     return;
   }
   accessGroupsBody.innerHTML = data
@@ -256,9 +392,64 @@ function renderAccessGroups(data) {
         <td data-label="Tên nhóm">${escapeHtml(g.GroupName)}</td>
         <td data-label="Phạm vi">${g.ScopeType === 'ALL' ? 'Toàn bộ công ty' : 'Chỉ định công ty'}</td>
         <td data-label="Công ty được xem thêm">${g.ScopeType === 'ALL' ? '-' : (g.companies.map((c) => escapeHtml(c.companyName)).join(', ') || '-')}</td>
+        <td data-label="Hành động" class="actions-cell">
+          <button type="button" class="btn-secondary edit-access-group-btn" data-id="${g.Id}">Sửa</button>
+          <button type="button" class="btn-danger delete-access-group-btn" data-id="${g.Id}">Xóa</button>
+        </td>
       </tr>`
     )
     .join('');
+
+  accessGroupsBody.querySelectorAll('.edit-access-group-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = accessGroupsCache.find((g) => g.Id === Number(btn.dataset.id));
+      if (group) populateAccessGroupForm(group);
+    });
+  });
+  accessGroupsBody.querySelectorAll('.delete-access-group-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteAccessGroup(Number(btn.dataset.id)));
+  });
+}
+
+function populateAccessGroupForm(g) {
+  editingAccessGroupId = g.Id;
+  accessGroupFormTitle.textContent = `Sửa nhóm quyền: ${g.GroupName}`;
+  document.getElementById('groupName').value = g.GroupName || '';
+  scopeTypeSelect.value = g.ScopeType;
+  toggleGroupCompaniesField();
+  renderGroupCompaniesCheckboxes();
+  const companyIds = (g.companies || []).map((c) => c.companyId);
+  document.querySelectorAll('.groupCompanyCheckbox').forEach((cb) => {
+    cb.checked = companyIds.includes(Number(cb.value));
+  });
+  accessGroupSubmitBtn.textContent = 'Cập nhật nhóm quyền';
+  accessGroupCancelBtn.classList.remove('hidden');
+  accessGroupForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetAccessGroupForm() {
+  editingAccessGroupId = null;
+  accessGroupFormTitle.textContent = 'Thêm nhóm quyền xem báo cáo';
+  accessGroupForm.reset();
+  toggleGroupCompaniesField();
+  renderGroupCompaniesCheckboxes();
+  accessGroupSubmitBtn.textContent = 'Lưu nhóm quyền';
+  accessGroupCancelBtn.classList.add('hidden');
+}
+accessGroupCancelBtn.addEventListener('click', resetAccessGroupForm);
+
+async function deleteAccessGroup(id) {
+  const group = accessGroupsCache.find((g) => g.Id === id);
+  if (!group) return;
+  if (!confirm(`Xóa nhóm quyền "${group.GroupName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/access-groups/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa nhóm quyền');
+    if (editingAccessGroupId === id) resetAccessGroupForm();
+    await loadAccessGroups();
+  } catch (err) {
+    showToast(err.message);
+  }
 }
 
 accessGroupForm.addEventListener('submit', async (e) => {
@@ -279,11 +470,14 @@ accessGroupForm.addEventListener('submit', async (e) => {
   // sql/018_add_unique_group_name.sql).
   await withSubmitLock(accessGroupForm, async () => {
     try {
-      await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Đã lưu nhóm quyền');
-      accessGroupForm.reset();
-      toggleGroupCompaniesField();
-      renderGroupCompaniesCheckboxes();
+      if (editingAccessGroupId) {
+        await apiFetch(`/access-groups/${editingAccessGroupId}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showToast('Đã cập nhật nhóm quyền');
+      } else {
+        await apiFetch('/access-groups', { method: 'POST', body: JSON.stringify(payload) });
+        showToast('Đã lưu nhóm quyền');
+      }
+      resetAccessGroupForm();
       await loadAccessGroups();
     } catch (err) {
       showToast(err.message);
@@ -307,9 +501,14 @@ companyForm.addEventListener('submit', async (e) => {
 
   await withSubmitLock(companyForm, async () => {
     try {
-      await apiFetch('/companies', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Đã lưu công ty');
-      companyForm.reset();
+      if (editingCompanyId) {
+        await apiFetch(`/companies/${editingCompanyId}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showToast('Đã cập nhật công ty');
+      } else {
+        await apiFetch('/companies', { method: 'POST', body: JSON.stringify(payload) });
+        showToast('Đã lưu công ty');
+      }
+      resetCompanyForm();
       await loadCompanies();
       loadUnits();
     } catch (err) {
@@ -337,9 +536,14 @@ unitForm.addEventListener('submit', async (e) => {
 
   await withSubmitLock(unitForm, async () => {
     try {
-      await apiFetch('/redemption-units', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('Đã lưu điểm tiêu');
-      unitForm.reset();
+      if (editingUnitId) {
+        await apiFetch(`/redemption-units/${editingUnitId}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showToast('Đã cập nhật điểm tiêu');
+      } else {
+        await apiFetch('/redemption-units', { method: 'POST', body: JSON.stringify(payload) });
+        showToast('Đã lưu điểm tiêu');
+      }
+      resetUnitForm();
       loadUnits();
     } catch (err) {
       showToast(err.message);

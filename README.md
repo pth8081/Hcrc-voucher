@@ -1345,6 +1345,21 @@ khoang trang dau/cuoi), tra loi 409 kem thong bao ro rang. Rieng du lieu `Locati
 da co san tu truoc (neu co ten trung nhau) khong bi anh huong — chi ap dung cho ban ghi MOI
 tao/sua qua app.
 
+**Sua/Xoa Cong ty va Diem tieu:** ca 2 bang "Danh sach cong ty"/"Danh sach diem tieu" co nut
+**"Sua"** (do lai chinh form "Them..." o tren, doi nut thanh "Cap nhat...", bam "Huy sua" de
+quay lai che do tao moi ma khong luu gi — giong het cach man "Ket noi API" lam, xem muc 4) va
+nut **"Xoa"** (xoa that, khong phai xoa mem) — ca 2 deu **CHAN xoa neu con du lieu phu thuoc**,
+tra loi 409 kem so luong cu the thay vi de SQL Server nem loi vi pham khoa ngoai kho hieu:
+
+- **Xoa Cong ty**: bi chan neu con **it nhat 1 Diem tieu** dang gan vao (`RedemptionUnits.CompanyId`)
+  — phai xoa hoac chuyen het diem tieu sang cong ty khac truoc.
+- **Xoa Diem tieu**: bi chan neu con **it nhat 1 tai khoan nhan vien dang hoat dong** (chua bi
+  xoa mem) co `Users.Locations_Detail` tro dung dia diem cua diem tieu do — phai xoa (xoa mem)
+  hoac chuyen het nhan vien sang diem tieu khac truoc (xem muc 6).
+
+API: `GET/POST/PUT/DELETE /api/companies` va `GET/POST/PUT/DELETE /api/redemption-units` (chi
+admin). Moi thao tac Sua/Xoa deu ghi `AdminAuditLog` (muc 15c).
+
 ### 12b. Bao cao tong hop (`/summary-report.html`)
 
 Chon 1 **khoang ngay** (tu - den, khong gioi han trong 1 ngay nhu bao cao doi soat), xem bang
@@ -1439,8 +1454,12 @@ vao ca 2 bao cao qua tham so `visibleLocationCodes` (`null` = xem het, `[]` = kh
 `[...]` = chi xem dung cac dia diem do) — dam bao tai khoan chua duoc gan dia diem/cong ty nao
 khong vo tinh thay duoc du lieu cong ty khac.
 
-API quan tri: `GET/POST/PUT /api/access-groups` (CRUD nhom quyen, chi admin) va
-`PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin).
+API quan tri: `GET/POST/PUT/DELETE /api/access-groups` (CRUD nhom quyen, chi admin) va
+`PUT /api/users/:userId/report-access` (gan/bo tai khoan khoi 1 nhom, chi admin). Man hinh
+"Don vi thu hoi" co nut **"Sua"**/**"Xoa"** tai bang "Danh sach nhom quyen" (cung mo hinh sua
+qua form o tren nhu Cong ty/Diem tieu) — xoa **bi chan** neu nhom dang duoc gan cho **it nhat 1
+tai khoan** (`UserReportAccess.GroupId`), tra loi 409 kem so luong cu the - phai go gan (doi tai
+khoan do ve "mac dinh" o man hinh "Tai khoan") truoc khi xoa duoc nhom.
 
 ### 13a. Loc bao cao theo HE THONG voucher (vd tai khoan doi soat rieng cho Fuji)
 
@@ -1598,15 +1617,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.45)**: fix loi nghiem trong o man "Ket noi API" — sua 1 ket noi da co san ma
-de trong o "Gia tri API Key" (dung y giu nguyen) truoc day se **xoa mat secret dang hoat dong**,
-khien ket noi do bien mat khoi o chon he thong tren man Quet voucher (muc 4). Ban truoc do
-(v3.44): bo sung Changelog cho cac ban v3.33-v3.43. Ban truoc nua (v3.43): tu luu font Inter
-trong app thay vi goi Google Fonts CDN — hoat dong dung ca khi may chu khong co Internet (muc
-6a); them nut Xuat Excel cho Bao cao doi soat va Bao cao tong hop (muc 12/12b); bo sung 2 muc
-moi vao Huong dan he thong — luong xu ly quet - thu hoi va tich hop da he thong voucher (HCRC &
-Fuji), ca 2 kem so do minh hoa.
+Ban **moi nhat (v3.46)**: them nut **Sua/Xoa** cho 3 danh sach o man hinh "Don vi thu hoi" (Cong
+ty, Diem tieu, Nhom quyen xem bao cao - truoc day chi them/xem duoc) - xem muc 12a/13. Ban truoc
+do (v3.45): fix loi nghiem trong o man "Ket noi API" — sua 1 ket noi da co san ma de trong o
+"Gia tri API Key" (dung y giu nguyen) truoc day se **xoa mat secret dang hoat dong**, khien ket
+noi do bien mat khoi o chon he thong tren man Quet voucher (muc 4). Chi tiet cac ban cu hon xem
+danh sach day du ben duoi.
 
+- **v3.46** - Them nut Sua/Xoa cho 3 danh sach o man hinh "Don vi thu hoi" (truoc day chi
+  them/xem duoc): Cong ty, Diem tieu, Nhom quyen xem bao cao - xoa bi chan neu con du lieu phu
+  thuoc (Cong ty con Diem tieu / Diem tieu con nhan vien hoat dong / Nhom quyen dang gan cho tai
+  khoan), tra loi 409 kem so luong cu the thay vi loi khoa ngoai kho hieu.
 - **v3.45** - Fix loi nghiem trong: sua 1 ket noi API da co san (vd chi doi Ten) ma de trong o
   "Gia tri API Key" (dung y giu nguyen theo dung placeholder) se bi **XOA MAT secret dang hoat
   dong** - khien ket noi do bien mat khoi o chon he thong tren man Quet voucher. Nguyen nhan: FE

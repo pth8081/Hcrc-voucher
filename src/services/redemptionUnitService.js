@@ -232,4 +232,40 @@ async function update(id, data) {
   );
 }
 
-module.exports = { list, create, update, getLocationCodeById, getById };
+/** Xoa 1 Don vi thu hoi (diem tieu) - CHAN neu con tai khoan (nhan vien) nao DANG HOAT DONG
+ * (chua bi xoa mem - xem UserAccountSchedule.IsDeleted, userScheduleService.js) dang gan vao
+ * dung dia diem (Locations_Detail) cua diem tieu nay, tra ve loi 409 ro rang. Theo dung yeu
+ * cau: phai xoa (xoa mem) het nhan vien truoc khi xoa duoc diem tieu. Khong co bang nao khac
+ * tham chieu FK toi RedemptionUnits.Id nen khong can don dep gi them truoc khi xoa. */
+async function remove(id) {
+  const pool = await getPool();
+
+  const locationCode = await getLocationCodeById(id);
+  if (!locationCode) {
+    const err = new Error('Khong tim thay Don vi thu hoi nay');
+    err.statusCode = 404;
+    err.publicMessage = 'Khong tim thay Don vi thu hoi nay, co the da bi xoa truoc do.';
+    throw err;
+  }
+
+  const employeeCount = await pool
+    .request()
+    .input('code', sql.NVarChar(100), locationCode)
+    .query(`
+      SELECT COUNT(*) AS cnt
+      FROM dbo.Users u
+      LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
+      WHERE LTRIM(RTRIM(u.Locations_Detail)) = @code AND ISNULL(s.IsDeleted, 0) = 0
+    `);
+  const count = employeeCount.recordset[0].cnt;
+  if (count > 0) {
+    const err = new Error('Diem tieu con nhan vien dang hoat dong, khong the xoa');
+    err.statusCode = 409;
+    err.publicMessage = `Điểm tiêu này đang có ${count} tài khoản nhân viên hoạt động gắn vào - vui lòng xóa (xóa mềm) hoặc chuyển hết nhân viên sang điểm tiêu khác trước khi xóa điểm tiêu.`;
+    throw err;
+  }
+
+  await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.RedemptionUnits WHERE Id = @id');
+}
+
+module.exports = { list, create, update, remove, getLocationCodeById, getById };

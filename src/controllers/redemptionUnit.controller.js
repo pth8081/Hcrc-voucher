@@ -61,4 +61,24 @@ async function update(req, res, next) {
   }
 }
 
-module.exports = { list, create, update };
+async function remove(req, res, next) {
+  try {
+    const unitId = Number(req.params.id);
+    const before = await redemptionUnitService.getById(unitId);
+    if (!before) {
+      return res.status(404).json({ success: false, message: 'Khong tim thay Don vi thu hoi nay' });
+    }
+    await redemptionUnitService.remove(unitId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'DELETE_REDEMPTION_UNIT',
+      targetUsername: before.PartnerName,
+      detail: { before: { partnerCode: before.PartnerCode, partnerName: before.PartnerName, companyId: before.CompanyId }, after: null },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, create, update, remove };

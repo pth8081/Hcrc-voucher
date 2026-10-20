@@ -31,7 +31,7 @@
 
     <div id="tabCompanies" class="tab-panel">
     <div class="card">
-      <h2>Thêm công ty</h2>
+      <h2 id="companyFormTitle">Thêm công ty</h2>
       <p class="hint mb-10">1 công ty có thể gắn nhiều điểm tiêu (vd chuỗi nhiều chi nhánh) - khai báo công ty trước, rồi chọn ở form "Thêm điểm tiêu" bên dưới.</p>
       <form id="companyForm">
         <label>Mã công ty *</label>
@@ -52,7 +52,8 @@
         <input id="companyBankAccount" />
         <label>Tên ngân hàng</label>
         <input id="companyBankName" />
-        <button class="btn-primary btn-block" type="submit">Lưu công ty</button>
+        <button class="btn-primary btn-block" type="submit" id="companySubmitBtn">Lưu công ty</button>
+        <button class="btn-secondary btn-block hidden" type="button" id="companyCancelBtn">Hủy sửa</button>
       </form>
     </div>
 
@@ -61,9 +62,9 @@
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Mã</th><th>Tên công ty</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th></tr>
+          <tr><th>Mã</th><th>Tên công ty</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th><th>Hành động</th></tr>
         </thead>
-        <tbody id="companiesBody"><tr><td colspan="5" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="companiesBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -96,7 +97,7 @@
     </div>
 
     <div class="card">
-      <h2>Thêm điểm tiêu</h2>
+      <h2 id="unitFormTitle">Thêm điểm tiêu</h2>
       <form id="unitForm">
         <label>Công ty *</label>
         <select id="companyId" required></select>
@@ -124,7 +125,8 @@
         <label>Hạn mức thu hồi/ngày (tùy chọn)</label>
         <p class="hint mb-6">Chỉ để ghi chú/tham khảo - hệ thống CHƯA tự động chặn khi vượt hạn mức này lúc thu hồi.</p>
         <input id="dailyLimitAmount" type="number" min="0" step="1000" />
-        <button class="btn-primary btn-block" type="submit">Lưu điểm tiêu</button>
+        <button class="btn-primary btn-block" type="submit" id="unitSubmitBtn">Lưu điểm tiêu</button>
+        <button class="btn-secondary btn-block hidden" type="button" id="unitCancelBtn">Hủy sửa</button>
       </form>
     </div>
 
@@ -134,10 +136,10 @@
       <table>
         <thead>
           <tr>
-            <th>Mã điểm</th><th>Tên điểm tiêu</th><th>Công ty</th><th>Địa điểm</th><th>Liên hệ</th><th>Trạng thái</th>
+            <th>Mã điểm</th><th>Tên điểm tiêu</th><th>Công ty</th><th>Địa điểm</th><th>Liên hệ</th><th>Trạng thái</th><th>Hành động</th>
           </tr>
         </thead>
-        <tbody id="unitsBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="unitsBody"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -145,7 +147,7 @@
 
     <div id="tabAccess" class="tab-panel hidden">
     <div class="card">
-      <h2>Thêm nhóm quyền xem báo cáo</h2>
+      <h2 id="accessGroupFormTitle">Thêm nhóm quyền xem báo cáo</h2>
       <p class="hint mb-10">
         Mặc định mỗi tài khoản CHỈ xem được doanh thu/báo cáo của đúng công ty gắn với địa điểm
         của mình. Tạo nhóm ở đây để cấp thêm quyền xem CHÉO sang công ty khác, hoặc xem TOÀN BỘ -
@@ -163,7 +165,8 @@
           <label>Công ty được xem thêm (ngoài công ty của chính tài khoản)</label>
           <div id="groupCompaniesList" class="hint">Đang tải danh sách công ty...</div>
         </div>
-        <button class="btn-primary btn-block mt-10" type="submit">Lưu nhóm quyền</button>
+        <button class="btn-primary btn-block mt-10" type="submit" id="accessGroupSubmitBtn">Lưu nhóm quyền</button>
+        <button class="btn-secondary btn-block hidden" type="button" id="accessGroupCancelBtn">Hủy sửa</button>
       </form>
     </div>
 
@@ -172,9 +175,9 @@
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Tên nhóm</th><th>Phạm vi</th><th>Công ty được xem thêm</th></tr>
+          <tr><th>Tên nhóm</th><th>Phạm vi</th><th>Công ty được xem thêm</th><th>Hành động</th></tr>
         </thead>
-        <tbody id="accessGroupsBody"><tr><td colspan="3" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="accessGroupsBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

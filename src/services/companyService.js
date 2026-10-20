@@ -97,4 +97,29 @@ async function update(id, data) {
   );
 }
 
-module.exports = { list, create, update, getById };
+/** Xoa 1 cong ty - CHAN neu con Don vi thu hoi (diem tieu) nao dang gan vao cong ty nay
+ * (RedemptionUnits.CompanyId co FK toi bang nay, xem sql/010), tra ve loi 409 ro rang thay vi
+ * de SQL Server nem loi vi pham FK kho hieu. Theo dung yeu cau: phai xoa/chuyen het diem tieu
+ * truoc khi xoa duoc cong ty. Don gian xoa truoc cac dong "duoc xem them" cua Nhom quyen bao
+ * cao (ReportAccessGroupCompanies) tro toi cong ty nay - day chi la 1 tuy chon hien thi, khong
+ * phai du lieu nghiep vu that, xoa an toan khong can hoi. */
+async function remove(id) {
+  const pool = await getPool();
+
+  const unitCount = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .query('SELECT COUNT(*) AS cnt FROM dbo.RedemptionUnits WHERE CompanyId = @id');
+  const count = unitCount.recordset[0].cnt;
+  if (count > 0) {
+    const err = new Error('Cong ty con diem tieu, khong the xoa');
+    err.statusCode = 409;
+    err.publicMessage = `Công ty này đang có ${count} điểm tiêu gắn vào - vui lòng xóa hoặc chuyển hết điểm tiêu sang công ty khác trước khi xóa công ty.`;
+    throw err;
+  }
+
+  await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.ReportAccessGroupCompanies WHERE CompanyId = @id');
+  await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.RedemptionCompanies WHERE Id = @id');
+}
+
+module.exports = { list, create, update, remove, getById };
