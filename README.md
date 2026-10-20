@@ -673,7 +673,10 @@ Man hinh cho phep khai bao truc quan, khong can biet lap trinh:
 
 1. **Base URL + xac thuc**: Bearer token / API key theo header rieng / Basic Auth. Secret duoc
    **ma hoa AES-256-GCM** truoc khi luu vao DB (bang `ApiConnections`), khong bao gio tra ve
-   plaintext cho trinh duyet sau khi luu (chi hien "da luu, de trong de giu nguyen").
+   plaintext cho trinh duyet sau khi luu (chi hien "da luu, de trong de giu nguyen") - **de
+   trong O DO khi Sua (vd chi doi Ten/Base URL) se GIU NGUYEN secret cu, khong can go lai**
+   (loi that da tung xay ra: de trong bi hieu nham thanh "xoa secret", khien ket noi bien mat
+   khoi o chon he thong tren man Quet voucher - da sua, xem muc 17 Changelog).
 2. **Endpoint kiem tra (Check)**: chon method GET/POST, khai bao ma voucher nam o dau
    (path `{code}` / query string / body JSON), va **anh xa duong dan field** trong response
    JSON tra ve (vi du `status`, `valueAmt`, `issueDate`...) sang cac truong chuan cua app.
@@ -1595,12 +1598,20 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.44)**: bo sung Changelog cho cac ban v3.33-v3.43 (truoc do danh sach nay
-dung o v3.32). Ban truoc do (v3.43): tu luu font Inter trong app thay vi goi Google Fonts CDN —
-hoat dong dung ca khi may chu khong co Internet (muc 6a); them nut Xuat Excel cho Bao cao doi
-soat va Bao cao tong hop (muc 12/12b); bo sung 2 muc moi vao Huong dan he thong — luong xu ly
-quet - thu hoi va tich hop da he thong voucher (HCRC & Fuji), ca 2 kem so do minh hoa.
+Ban **moi nhat (v3.45)**: fix loi nghiem trong o man "Ket noi API" — sua 1 ket noi da co san ma
+de trong o "Gia tri API Key" (dung y giu nguyen) truoc day se **xoa mat secret dang hoat dong**,
+khien ket noi do bien mat khoi o chon he thong tren man Quet voucher (muc 4). Ban truoc do
+(v3.44): bo sung Changelog cho cac ban v3.33-v3.43. Ban truoc nua (v3.43): tu luu font Inter
+trong app thay vi goi Google Fonts CDN — hoat dong dung ca khi may chu khong co Internet (muc
+6a); them nut Xuat Excel cho Bao cao doi soat va Bao cao tong hop (muc 12/12b); bo sung 2 muc
+moi vao Huong dan he thong — luong xu ly quet - thu hoi va tich hop da he thong voucher (HCRC &
+Fuji), ca 2 kem so do minh hoa.
 
+- **v3.45** - Fix loi nghiem trong: sua 1 ket noi API da co san (vd chi doi Ten) ma de trong o
+  "Gia tri API Key" (dung y giu nguyen theo dung placeholder) se bi **XOA MAT secret dang hoat
+  dong** - khien ket noi do bien mat khoi o chon he thong tren man Quet voucher. Nguyen nhan: FE
+  gui chuoi rong thay vi gia tri KEEP_SECRET ma BE da thiet ke san, `encrypt('')` tra ve NULL -
+  sua tai `apiConnectionService.js#update()` de coi chuoi rong giong KEEP_SECRET (giu nguyen).
 - **v3.44** - Bo sung Changelog cho cac ban v3.33-v3.43 (danh sach nay truoc do dung o v3.32,
   chua duoc cap nhat tiep theo sau cac lan merge gan day)
 - **v3.43** - Tu luu font Inter trong app (khong goi Google Fonts CDN nua) - giao dien hien thi
