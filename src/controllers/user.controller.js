@@ -269,6 +269,45 @@ async function updateVoucherSystems(req, res, next) {
   }
 }
 
+/**
+ * Gan/go quyen "quan tri gioi han theo 1 he thong voucher" (partner-admin, xem sql/031,
+ * middleware/requirePartnerAdmin.js) cho 1 tai khoan NHAN VIEN - cho phep doi tac (vd Fuji) tu
+ * xem/tao/khoa cac tai khoan CHI dung he thong cua ho, ma khong thay duoc tai khoan quan tri HCRC
+ * hay tai khoan cua doi tac khac (xem partnerAdminService.js).
+ *
+ * Khi GAN (connectionId co gia tri): dong thoi EP UserVoucherSystems cua chinh tai khoan nay ve
+ * DUY NHAT he thong do - dam bao ho cung CHI thay/dung dung he thong minh duoc quan tri (nhat
+ * quan voi dieu kien "exact match" ma partnerAdminService.js#listScopedUsers dung de loc danh
+ * sach), tranh truong hop quan tri 1 he thong nhung ban than lai dung duoc he thong khac. Khi GO
+ * (connectionId = null): KHONG dong gi den UserVoucherSystems hien co - tranh thay doi ngoai y
+ * muon, admin tu dieu chinh rieng o o tick "He thong voucher duoc dung" neu can.
+ */
+async function updatePartnerAdmin(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
+    const { connectionId, username } = req.body;
+    const normalized = connectionId ? Number(connectionId) : null;
+    const before = await permissionService.getPermissions(userId);
+    await permissionService.setPartnerAdminConnection(userId, normalized, req.user.username);
+    if (normalized) {
+      await userVoucherSystemService.setAllowedConnections(userId, [normalized]);
+    }
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_PARTNER_ADMIN',
+      targetUsername: username || String(userId),
+      detail: {
+        before: { partnerAdminConnectionId: before.partnerAdminConnectionId },
+        after: { partnerAdminConnectionId: normalized },
+      },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   list,
   create,
@@ -279,4 +318,5 @@ module.exports = {
   updateProfile,
   updateDeleteStatus,
   updateVoucherSystems,
+  updatePartnerAdmin,
 };

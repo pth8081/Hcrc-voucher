@@ -6,6 +6,7 @@ router.use('/auth', require('./auth.routes'));
 router.use('/auth/webauthn', require('./webauthn.routes'));
 router.use('/auth/2fa', require('./twoFactor.routes'));
 router.use('/users', require('./user.routes'));
+router.use('/partner-admin', require('./partnerAdmin.routes'));
 router.use('/access-groups', require('./accessGroup.routes'));
 router.use('/locations', require('./location.routes'));
 router.use('/redemption-units', require('./redemptionUnit.routes'));

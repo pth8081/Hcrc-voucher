@@ -1031,6 +1031,46 @@ thu hoi (Redeem) - khong thay the kiem tra `status` cua Core (van giu nguyen), c
 - Logic tap trung o `voucherService.js#isExpiredByDate()`, goi tu ca `checkVoucher()` va
   `redeemVoucher()`.
 
+### 4j. Quan tri doi tac (cap 1 tai khoan tu quan ly nhan vien cua chinh ho)
+
+Cho phep cap 1 tai khoan rieng cho doi tac (vd Fuji) de **ho tu xem/tao/khoa** cac tai khoan
+nhan vien thuoc ve ho, ma khong can nho admin HCRC moi lan - nhung **tuyet doi khong duoc thay**
+tai khoan quan tri HCRC hay tai khoan cua doi tac khac.
+
+**Cap quyen:** man hinh "Tai khoan" (muc 4f) co them 1 o chon **"Quan tri doi tac"** o moi tai
+khoan nhan vien - chon 1 he thong (vd Fuji) de tai khoan do tro thanh "quan tri gioi han" cua
+dung he thong nay. Khi chon, app **tu dong ep luon** "He thong voucher duoc dung" (muc 4f) cua
+CHINH tai khoan nay ve dung he thong da chon (dam bao ho cung chi dung/thay dung he thong minh
+quan tri). Go quyen (chon lai "-- Khong --") **khong** dong gi den "He thong voucher duoc dung"
+hien co - admin tu dieu chinh rieng neu can.
+
+**Tai khoan duoc cap** dang nhap se thay 1 muc menu rieng **"Quan tri doi tac"** (khong thay
+menu "Quan tri" day du cua HCRC), vao man hinh rut gon `/partner-admin.html` chi gom dung 3
+thao tac:
+- **Xem danh sach**: CHI hien tai khoan nhan vien (role=0) ma he thong voucher duoc dung la
+  **DUNG VA CHI DUY NHAT** he thong cua ho (so khop chinh xac - "whitelist exact match", xem
+  `partnerAdminService.js#listScopedUsers`). Tai khoan quan tri, tai khoan dung chung nhieu he
+  thong, hoac tai khoan khong gioi han deu **khong bao gio** hien ra, du doan dung userId.
+- **Tao tai khoan moi**: tu dong gan **DUY NHAT** he thong cua ho cho tai khoan moi tao, bo qua
+  hoan toan moi gia tri role/he thong khac trong request (chan leo thang quyen qua goi API truc
+  tiep, xem kiem thu o duoi).
+- **Khoa/Mo khoa**: tai su dung co che xoa mem/khoi phuc co san (`UserAccountSchedule.IsDeleted`),
+  KHONG dong den UserVoucherSystems cua tai khoan do. Bat buoc kiem tra lai `assertInScope()`
+  TRUOC moi thao tac tren 1 userId cu the - tu choi (403) neu userId ngoai pham vi; tu choi (400)
+  neu co gang tu khoa chinh tai khoan dang dang nhap.
+
+**Bao mat:** `middleware/requirePartnerAdmin.js` luon doc TRUC TIEP tu CSDL (khong tin JWT da
+"chup"), tu choi ca tai khoan quan tri DAY DU (role=1 - ho dung man hinh "Tai khoan" day du, khong
+dung duong nay) lan tai khoan khong co quyen nay. Da kiem thu day du (mock DB, goi thang route
+Express that): tai khoan quan tri/nhan vien thuong bi chan 403; danh sach loc dung exact-match;
+tao tai khoan ep dung pham vi du co gang gui `role: 1`; thao tac ngoai pham vi bi chan 403; tu
+khoa chinh minh bi chan 400.
+
+Du lieu: `sql/031_add_partner_admin_connection.sql` (them cot `VoucherAppPermissions.PartnerAdminConnectionId`,
+NULL = tai khoan thuong). API: `PUT /api/users/:userId/partner-admin` (chi admin, cap/go quyen),
+`GET/POST /api/partner-admin/users`, `PUT /api/partner-admin/users/:userId/active` (chi tai khoan
+duoc cap quyen nay).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1077,6 +1117,10 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/users` | (can quyen admin) Tao tai khoan moi — muc 15a |
 | PUT | `/api/users/:userId/permissions` | (can quyen admin) Doi 4 quyen tinh nang cua 1 tai khoan nhan vien — muc 15b |
 | PUT | `/api/users/:userId/schedule` | (can quyen admin) Dat/sua `ActiveFrom`/`ActiveUntil` cua 1 tai khoan |
+| PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" — `{ connectionId }` — muc 4j |
+| GET | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
+| POST | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi — `{ isDeleted }` — muc 4j |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -1820,7 +1864,16 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.59)**: nguoi dung bao loi "Da xay ra loi he thong" khi quet THAT (camera), khac
+Ban **moi nhat (v3.60)**: them tinh nang **"Quan tri doi tac"** - cho phep cap 1 tai khoan rieng
+cho doi tac (vd Fuji) de HO TU xem/tao/khoa cac tai khoan nhan vien **CHI dung dung he thong cua
+ho**, ma KHONG thay duoc tai khoan quan tri HCRC hay tai khoan cua doi tac khac, khong can nho
+admin HCRC moi lan cap/thu hoi tai khoan cho nhan vien cua ho. Cap qua 1 o chon moi "Quan tri doi
+tac" ngay trong man hinh "Tai khoan" hien co (chon 1 he thong se tu dong gioi han luon "He thong
+voucher duoc dung" cua CHINH tai khoan do ve dung he thong da chon) - xem muc 4j. Tai khoan duoc
+cap se thay 1 muc menu rieng "Quan tri doi tac", vao man hinh rut gon chi gom dung 3 thao tac tren
+(khong co quyen tinh nang/lich hieu luc/nhom bao cao... nhu man hinh "Tai khoan" day du).
+
+Ban truoc do (v3.59): nguoi dung bao loi "Da xay ra loi he thong" khi quet THAT (camera), khac
 voi ket qua "Test truc tiep voucher that" (man hinh Ket noi API) van dung - dieu tra qua Nhat ky he
 thong (tab "Hoat dong quet/thu hoi") cho thay lan quet bi loi **KHONG co dong nao** duoc ghi lai, va
 cung **KHONG co lenh goi nao toi Core** trong log rieng cua Core quanh thoi diem do - nghia la loi
@@ -1851,6 +1904,9 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.60** - Them tinh nang "Quan tri doi tac" - cap 1 tai khoan rieng cho doi tac (vd Fuji) de ho
+  tu xem/tao/khoa cac tai khoan nhan vien CHI dung dung he thong cua ho, khong thay duoc tai khoan
+  quan tri HCRC hay doi tac khac - xem muc 4j.
 - **v3.59** - Gan `publicMessage` ro rang cho loi o cac buoc CHUAN BI truoc khi goi Core API
   (`requireFeature.js`, `resolveAllowedConnectionId`/`checkExclusion`/`findLocalRedemption` trong
   `voucherService.js`) - theo bao cao "quet that bao loi he thong chung chung, khong ghi duoc Nhat

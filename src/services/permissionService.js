@@ -10,9 +10,18 @@ const DEFAULT_PERMISSIONS = {
   canViewUsedVouchers: false,
   canViewBusinessGuide: true,
   canViewSystemGuide: false,
+  // M16: quan tri GIOI HAN theo 1 he thong voucher cu the (vd cap cho doi tac Fuji 1 tai khoan tu
+  // xem/tao/khoa cac tai khoan CHI dung Fuji cua chinh ho - xem partnerAdminService.js). null =
+  // tai khoan thuong; isPartnerAdmin/partnerAdminConnectionName la 2 gia tri SUY RA (khong luu
+  // rieng) de tien dung truc tiep o frontend (layout.js#NAV_ITEMS, partner-admin.js) ma khong can
+  // tinh lai moi lan.
+  partnerAdminConnectionId: null,
+  partnerAdminConnectionName: null,
+  isPartnerAdmin: false,
 };
 
-/** Admin (Users.status = 1) luon co du moi quyen, khong phu thuoc bang nay. */
+/** Admin (Users.status = 1) luon co du moi quyen, khong phu thuoc bang nay - khong can/khong the
+ * la "quan tri gioi han" (ho da la quan tri DAY DU). */
 const ADMIN_PERMISSIONS = {
   canRedeemVoucher: true,
   canViewReconciliation: true,
@@ -20,6 +29,9 @@ const ADMIN_PERMISSIONS = {
   canViewUsedVouchers: true,
   canViewBusinessGuide: true,
   canViewSystemGuide: true,
+  partnerAdminConnectionId: null,
+  partnerAdminConnectionName: null,
+  isPartnerAdmin: false,
 };
 
 async function getPermissions(userId) {
@@ -28,10 +40,12 @@ async function getPermissions(userId) {
     .request()
     .input('userId', sql.Int, userId)
     .query(`
-      SELECT CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
-             CanViewBusinessGuide, CanViewSystemGuide
-      FROM dbo.VoucherAppPermissions
-      WHERE UserId = @userId
+      SELECT p.CanRedeemVoucher, p.CanViewReconciliation, p.CanViewSummary, p.CanViewUsedVouchers,
+             p.CanViewBusinessGuide, p.CanViewSystemGuide, p.PartnerAdminConnectionId,
+             c.Name AS PartnerAdminConnectionName
+      FROM dbo.VoucherAppPermissions p
+      LEFT JOIN dbo.ApiConnections c ON c.Id = p.PartnerAdminConnectionId
+      WHERE p.UserId = @userId
     `);
   const row = result.recordset[0];
   if (!row) return { ...DEFAULT_PERMISSIONS };
@@ -42,6 +56,12 @@ async function getPermissions(userId) {
     canViewUsedVouchers: !!row.CanViewUsedVouchers,
     canViewBusinessGuide: !!row.CanViewBusinessGuide,
     canViewSystemGuide: !!row.CanViewSystemGuide,
+    // Ket noi da bi xoa (khong con trong ApiConnections) sau khi duoc gan lam partner-admin: coi
+    // nhu KHONG con la partner-admin nua (an toan hon la giu quyen "treo" vao 1 he thong khong
+    // con ton tai) - LEFT JOIN tra ve PartnerAdminConnectionName = NULL trong truong hop nay.
+    partnerAdminConnectionId: row.PartnerAdminConnectionName ? row.PartnerAdminConnectionId : null,
+    partnerAdminConnectionName: row.PartnerAdminConnectionName || null,
+    isPartnerAdmin: !!row.PartnerAdminConnectionName,
   };
 }
 
@@ -80,6 +100,36 @@ async function setPermissions(userId, perms, updatedBy) {
     `);
 }
 
+/**
+ * Gan/go quyen "quan tri gioi han theo 1 he thong voucher" (partner-admin) cho 1 tai khoan -
+ * xem ghi chu M16 o DEFAULT_PERMISSIONS. CHI UPDATE/INSERT rieng cot nay (khong dung chung MERGE
+ * voi setPermissions() o tren) de KHONG vo tinh ghi de cac quyen tinh nang khac dang co san khi
+ * admin chi dang bat/tat quyen nay - 2 thao tac phai doc lap hoan toan voi nhau.
+ *
+ * connectionId = null -> go quyen (tai khoan tro thanh nhan vien thuong tro lai). Khong tu dong
+ * doi UserVoucherSystems cua chinh tai khoan do o day - xem ghi chu o user.controller.js#
+ * updatePartnerAdmin (chi ep ve [connectionId] khi GAN, giu nguyen khi GO).
+ */
+async function setPartnerAdminConnection(userId, connectionId, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('connectionId', sql.Int, connectionId || null)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET
+        PartnerAdminConnectionId = @connectionId, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, PartnerAdminConnectionId, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 0, 0, 1, 0, @connectionId, @updatedBy, GETDATE());
+    `);
+}
+
 /** Tao dong quyen MAC DINH cho 1 tai khoan vua tao (ghi ro rang thay vi de trong/ngam dinh,
  * de admin thay va sua ngay tu dau neu can). */
 async function createDefaultPermissions(userId, createdBy) {
@@ -92,5 +142,6 @@ module.exports = {
   getPermissions,
   resolvePermissions,
   setPermissions,
+  setPartnerAdminConnection,
   createDefaultPermissions,
 };

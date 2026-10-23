@@ -104,6 +104,14 @@
             (JWT). <strong>Xóa</strong>: xóa mềm, ẩn khỏi danh sách này - bật "Hiện tài khoản đã xóa"
             để xem lại/khôi phục, không mất dữ liệu.
           </p>
+          <p class="security-note">
+            <strong>Quản trị đối tác</strong>: chọn 1 hệ thống (vd Fuji) để tài khoản này tự xem/tạo/
+            khóa được các tài khoản nhân viên <strong>CHỈ dùng đúng hệ thống đó</strong> (không thấy
+            tài khoản quản trị HCRC hay tài khoản của đối tác khác) - qua màn hình riêng "Quản trị
+            đối tác", không cần nhờ admin HCRC mỗi lần cấp/thu hồi tài khoản cho nhân viên của họ.
+            Chọn 1 hệ thống sẽ tự động giới hạn luôn "Hệ thống voucher được dùng" của CHÍNH tài
+            khoản này về đúng hệ thống đó.
+          </p>
           <div class="manage-toolbar">
             <input id="userSearchInput" placeholder="Tìm theo tên đăng nhập hoặc họ tên..." />
             <label class="checkbox-inline">
@@ -122,11 +130,12 @@
                   <th>Đơn vị thu hồi</th>
                   <th>Nhóm quyền xem báo cáo</th>
                   <th>Hệ thống voucher được dùng</th>
+                  <th>Quản trị đối tác</th>
                   <th>Mật khẩu mới</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="usersBody"><tr><td colspan="17" class="text-muted">Đang tải...</td></tr></tbody>
+              <tbody id="usersBody"><tr><td colspan="18" class="text-muted">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>

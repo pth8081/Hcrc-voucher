@@ -30,6 +30,10 @@ const ACTION_LABEL = {
   ACTIVATE_API_CONNECTION: 'Kích hoạt kết nối API',
   DELETE_API_CONNECTION: 'Xóa kết nối API',
   UPDATE_USER_VOUCHER_SYSTEMS: 'Đổi hệ thống voucher được dùng',
+  UPDATE_PARTNER_ADMIN: 'Đổi quyền quản trị đối tác',
+  PARTNER_ADMIN_CREATE_USER: 'Đối tác tạo tài khoản mới',
+  PARTNER_ADMIN_LOCK_USER: 'Đối tác khóa tài khoản',
+  PARTNER_ADMIN_UNLOCK_USER: 'Đối tác mở khóa tài khoản',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {

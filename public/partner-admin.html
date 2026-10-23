@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quản trị đối tác - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/users.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container">
+    <div id="notAllowedNotice" class="card hidden">
+      <p class="text-muted m-0">Tài khoản của bạn không có quyền quản trị đối tác.</p>
+    </div>
+
+    <div id="partnerAdminCard">
+      <div class="card">
+        <h2 id="partnerAdminTitle">Quản trị đối tác</h2>
+        <p class="hint mb-10">
+          Bạn chỉ xem/quản lý được <strong>tài khoản nhân viên CHỈ dùng đúng hệ thống của bạn</strong>
+          - không thấy tài khoản quản trị HCRC hay tài khoản thuộc đối tác khác. "Khóa" tạm ngừng
+          đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay.
+        </p>
+        <form id="createForm">
+          <label>Tên đăng nhập *</label>
+          <input id="newUsername" required />
+          <label>Mật khẩu *</label>
+          <input id="newPassword" type="password" required placeholder="Ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt" />
+          <label>Họ tên *</label>
+          <input id="newFullName" required />
+          <button class="btn-primary btn-block mt-10" type="submit" id="createBtn">Tạo tài khoản</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Danh sách tài khoản</h2>
+        <div class="table-wrap table-responsive">
+          <table>
+            <thead>
+              <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái</th><th>Hành động</th></tr>
+            </thead>
+            <tbody id="listBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/partner-admin.js"></script>
+</body>
+</html>

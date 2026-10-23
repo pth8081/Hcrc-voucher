@@ -32,6 +32,11 @@ const NAV_ITEMS = [
   { key: 'used-vouchers', href: '/used-vouchers.html', label: 'Voucher đã sử dụng', icon: NAV_ICONS.usedVouchers, permission: 'canViewUsedVouchers' },
   { key: 'guide-business', href: '/guide-business.html', label: 'Hướng dẫn nghiệp vụ', icon: NAV_ICONS.guide, permission: 'canViewBusinessGuide' },
   { key: 'guide-system', href: '/guide-system.html', label: 'Hướng dẫn hệ thống', icon: NAV_ICONS.guide, permission: 'canViewSystemGuide' },
+  // M16: chi hien voi tai khoan duoc gan quan tri gioi han theo 1 he thong voucher (vd Fuji) -
+  // xem requirePartnerAdmin.js/partnerAdminService.js. Tai khoan quan tri day du KHONG co quyen
+  // nay (permissions.isPartnerAdmin luon false - xem permissionService.js#ADMIN_PERMISSIONS) nen
+  // muc nay tu an voi ho, khong trung lap voi man hinh "Tai khoan" day du da co san.
+  { key: 'partner-admin', href: '/partner-admin.html', label: 'Quản trị đối tác', icon: NAV_ICONS.users, permission: 'isPartnerAdmin' },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];
 

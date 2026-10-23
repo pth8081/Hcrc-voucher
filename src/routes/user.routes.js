@@ -15,5 +15,6 @@ router.put('/:userId/location', controller.updateLocation);
 router.put('/:userId/voucher-systems', controller.updateVoucherSystems);
 router.put('/:userId/profile', controller.updateProfile);
 router.put('/:userId/delete-status', controller.updateDeleteStatus);
+router.put('/:userId/partner-admin', controller.updatePartnerAdmin);
 
 module.exports = router;
