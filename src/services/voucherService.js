@@ -56,6 +56,41 @@ async function checkExclusion(connectionId, voucherCode) {
   return matchedPrefix ? { matchedPrefix, connectionName } : null;
 }
 
+// Mui gio Viet Nam (+7, khong co gio mua he) - dung de tinh "hom nay" doc lap voi mui gio thuc
+// te cua may chu dang chay Node (co the la UTC tuy ha tang trien khai).
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * Kiem tra DOC LAP (khong phu thuoc Core) xem `expiryDate` Core tra ve da qua han hay chua -
+ * thuc te xac nhan Core (he thong D.Smart) KHONG tu chan voucher qua han o truong `status`
+ * (status van = UNUSED du expiryDate da o qua khu hang chuc ngay - kiem tra that qua "Test kiem
+ * tra" tren voucher that), nen app PHAI tu kiem tra, khong the tin hoan toan vao status.
+ *
+ * Gia tri Core tra ve luon la 1 thoi diem 00:00:00 kem hau to "Z" (vd "2026-09-29T00:00:00.000Z")
+ * nhung THUC CHAT la "ngay het han" tinh theo gio Viet Nam (da doi chieu voi du lieu DB goc,
+ * cot DUE_DATE kieu datetime, gio server Core la +07:00) - Core dang serialize SAI (gan "Z" ma
+ * khong thuc su quy doi ve UTC that), KHONG phai 1 thoi diem UTC chinh xac. De tranh phu thuoc
+ * vao loi quy doi mui gio nay, CHI so sanh cap **NGAY** (bo qua gio/mui gio hoan toan): doc truc
+ * tiep Nam/Thang/Ngay UTC co trong chuoi (dung dung con so Core gui, khong quy doi gi them) va
+ * so voi "hom nay" tinh theo gio VN (+7) - con dung duoc DEN HET ngay ghi tren expiryDate, qua
+ * ngay hom sau moi coi la het han.
+ *
+ * Tra ve false (CHUA het han / khong chan) neu thieu expiryDate hoac khong doc duoc - AN TOAN
+ * THEO HUONG KHONG CHAN NHAM (Core van la nguon xac nhan chinh cho trang thai UNUSED/USED, kiem
+ * tra nay chi la 1 lop phong ho THEM, khong thay the).
+ */
+function isExpiredByDate(expiryDateStr) {
+  if (!expiryDateStr) return false;
+  const expiry = new Date(expiryDateStr);
+  if (Number.isNaN(expiry.getTime())) return false;
+  const expiryDayMs = Date.UTC(expiry.getUTCFullYear(), expiry.getUTCMonth(), expiry.getUTCDate());
+
+  const nowVn = new Date(Date.now() + VN_OFFSET_MS);
+  const todayDayMs = Date.UTC(nowVn.getUTCFullYear(), nowVn.getUTCMonth(), nowVn.getUTCDate());
+
+  return todayDayMs > expiryDayMs;
+}
+
 /**
  * Buoc 1: Quet ma -> doi chieu voi Core API xem voucher da tieu hay chua.
  * KHONG lam thay doi trang thai voucher, chi doc + ghi log.
@@ -144,6 +179,28 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
     };
   }
 
+  // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han (xem isExpiredByDate) -
+  // Core (D.Smart) khong tu chan truong hop nay, app phai tu chan them.
+  if (isExpiredByDate(result.expiryDate)) {
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'CHECK',
+      resultStatus: VOUCHER_STATUS.EXPIRED,
+      valueAmt: result.valueAmt,
+      expiryDate: result.expiryDate,
+      issueDate: result.issueDate,
+      message: `Core bao UNUSED nhung da qua han su dung (expiryDate=${result.expiryDate}) - app tu chan theo kiem tra doc lap, khong goi tiep thu hoi`,
+      connectionName: result.connectionName,
+    });
+    return {
+      canRedeem: false,
+      status: VOUCHER_STATUS.EXPIRED,
+      message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
+    };
+  }
+
   return {
     canRedeem: true,
     status: result.status,
@@ -222,6 +279,29 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connecti
       // luon ghi co dinh "da doi trang thai" - sai lech neu ly do that khac (gioi han goi, Core
       // tra ve loi khac...), dung lai thong bao cu chi khi Core khong cho biet ly do gi ca.
       message: precheck.message || 'Voucher da doi trang thai, vui long quet lai truoc khi thu hoi.',
+    };
+  }
+
+  // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han - xem ghi chu chi tiet
+  // o checkVoucher()/isExpiredByDate(). Chan o day la lop phong ho THEM (ngoai buoc da chan o
+  // checkVoucher()), phong truong hop goi thang API thu hoi ma bo qua buoc kiem tra tren giao dien.
+  if (isExpiredByDate(precheck.expiryDate)) {
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'REDEEM',
+      resultStatus: VOUCHER_STATUS.EXPIRED,
+      clientIp,
+      valueAmt: precheck.valueAmt,
+      expiryDate: precheck.expiryDate,
+      message: `Tu choi thu hoi: Core bao UNUSED nhung da qua han su dung (expiryDate=${precheck.expiryDate}) - app tu chan theo kiem tra doc lap`,
+      connectionName: precheck.connectionName,
+    });
+    return {
+      success: false,
+      status: VOUCHER_STATUS.EXPIRED,
+      message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
     };
   }
 
