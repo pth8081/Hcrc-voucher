@@ -18,8 +18,15 @@ const { VOUCHER_STATUS } = coreVoucherService;
  * dung 1 he thong va khong gui gi ca).
  */
 async function resolveAllowedConnectionId(userId, requestedConnectionId) {
-  const allowed = await userVoucherSystemService.getAllowedConnectionIds(userId);
-  if (allowed === null) return requestedConnectionId; // khong gioi han - giu nguyen lua chon (hoac null = dung ket noi active mac dinh)
+  const allowedRaw = await userVoucherSystemService.getAllowedConnectionIds(userId);
+  if (allowedRaw === null) return requestedConnectionId; // khong gioi han - giu nguyen lua chon (hoac null = dung ket noi active mac dinh)
+
+  // M15: "Khac" (UNTAGGED_CONNECTION_ID) chi co y nghia khi XEM BAO CAO (danh dau duoc phep
+  // thay du lieu cu), KHONG phai 1 he thong that co the chon de quet/thu hoi - loai bo truoc khi
+  // ap dung logic chon ket noi o day, tranh truong hop 1 tai khoan CHI duoc tick "Khac" (khong
+  // tick he thong that nao) bi coi la "chi co dung 1 lua chon" roi tu dong dung ConnectionId=0
+  // de goi Core (se loi "khong tim thay he thong" vi khong co ket noi that nao mang Id nay).
+  const allowed = allowedRaw.filter((id) => id !== userVoucherSystemService.UNTAGGED_CONNECTION_ID);
 
   if (!allowed.length) {
     const err = new Error('Tai khoan chua duoc cap quyen dung he thong voucher nao');

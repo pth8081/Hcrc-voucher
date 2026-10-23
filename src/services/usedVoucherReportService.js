@@ -73,13 +73,12 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     extraFilter += ' AND vs.userid = @userId';
   }
   // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
-  // thich day du y nghia null/[]/[...]. M13: "OR vrc.ConnectionId IS NULL" CHI ap dung khi
-  // includeUntaggedConnections=true (gioi han TAI KHOAN, khong co lua chon UI ro rang) - neu
-  // nguoi dung TU CHON 1 he thong cu the o o loc, phai khop CHINH XAC, khong lan du lieu chua
-  // gan he thong nao vao - xem ghi chu chi tiet o reportService.js#buildConnectionFilter.
+  // thich day du y nghia null/[]/[...]. M13/M15: "OR vrc.ConnectionId IS NULL" CHI ap dung khi
+  // includeUntaggedConnections=true (tai khoan duoc tick RO RANG "Khac") - xem ghi chu chi tiet
+  // o reportService.js#buildConnectionFilter.
   if (connectionIds !== null && connectionIds !== undefined) {
     if (!connectionIds.length) {
-      extraFilter += ' AND 1 = 0';
+      extraFilter += includeUntaggedConnections ? ' AND vrc.ConnectionId IS NULL' : ' AND 1 = 0';
     } else {
       const placeholders = connectionIds.map((id, i) => {
         request.input(`connId${i}`, sql.Int, id);

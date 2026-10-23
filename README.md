@@ -934,6 +934,15 @@ bao cao cua Fuji** o nhung diem ho duoc cap. Man hinh **"Tai khoan"** (`/users.h
   quet (bat buoc chon, xem muc 4e); man hinh bao cao hien o chon "He thong" de loc xem rieng
   tung he thong hoac de trong de xem gom tat ca he thong duoc phep.
 
+**"Khac" (v3.57) - bat/tat rieng du lieu CU theo tung tai khoan:** ngoai cac he thong THAT
+(HCRC/Fuji...), danh sach tick luon co them 1 tuy chon **"Khac (du lieu cu, chua qua he thong
+nao)"** - dai dien cho giao dich CU (truoc khi app tich hop nhieu he thong voucher, xem muc 12e)
+chua tung duoc gan he thong nao. Tick THEM "Khac" cung voi 1/nhieu he thong that se cho tai
+khoan do thay ca du lieu cu do trong bao cao; CHI tick he thong that (khong tick "Khac") se an
+hoan toan du lieu cu khoi bao cao cua tai khoan do. Day la 1 "he thong ao", KHONG dai dien ket
+noi Core nao that ca nen se tu dong bi bo qua o man hinh Quet voucher (khong the chon "Khac" de
+quet/thu hoi).
+
 Du lieu: `sql/028_create_user_voucher_systems.sql` (bang `UserVoucherSystems`, khoa chinh
 `(UserId, ConnectionId)` — app tu quan ly, khong dung chung voi Core). Logic tap trung o
 `src/services/userVoucherSystemService.js` (`getAllowedConnectionIds` — tra ve `null` = khong
@@ -1574,6 +1583,27 @@ da goi Core - `voucherService.js`) khong he bi anh huong boi ca 2 ban sua nay, v
 chinh xac tu truoc den gio - day thuan tuy la loi o buoc **LOC HIEN THI bao cao**, khong anh
 huong gi den van hanh quet/thu hoi voucher thuc te.
 
+**Cap nhat (v3.57) - them tuy chon BAT/TAT du lieu cu theo TUNG tai khoan:** sau v3.53, MOI tai
+khoan bi gioi han he thong (vd chi duoc dung Fuji) VAN LUON tu dong thay du lieu cu (khong co
+cach nao tat). Theo yeu cau, nay doi thanh **tuy chon rieng cho tung tai khoan**: them 1 "he
+thong ao" ten **"Khac (du lieu cu, chua qua he thong nao)"** vao ngay trong o tick "He thong
+voucher duoc dung" o man hinh **Tai khoan** (canh HCRC/Fuji...) - xem muc 4f.
+
+- **Tick "Fuji" (hoac HCRC) nhung KHONG tick "Khac"**: tai khoan CHI thay dung du lieu cua he
+  thong do, du lieu cu bi an hoan toan khoi ca 3 bao cao - dung y ban dau nguoi dung yeu cau.
+- **Tick THEM "Khac"** (vd tick ca "Fuji" lan "Khac"): tai khoan thay ca du lieu Fuji LAN du
+  lieu cu (giong hanh vi v3.51/v3.53 cu).
+- **Khong tick gi ca** (mac dinh): khong doi gi - van khong gioi han, xem duoc TOAN BO (bao gom
+  ca du lieu cu), giong hanh vi tu truoc gio.
+
+Luu dang 1 "he thong ao" ngay trong bang `UserVoucherSystems` hien co (`ConnectionId = 0`,
+khong trung voi bat ky `ApiConnections.Id` that nao vi Id la IDENTITY bat dau tu 1 va cot nay
+khong co rang buoc khoa ngoai - xem `sql/028`) thay vi tao bang rieng - tai su dung toan bo co
+che tick chon/luu/kiem tra san co. "Khac" **chi co y nghia khi xem bao cao**, **khong** phai 1
+he thong that de chon luc quet/thu hoi (`voucherService.js#resolveAllowedConnectionId` tu dong
+bo qua gia tri nay truoc khi ap dung logic chon ket noi, tranh tai khoan CHI duoc tick "Khac" bi
+loi khi quet thay vi duoc bao ro "chua co quyen dung he thong voucher nao").
+
 ## 13. Phan quyen xem bao cao theo cong ty
 
 Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
@@ -1790,14 +1820,19 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.56)**: ca 2 trang huong dan co them nut **"Xuat PDF"** (dung tinh nang In cua
-trinh duyet, khong them phu thuoc gi) de gui ban huong dan cho doi tac; va ban **Huong dan
-nghiep vu** co them muc 6 huong dan **cai ung dung ra man hinh chinh** tren Android/iOS - xem
-muc 16. Ban truoc do (v3.55): ban **Huong dan nghiep vu** co them **6 anh chup man hinh that**
-minh hoa dung cac buoc (dang nhap, quet voucher, hop thoai xac nhan thu hoi, ket qua da su dung,
-vi du bao cao) thay vi chi toan chu nhu truoc. Chi tiet cac ban cu hon xem danh sach day du ben
-duoi.
+Ban **moi nhat (v3.57)**: them tuy chon **"Khac" (du lieu cu, chua qua he thong nao)** vao o tick
+"He thong voucher duoc dung" o man hinh Tai khoan - cho phep **BAT/TAT rieng cho tung tai khoan**
+viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay khong, thay vi
+LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Ban truoc do (v3.56): ca 2 trang huong dan
+co them nut **"Xuat PDF"**; va ban **Huong dan nghiep vu** co them muc 6 huong dan **cai ung
+dung ra man hinh chinh** tren Android/iOS - xem muc 16. Chi tiet cac ban cu hon xem danh sach
+day du ben duoi.
 
+- **v3.57** - Them tuy chon "Khac (du lieu cu, chua qua he thong nao)" vao o tick "He thong
+  voucher duoc dung" (man hinh Tai khoan) - admin BAT/TAT rieng cho tung tai khoan viec co thay
+  du lieu CU trong bao cao hay khong (truoc day luon tu dong hien cho tai khoan bi gioi han he
+  thong, khong co cach nao tat) - xem muc 4f. Sua kem 1 loi an: `listUserAccess()` bo sot hien
+  thi he thong co `ConnectionId = 0` do so sanh falsy trong JS.
 - **v3.56** - Them nut "Xuat PDF" (dung tinh nang In -> Luu thanh PDF co san cua trinh duyet) o
   ca 2 trang huong dan de gui cho doi tac; them muc 6 "Cai ung dung ra man hinh chinh
   (Android/iOS)" vao ban Huong dan nghiep vu - xem muc 16.

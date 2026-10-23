@@ -74,10 +74,16 @@ const VOUCHER_CONNECTION_JOIN = `
  * report.controller.js#resolveConnectionFilter) phan biet 2 truong hop: true = gioi han tai
  * khoan (khong co lua chon UI) -> NULL-tolerance; false = nguoi dung da CHU DONG chon 1 he thong
  * -> khop CHINH XAC, khong lan du lieu chua gan he thong nao.
+ *
+ * M15 (theo yeu cau): `includeUntagged` gio chi true khi tai khoan duoc tick RO RANG "Khac" (xem
+ * report.controller.js#resolveConnectionFilter + userVoucherSystemService.js) - khong con tu
+ * dong true moi khi bi gioi han he thong nhu M13. Them truong hop: tai khoan CHI duoc tick
+ * "Khac" (khong tick he thong that nao) -> connectionIds rong NHUNG van phai thay du lieu cu,
+ * khong duoc coi la "khong co quyen xem gi" (1=0) nhu truoc.
  */
 function buildConnectionFilter(request, connectionIds, includeUntagged) {
   if (connectionIds === null) return '';
-  if (!connectionIds.length) return ' AND 1 = 0';
+  if (!connectionIds.length) return includeUntagged ? ' AND vrc.ConnectionId IS NULL' : ' AND 1 = 0';
   const placeholders = connectionIds.map((id, i) => {
     request.input(`connId${i}`, sql.Int, id);
     return `@connId${i}`;
