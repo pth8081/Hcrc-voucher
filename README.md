@@ -1487,6 +1487,38 @@ duoc gan diem do) se luon ra bao cao rong, gay nham lan tuong nham la loi:
 - Bo chon lai "Tat ca diem thu hoi" (hoac doi cong ty) se tra ca 2 o nay ve lai danh sach day du
   (khong loc theo diem).
 
+### 12e. Du lieu CU (truoc khi co tinh nang nhieu he thong voucher) bi an mat khoi bao cao (loi da bao cao)
+
+**Trieu chung:** tai khoan (ke ca **admin**) khong thay bat ky du lieu nao o cac giao dich **CU**
+(truoc khi app tich hop nhieu he thong voucher, muc 4e) trong ca 3 bao cao, du da duoc cap quyen
+xem day du (nhom quyen "Toan bo cong ty", hoac chinh la admin).
+
+**Nguyen nhan:** ca 3 bao cao LEFT JOIN them bang `VoucherRedemptionConnections` (ghi nhan he
+thong Fuji/HCRC... da xu ly 1 giao dich, chi co tu khi tinh nang nhieu he thong ra doi) de loc
+theo "He thong voucher". Giao dich CU (truoc do) khong co dong tuong ung o bang nay
+(`vrc.ConnectionId = NULL`). Khi 1 tai khoan bi **gioi han he thong** (muc 4f) - BAO GOM CA
+truong hop chinh tai khoan admin do bi gan gioi han - dieu kien loc cu (`vrc.ConnectionId IN
+(...)`) khong khop voi NULL, nen TOAN BO du lieu CU bi am tham loai khoi ca 3 bao cao, bat ke
+tai khoan co duoc cap quyen xem cong ty/dia diem hay khong (gioi han he thong la dieu kien BAT
+BUOC, ap dung sau cung, xem muc 4f). Day la hau qua ngoai y muon - cung 1 kieu du lieu cu chua
+gan Cong ty/Diem thu hoi da duoc xu ly dung (hien "Chua gan cong ty"/"Chua xac dinh diem tieu",
+xem `summaryReportService.js`), nhung rieng loc theo He thong voucher lai chua xu ly tuong tu.
+
+**Da sua:** coi du lieu CU chua tung duoc gan he thong nao (`vrc.ConnectionId IS NULL`) la **LUON
+duoc xem**, bat ke tai khoan co bi gioi han he thong hay khong - sua dieu kien loc thanh
+`vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (...)` o ca 3 bao cao
+(`reportService.js#buildConnectionFilter`, `summaryReportService.js`,
+`usedVoucherReportService.js`). Giao dich MOI (da co ghi nhan he thong ro rang) van bi loc dung
+theo quyen nhu cu, khong doi gi hanh vi bao mat hien tai.
+
+**Luu y rieng ve "da phan quyen cho user ma van khong thay":** neu gan **"Nhom quyen xem bao
+cao"** (muc 13) cho 1 tai khoan nhan vien theo **1 vai cong ty cu the** (Pham vi = "Chi xem them
+mot so cong ty duoc chon"), tai khoan do se **KHONG BAO GIO** thay duoc du lieu CU chua gan cong
+ty nao - day la hanh vi **DUNG** (khong phai loi), vi "chi xem cong ty X" nghia la chi xem dung
+du lieu cua cong ty X, khong bao gom du lieu chua gan cong ty nao ca. Muon 1 tai khoan nhan vien
+xem duoc CA du lieu cu chua gan cong ty, phai gan nhom quyen voi Pham vi = **"Toan bo cong ty"**
+(giong admin), khong dung nhom "chi dinh tung cong ty".
+
 ## 13. Phan quyen xem bao cao theo cong ty
 
 Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
@@ -1675,14 +1707,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.50)**: fix UX man hinh "Ket noi API" - phan "Test trực tiếp voucher thật" o
-cuoi form khong ro dang test cho he thong nao (HCRC/Fuji), gio them dai thong bao luon hien dung
-Ten + Base URL cua ket noi se duoc goi - xem muc 4h. Ban truoc do (v3.49): them tinh nang **loai
-tru ma voucher theo tien to** - moi ket noi (HCRC/Fuji...) co the khai bao rieng 1 danh sach tien
-to BI CHAN (so khop CHINH XAC tung ky tu, vd tien to "E123" loai ma "E1230001" nhung khong loai
-"E124..."), ma trung se bi tu choi NGAY luc quet/thu hoi, khong goi sang Core - xem muc 4g. Chi
-tiet cac ban cu hon xem danh sach day du ben duoi.
+Ban **moi nhat (v3.51)**: fix loi nghiem trong - du lieu voucher **CU** (truoc khi app tich hop
+nhieu he thong voucher) bi **am tham loai khoi ca 3 bao cao** doi voi BAT KY tai khoan nao bi
+gioi han he thong voucher (ke ca admin), du da duoc cap quyen xem day du cong ty/dia diem - xem
+muc 12e. Ban truoc do (v3.50): fix UX man hinh "Ket noi API" - phan "Test trực tiếp voucher thật"
+o cuoi form khong ro dang test cho he thong nao (HCRC/Fuji), gio them dai thong bao luon hien
+dung Ten + Base URL cua ket noi se duoc goi - xem muc 4h. Chi tiet cac ban cu hon xem danh sach
+day du ben duoi.
 
+- **v3.51** - Fix loi nghiem trong: du lieu voucher CU (truoc khi co tinh nang nhieu he thong
+  voucher) bi am tham loai khoi ca 3 bao cao (doi soat/tong hop/voucher da su dung) doi voi tai
+  khoan bi gioi han he thong voucher, ke ca admin - sua dieu kien loc o ca 3 bao cao de coi du
+  lieu CU la LUON duoc xem (`vrc.ConnectionId IS NULL OR ... IN (...)`) - xem muc 12e.
 - **v3.50** - Fix UX man hinh "Ket noi API": phan "Test trực tiếp voucher thật" gio hien dai
   thong bao ro Ten + Base URL cua ket noi dang duoc test, tranh nham lan khong biet dang goi
   sang he thong nao - xem muc 4h.

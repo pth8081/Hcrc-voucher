@@ -53,7 +53,8 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
   }
   // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
   // thich day du y nghia null/[]/[...]; dung lai y het logic (khong import duoc ham do o day vi
-  // request/alias khac nhau, nhung cung 1 quy uoc).
+  // request/alias khac nhau, nhung cung 1 quy uoc). M12: "OR vrc.ConnectionId IS NULL" de khong
+  // an mat du lieu CU chua tung duoc gan he thong nao - xem ghi chu chi tiet o reportService.js.
   if (connectionIds !== null && connectionIds !== undefined) {
     if (!connectionIds.length) {
       extraFilter += ' AND 1 = 0';
@@ -62,7 +63,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
         request.input(`connId${i}`, sql.Int, id);
         return `@connId${i}`;
       });
-      extraFilter += ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+      extraFilter += ` AND (vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (${placeholders.join(', ')}))`;
     }
   }
 

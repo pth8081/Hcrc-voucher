@@ -55,6 +55,15 @@ const VOUCHER_CONNECTION_JOIN = `
  * loc tuy chon nguoi dung chon (1 phan tu) LAN cho gioi han quyen theo tai khoan (co the nhieu
  * phan tu) - xem report.controller.js#resolveConnectionFilter. Can VOUCHER_CONNECTION_JOIN
  * (alias vrc) da co san trong cau truy van goi ham nay.
+ *
+ * M12 (loi that da bao cao): giao dich CU (truoc khi co tinh nang nhieu he thong voucher,
+ * sql/027) khong co ban ghi VoucherRedemptionConnections tuong ung (vrc.ConnectionId = NULL).
+ * Dieu kien "vrc.ConnectionId IN (...)" truoc day KHONG khop NULL - nen BAT KY tai khoan nao bi
+ * gioi han he thong (ke ca admin, neu chinh tai khoan do bi gan gioi han) deu mat trang TOAN BO
+ * du lieu cu nay trong ca 3 bao cao, dung y "LEFT JOIN de khong mat du lieu cu" (xem comment o
+ * VOUCHER_CONNECTION_JOIN) chi dung duoc 1 nua (chi dung khi KHONG loc gi). Sua: coi du lieu CU
+ * (chua tung duoc gan he thong nao) la LUON duoc xem, giong het cach LOCATION_MAPPING_JOIN da xu
+ * ly du lieu cu chua gan Cong ty/Diem thu hoi (hien "Chua gan cong ty" thay vi bi an mat).
  */
 function buildConnectionFilter(request, connectionIds) {
   if (connectionIds === null) return '';
@@ -63,7 +72,7 @@ function buildConnectionFilter(request, connectionIds) {
     request.input(`connId${i}`, sql.Int, id);
     return `@connId${i}`;
   });
-  return ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+  return ` AND (vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (${placeholders.join(', ')}))`;
 }
 
 /** Loc THEM theo cong ty/diem thu hoi/tai khoan thu hoi (tuy chon, bo qua neu khong truyen) -
