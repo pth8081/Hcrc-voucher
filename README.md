@@ -1550,6 +1550,19 @@ du lieu cua cong ty X, khong bao gom du lieu chua gan cong ty nao ca. Muon 1 tai
 xem duoc CA du lieu cu chua gan cong ty, phai gan nhom quyen voi Pham vi = **"Toan bo cong ty"**
 (giong admin), khong dung nhom "chi dinh tung cong ty".
 
+**Cap nhat (v3.53) - loi phat sinh TU chinh ban sua tren:** ban sua NULL-tolerance o tren ap dung
+QUA RONG - ca khi nguoi dung **TU CHON** 1 he thong cu the (vd "Fuji") o o loc "He thong voucher"
+tren man hinh, khien ket qua loc theo "Fuji" bi **LAN them du lieu CU chua gan he thong nao**
+(thuc chat khong ro/co the thuoc HCRC) - gay hieu nham day la giao dich Fuji that, trong khi he
+thong Fuji thuc te co the CHUA he thong duoc dung lan nao. Da sua lai cho dung: NULL-tolerance
+**CHI** ap dung khi connectionIds den tu **gioi han tai khoan** (bat buoc, khong co lua chon UI
+ro rang) - ngay khi nguoi dung **chu dong chon** 1 he thong cu the o o loc, ket qua se **khop
+CHINH XAC**, khong con lan du lieu chua gan he thong nao vao nua. Luu y: ban than buoc GHI du
+lieu luc thu hoi that (ghi `VoucherRedemptionConnections.ConnectionId` dung theo ket noi THAT SU
+da goi Core - `voucherService.js`) khong he bi anh huong boi ca 2 ban sua nay, van hoan toan
+chinh xac tu truoc den gio - day thuan tuy la loi o buoc **LOC HIEN THI bao cao**, khong anh
+huong gi den van hanh quet/thu hoi voucher thuc te.
+
 ## 13. Phan quyen xem bao cao theo cong ty
 
 Nhieu tai khoan cua nhieu doi tac khac nhau cung dang nhap chung 1 ung dung, nen **mac dinh**
@@ -1738,15 +1751,21 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.52)**: them lop kiem tra **han su dung voucher DOC LAP** tai app - phat hien
-qua test that: he thong Core (D.Smart) **khong tu chan voucher qua han** (van bao `UNUSED` du
-`expiryDate` da qua khu nhieu chuc ngay), nen gio app tu so sanh `expiryDate` voi ngay hien tai
-(gio VN) o CA buoc Kiem tra lan Xac nhan thu hoi, khong con hoan toan tin vao `status` Core tra
-ve - xem muc 4i. Ban truoc do (v3.51): fix loi nghiem trong - du lieu voucher **CU** (truoc khi
-app tich hop nhieu he thong voucher) bi **am tham loai khoi ca 3 bao cao** doi voi BAT KY tai
-khoan nao bi gioi han he thong voucher (ke ca admin), du da duoc cap quyen xem day du cong
-ty/dia diem - xem muc 12e. Chi tiet cac ban cu hon xem danh sach day du ben duoi.
+Ban **moi nhat (v3.53)**: fix loi phat sinh TU chinh ban sua truoc (v3.51, muc 12e) - khi nguoi
+dung **TU CHON** 1 he thong voucher cu the (vd "Fuji") o o loc bao cao, ket qua bi **lan them du
+lieu CU chua gan he thong nao** (gay hieu nham day la giao dich cua he thong do), du he thong do
+co the chua tung duoc dung lan nao that. Gio chon loc theo 1 he thong cu the se khop **CHINH
+XAC**, chi gioi han tai khoan (khi khong chon gi) moi giu "khong mat du lieu cu" nhu truoc - xem
+muc 12e. Ban truoc do (v3.52): them lop kiem tra **han su dung voucher DOC LAP** tai app - phat
+hien qua test that: he thong Core (D.Smart) **khong tu chan voucher qua han** (van bao `UNUSED`
+du `expiryDate` da qua khu nhieu chuc ngay), nen app tu so sanh `expiryDate` voi ngay hien tai
+(gio VN) o CA buoc Kiem tra lan Xac nhan thu hoi - xem muc 4i. Chi tiet cac ban cu hon xem danh
+sach day du ben duoi.
 
+- **v3.53** - Fix loi phat sinh tu ban sua v3.51 (muc 12e): chon loc theo 1 he thong voucher cu
+  the (vd "Fuji") o man hinh bao cao truoc day van lan du lieu CU chua gan he thong nao vao ket
+  qua, gay hieu nham. Gio khop CHINH XAC khi nguoi dung chu dong chon 1 he thong; chi gioi han
+  TAI KHOAN (khong co lua chon UI) moi giu NULL-tolerance nhu v3.51.
 - **v3.52** - Them kiem tra han su dung voucher DOC LAP tai app (khong chi dua vao `status` Core
   tra ve) - phat hien Core (D.Smart) khong tu chan voucher qua han, voucher het han van duoc bao
   UNUSED. App tu so sanh `expiryDate` voi ngay hien tai (gio VN, chi so sanh cap ngay) o ca buoc

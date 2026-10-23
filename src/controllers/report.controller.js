@@ -20,17 +20,25 @@ async function resolveScope(req) {
  * Fuji) VA lua chon o loc "He thong" tren man hinh (neu co). Day la bo loc BAT BUOC (khong chi
  * tuy chon nhu Cong ty/Diem/Tai khoan) - 1 tai khoan bi gioi han KHONG the bo qua bang cach
  * khong chon gi hoac sua query string, vi luon duoc tinh lai o server theo dung quyen that su.
+ *
+ * M13 (loi that da bao cao): muc 12e (v3.51) da sua de du lieu CU (vrc.ConnectionId = NULL,
+ * truoc khi co tinh nang nhieu he thong) khong bi "mat tich" khoi bao cao doi voi tai khoan BI
+ * GIOI HAN he thong - nhung ban sua do ap dung NULL-tolerance ca khi nguoi dung TU CHON 1 he
+ * thong cu the o o loc "He thong voucher" tren man hinh, khien chon loc "Fuji" lai LAN ca du
+ * lieu CU chua gan he thong nao (thuc chat la cua HCRC/khong ro) vao - sai, gay hieu nham day la
+ * du lieu Fuji that. Tra ve them co `includeUntagged`: CHI true khi connectionIds den tu GIOI
+ * HAN TAI KHOAN (bat buoc, khong co lua chon UI ro rang) - false (so khop CHINH XAC, khong lan
+ * du lieu chua gan he thong) khi nguoi dung DA TU CHON 1 he thong cu the qua o loc.
  */
 async function resolveConnectionFilter(req) {
   const allowed = await userVoucherSystemService.getAllowedConnectionIds(req.user.userId);
   const requested = req.query.connectionId ? Number(req.query.connectionId) : null;
-  if (allowed === null) {
-    return requested ? [requested] : null;
-  }
   if (requested) {
-    return allowed.includes(requested) ? [requested] : [];
+    if (allowed !== null && !allowed.includes(requested)) return { ids: [], includeUntagged: false };
+    return { ids: [requested], includeUntagged: false };
   }
-  return allowed;
+  if (allowed === null) return { ids: null, includeUntagged: false };
+  return { ids: allowed, includeUntagged: true };
 }
 
 /** Doc 3 tham so loc chung "Cong ty thu / Diem thu hoi / Tai khoan thu hoi" dung cho ca 4 bao
@@ -75,7 +83,7 @@ async function daily(req, res, next) {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao doi soat');
     const locationsDetail = req.query.locationsDetail || null;
     const { codes, unassigned } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     const data = await reportService.dailyReconciliation({
       fromDate,
       toDate,
@@ -83,6 +91,7 @@ async function daily(req, res, next) {
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
     });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
@@ -95,7 +104,7 @@ async function dailyExport(req, res, next) {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao doi soat');
     const locationsDetail = req.query.locationsDetail || null;
     const { codes } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     const { summary, details } = await reportService.dailyReconciliation({
       fromDate,
       toDate,
@@ -103,6 +112,7 @@ async function dailyExport(req, res, next) {
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
       maxDetailRows: reportService.MAX_EXPORT_ROWS,
     });
     const buffer = await reportService.buildReconciliationExcelBuffer({ summary, details });
@@ -120,13 +130,14 @@ async function summary(req, res, next) {
   try {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
     const { codes, unassigned } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     const data = await summaryReportService.consolidatedReport({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
     });
     res.json({ success: true, data: { ...data, unassignedLocation: !!unassigned } });
   } catch (err) {
@@ -138,13 +149,14 @@ async function summaryExport(req, res, next) {
   try {
     const { fromDate, toDate } = parseBoundedDateRange(req.query, 'bao cao tong hop');
     const { codes } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     const data = await summaryReportService.consolidatedReport({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
       maxRows: summaryReportService.MAX_EXPORT_ROWS,
     });
     const buffer = await summaryReportService.buildSummaryExcelBuffer(data);
@@ -174,7 +186,7 @@ async function usedVouchers(req, res, next) {
   try {
     const { fromDate, toDate } = parseDateRange(req.query);
     const { codes, unassigned } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     // H11: truoc day khong gioi han gi ca - goi khong tham so co the keo ve toan bo lich su
     // nhieu nam roi render thang vao 1 bang HTML, rui ro treo trinh duyet/qua tai server. Xem
     // MAX_LIST_ROWS trong usedVoucherReportService.js. `truncated` bao cho giao dien biet de
@@ -190,6 +202,7 @@ async function usedVouchers(req, res, next) {
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
       maxRows: maxRows + 1,
     });
     const truncated = rows.length > maxRows;
@@ -210,13 +223,14 @@ async function usedVouchersExport(req, res, next) {
       throw err;
     }
     const { codes } = await resolveScope(req);
-    const connectionIds = await resolveConnectionFilter(req);
+    const { ids: connectionIds, includeUntagged: includeUntaggedConnections } = await resolveConnectionFilter(req);
     const rows = await usedVoucherReportService.listUsedVouchers({
       fromDate,
       toDate,
       visibleLocationCodes: codes,
       ...parseExtraFilters(req.query),
       connectionIds,
+      includeUntaggedConnections,
       maxRows: usedVoucherReportService.MAX_EXPORT_ROWS,
     });
     const buffer = await usedVoucherReportService.buildExcelBuffer(rows);

@@ -64,22 +64,33 @@ const VOUCHER_CONNECTION_JOIN = `
  * VOUCHER_CONNECTION_JOIN) chi dung duoc 1 nua (chi dung khi KHONG loc gi). Sua: coi du lieu CU
  * (chua tung duoc gan he thong nao) la LUON duoc xem, giong het cach LOCATION_MAPPING_JOIN da xu
  * ly du lieu cu chua gan Cong ty/Diem thu hoi (hien "Chua gan cong ty" thay vi bi an mat).
+ *
+ * M13 (loi that da bao cao, phat sinh TU chinh ban sua M12 o tren): "NULL-tolerance" o tren CHI
+ * nen ap dung khi connectionIds den tu GIOI HAN TAI KHOAN (bat buoc, tai khoan khong co lua
+ * chon). Neu nguoi dung TU CHON 1 he thong cu the o o loc "He thong voucher" tren man hinh (vd
+ * chon rieng "Fuji"), ban sua M12 truoc day van cho NULL-tolerance ap dung, khien du lieu CU
+ * chua gan he thong nao (thuc chat khong ro/co the la HCRC) bi LAN vao ket qua loc "Fuji" - sai,
+ * gay hieu nham day la giao dich Fuji that. Tham so `includeUntagged` (tu
+ * report.controller.js#resolveConnectionFilter) phan biet 2 truong hop: true = gioi han tai
+ * khoan (khong co lua chon UI) -> NULL-tolerance; false = nguoi dung da CHU DONG chon 1 he thong
+ * -> khop CHINH XAC, khong lan du lieu chua gan he thong nao.
  */
-function buildConnectionFilter(request, connectionIds) {
+function buildConnectionFilter(request, connectionIds, includeUntagged) {
   if (connectionIds === null) return '';
   if (!connectionIds.length) return ' AND 1 = 0';
   const placeholders = connectionIds.map((id, i) => {
     request.input(`connId${i}`, sql.Int, id);
     return `@connId${i}`;
   });
-  return ` AND (vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (${placeholders.join(', ')}))`;
+  const inClause = `vrc.ConnectionId IN (${placeholders.join(', ')})`;
+  return includeUntagged ? ` AND (vrc.ConnectionId IS NULL OR ${inClause})` : ` AND ${inClause}`;
 }
 
 /** Loc THEM theo cong ty/diem thu hoi/tai khoan thu hoi (tuy chon, bo qua neu khong truyen) -
  * dung chung cho ca 3 bao cao (doi soat, tong hop, danh sach voucher da su dung). Can
  * LOCATION_MAPPING_JOIN (alias ru/rc) da co san trong cau truy van goi ham nay, va bang chinh
  * phai la VOUCHER_SYNC voi alias "vs" (cho vs.userid). */
-function buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds }) {
+function buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections }) {
   let filter = '';
   if (companyId) {
     request.input('filterCompanyId', sql.Int, companyId);
@@ -93,7 +104,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId, conne
     request.input('filterUserId', sql.Int, userId);
     filter += ' AND vs.userid = @filterUserId';
   }
-  filter += buildConnectionFilter(request, connectionIds !== undefined ? connectionIds : null);
+  filter += buildConnectionFilter(request, connectionIds !== undefined ? connectionIds : null, !!includeUntaggedConnections);
   return filter;
 }
 
@@ -103,7 +114,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId, conne
  * Core system. Truoc day chi loc dung 1 ngay (tham so `date`) - doi sang khoang ngay theo yeu
  * cau nguoi dung, giong cach 2 bao cao con lai (tong hop, danh sach voucher da su dung) da lam.
  */
-async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, maxDetailRows }) {
+async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections, maxDetailRows }) {
   const pool = await getPool();
   const request = pool.request();
   request.input('fromDate', sql.Date, fromDate).input('toDate', sql.Date, toDate);
@@ -113,7 +124,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     filter += ' AND vs.Locations_Detail = @locationsDetail';
   }
   filter += buildLocationCodeFilter(request, visibleLocationCodes, 'vs.Locations_Detail');
-  filter += buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds });
+  filter += buildExtraFilters(request, { companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections });
 
   const summary = await request.query(`
     SELECT
@@ -136,7 +147,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     detailFilter += ' AND vs.Locations_Detail = @locationsDetail';
   }
   detailFilter += buildLocationCodeFilter(detailRequest, visibleLocationCodes, 'vs.Locations_Detail');
-  detailFilter += buildExtraFilters(detailRequest, { companyId, redemptionUnitId, userId, connectionIds });
+  detailFilter += buildExtraFilters(detailRequest, { companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections });
 
   const topClause = maxDetailRows ? 'TOP (@maxDetailRows)' : '';
   if (maxDetailRows) detailRequest.input('maxDetailRows', sql.Int, maxDetailRows);
