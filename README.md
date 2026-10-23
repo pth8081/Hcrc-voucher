@@ -1071,6 +1071,9 @@ NULL = tai khoan thuong). API: `PUT /api/users/:userId/partner-admin` (chi admin
 `GET/POST /api/partner-admin/users`, `PUT /api/partner-admin/users/:userId/active` (chi tai khoan
 duoc cap quyen nay).
 
+**Bat buoc 2FA (v3.61):** tai khoan duoc cap "Quan tri doi tac" **bat buoc** phai bat xac thuc hai
+yeu to (TOTP) tu lan dang nhap tiep theo, tuong tu quan tri day du - xem muc 10.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1106,11 +1109,11 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/api-connections/:id/activate` | Kich hoat 1 ket noi lam ket noi chinh |
 | POST | `/api/api-connections/test-check` | Test kiem tra voucher that voi cau hinh dang nhap tren form/da luu |
 | POST | `/api/api-connections/test-redeem` | Test thu hoi voucher that (bat buoc `confirmRedeem: true`) |
-| POST | `/api/auth/2fa/setup-init` | (token tam hoac phien admin) Sinh QR + ma thu cong de thiet lap 2FA |
-| POST | `/api/auth/2fa/setup-verify` | (token tam hoac phien admin) Xac nhan ma TOTP, bat 2FA |
-| POST | `/api/auth/2fa/login-verify` | (token tam) Nhap ma TOTP de hoan tat dang nhap (admin da bat 2FA) |
-| GET | `/api/auth/2fa/status` | (can quyen admin) Trang thai 2FA cua chinh minh |
-| POST | `/api/auth/2fa/show-qr` | (can quyen admin, bat buoc kem `password`) Hien lai QR cua secret HIEN TAI (khong doi secret) de them thiet bi Authenticator thu 2 |
+| POST | `/api/auth/2fa/setup-init` | (token tam, hoac phien cua tai khoan bat buoc 2FA) Sinh QR + ma thu cong de thiet lap 2FA |
+| POST | `/api/auth/2fa/setup-verify` | (token tam, hoac phien cua tai khoan bat buoc 2FA) Xac nhan ma TOTP, bat 2FA |
+| POST | `/api/auth/2fa/login-verify` | (token tam) Nhap ma TOTP de hoan tat dang nhap (tai khoan da bat 2FA) |
+| GET | `/api/auth/2fa/status` | (tai khoan bat buoc 2FA - quan tri day du hoac "Quan tri doi tac", muc 4j/10) Trang thai 2FA cua chinh minh |
+| POST | `/api/auth/2fa/show-qr` | (tai khoan bat buoc 2FA, bat buoc kem `password`) Hien lai QR cua secret HIEN TAI (khong doi secret) de them thiet bi Authenticator thu 2 |
 | GET | `/api/auth/2fa/admins` | (can quyen admin) Danh sach quan tri vien + trang thai 2FA |
 | DELETE | `/api/auth/2fa/admins/:userId` | (can quyen admin) Go 2FA cua **admin khac** (khong tu go duoc cua chinh minh) |
 | GET | `/api/users` | (can quyen admin) Danh sach tai khoan + lich hieu luc + quyen tinh nang + trang thai hien tai |
@@ -1344,6 +1347,20 @@ Tai khoan quan tri (`Users.status = 1`) nam giu quyen cau hinh ket noi Core API 
 tac, nen **bat buoc** phai bat xac thuc hai yeu to (TOTP — Google Authenticator, Microsoft
 Authenticator, Authy...) truoc khi vao duoc ung dung. Nhan vien thu hoi thuong (`status = 0`)
 **khong** bi anh huong, dang nhap binh thuong nhu truoc.
+
+**Mo rong (v3.61):** tai khoan **"Quan tri doi tac"** (muc 4j - vd tai khoan cap rieng cho Fuji
+tu quan ly nhan vien cua ho) **cung bat buoc** dung 2FA tuong tu quan tri day du, du ban than van
+la `status = 0` - vi ho cung co quyen tao/khoa tai khoan nguoi khac, rui ro cao hon nhan vien
+thuong neu mat khau bi lo. Dieu kien gop chung 1 ham duy nhat `authService.js#requiresMandatory2FA(role,
+userId)` (quan tri day du HOAC `permissions.isPartnerAdmin`), dung CHUNG o ca luc dang nhap
+(`buildLoginOutcome`), API xem/quan ly 2FA cua chinh minh (`GET /status`, `POST /show-qr` -
+`middleware/require2FAManagement.js`), va luong "doi thiet bi 2FA" tu phien day du da co san
+(`middleware/require2FAPending.js#resolveSetupSubject`) - tranh 2-3 noi dinh nghia dieu kien lech
+nhau. 2 API con lai (`GET /admins`, `DELETE /admins/:userId` - xem/go 2FA cua **tai khoan khac**)
+van **CHI** danh cho quan tri day du (`requireAdmin`), khong mo cho "Quan tri doi tac" - ho khong
+nen thay duoc danh sach/trang thai 2FA cua MOI quan tri vien trong he thong. Co hieu luc tu **lan
+dang nhap tiep theo** (giong moi thay doi quyen khac trong app - token/phien dang mo van dung tiep
+toi khi tu het han).
 
 ### 10a. Luong dang nhap cua tai khoan quan tri
 
@@ -1864,7 +1881,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.60)**: them tinh nang **"Quan tri doi tac"** - cho phep cap 1 tai khoan rieng
+Ban **moi nhat (v3.61)**: tai khoan **"Quan tri doi tac"** (v3.60, vd tai khoan cap rieng cho
+Fuji) nay **bat buoc** phai bat xac thuc hai yeu to (TOTP) tu lan dang nhap tiep theo, tuong tu
+quan tri day du - vi ho cung co quyen tao/khoa tai khoan nguoi khac nen rui ro cao hon nhan vien
+thuong neu mat khau bi lo. Trang "Bao mat" cung duoc tach lai: tai khoan nay xem/quan ly duoc 2FA
+cua CHINH minh (bat buoc di qua man hinh thiet lap TOTP ngay sau khi dang nhap), nhung **van
+khong** thay duoc danh sach/trang thai 2FA cua CAC quan tri vien khac (API do van gioi han chi
+quan tri day du) - xem muc 10.
+
+Ban truoc do (v3.60): them tinh nang **"Quan tri doi tac"** - cho phep cap 1 tai khoan rieng
 cho doi tac (vd Fuji) de HO TU xem/tao/khoa cac tai khoan nhan vien **CHI dung dung he thong cua
 ho**, ma KHONG thay duoc tai khoan quan tri HCRC hay tai khoan cua doi tac khac, khong can nho
 admin HCRC moi lan cap/thu hoi tai khoan cho nhan vien cua ho. Cap qua 1 o chon moi "Quan tri doi
@@ -1873,7 +1898,7 @@ voucher duoc dung" cua CHINH tai khoan do ve dung he thong da chon) - xem muc 4j
 cap se thay 1 muc menu rieng "Quan tri doi tac", vao man hinh rut gon chi gom dung 3 thao tac tren
 (khong co quyen tinh nang/lich hieu luc/nhom bao cao... nhu man hinh "Tai khoan" day du).
 
-Ban truoc do (v3.59): nguoi dung bao loi "Da xay ra loi he thong" khi quet THAT (camera), khac
+Ban truoc do nua (v3.59): nguoi dung bao loi "Da xay ra loi he thong" khi quet THAT (camera), khac
 voi ket qua "Test truc tiep voucher that" (man hinh Ket noi API) van dung - dieu tra qua Nhat ky he
 thong (tab "Hoat dong quet/thu hoi") cho thay lan quet bi loi **KHONG co dong nao** duoc ghi lai, va
 cung **KHONG co lenh goi nao toi Core** trong log rieng cua Core quanh thoi diem do - nghia la loi
@@ -1904,6 +1929,11 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.61** - Bat buoc xac thuc hai yeu to (2FA) cho tai khoan "Quan tri doi tac" (v3.60), tuong tu
+  quan tri day du - gop dieu kien vao 1 ham duy nhat `authService.js#requiresMandatory2FA()`, dung
+  chung cho luc dang nhap, API `GET /status`/`POST /show-qr` cua chinh minh, va luong doi thiet bi
+  2FA. Tach lai man hinh "Bao mat" thanh 2 the doc lap de tai khoan nay xem duoc 2FA cua chinh
+  minh ma khong lam an mat ca trang khi khong co quyen xem danh sach cac quan tri vien khac.
 - **v3.60** - Them tinh nang "Quan tri doi tac" - cap 1 tai khoan rieng cho doi tac (vd Fuji) de ho
   tu xem/tao/khoa cac tai khoan nhan vien CHI dung dung he thong cua ho, khong thay duoc tai khoan
   quan tri HCRC hay doi tac khac - xem muc 4j.

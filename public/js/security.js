@@ -1,8 +1,9 @@
 requireAuth();
 renderTopbar('security');
 
-const notAdminNotice = document.getElementById('notAdminNotice');
-const securityCards = document.getElementById('securityCards');
+const notAllowedNotice = document.getElementById('notAllowedNotice');
+const my2faCard = document.getElementById('my2faCard');
+const adminsListCard = document.getElementById('adminsListCard');
 const myStatusEl = document.getElementById('myStatus');
 const changeDeviceBtn = document.getElementById('changeDeviceBtn');
 const adminsBody = document.getElementById('adminsBody');
@@ -112,23 +113,35 @@ passkeyRegisterBtn.addEventListener('click', async () => {
   }
 });
 
-// ===== Xac thuc hai yeu to (chi quan tri) =====
+// ===== Xac thuc hai yeu to (tai khoan BAT BUOC dung 2FA - quan tri day du hoac "Quan tri doi
+// tac", xem authService.js#requiresMandatory2FA) =====
 
+/** 2 the hien doc lap, KHONG dung chung 1 try/catch: tai khoan "Quan tri doi tac" goi /status
+ * THANH CONG (duoc xem/quan ly 2FA cua chinh minh) nhung /admins se tra 403 (danh sach TAT CA
+ * quan tri vien - chi quan tri day du moi xem duoc) - neu gop chung 1 try/catch, loi o buoc 2 se
+ * lam AN LUON ca the "2FA cua toi" du buoc 1 da thanh cong. */
 async function load() {
   try {
     const status = await apiFetch('/auth/2fa/status');
+    my2faCard.classList.remove('hidden');
     myStatusEl.textContent = status.enabled
       ? `Đã bật - kích hoạt lúc ${fmtDate(status.enabledDate)}${status.lastUsedDate ? ', dùng gần nhất ' + fmtDate(status.lastUsedDate) : ''}`
       : 'Chưa thiết lập - cần một quản trị viên khác gỡ giúp nếu bạn từng bị khóa thiết bị.';
     changeDeviceBtn.classList.remove('hidden');
     changeDeviceBtn.textContent = status.enabled ? 'Đổi thiết bị xác thực' : 'Thiết lập ngay';
     showQrBtn.classList.toggle('hidden', !status.enabled);
+  } catch (err) {
+    notAllowedNotice.classList.remove('hidden');
+    return;
+  }
 
+  try {
     const admins = await apiFetch('/auth/2fa/admins');
+    adminsListCard.classList.remove('hidden');
     renderAdmins(admins);
   } catch (err) {
-    notAdminNotice.classList.remove('hidden');
-    securityCards.classList.add('hidden');
+    // Tai khoan "Quan tri doi tac" (khong phai quan tri day du): danh sach TAT CA quan tri vien
+    // khong lien quan toi ho - an di lang le, khong phai 1 loi can bao.
   }
 }
 

@@ -68,12 +68,27 @@ function roleOf(user) {
 }
 
 /**
+ * 2FA bat buoc voi tai khoan quan tri DAY DU (status/role=1) VA tai khoan "Quan tri doi tac"
+ * (muc 4j, permissions.isPartnerAdmin - vd tai khoan cap rieng cho Fuji tu quan ly nhan vien cua
+ * ho) - ca 2 deu co quyen tao/khoa tai khoan nguoi khac nen rui ro cao hon nhan vien thuong neu bi
+ * lo mat khau. Dung CHUNG 1 ham nay o ca buildLoginOutcome() (luc dang nhap, duoi day) LAN
+ * middleware/require2FAManagement.js (2 API quan ly 2FA cua CHINH tai khoan dang dang nhap o
+ * trang "Bao mat") - 1 nguon su that duy nhat, tranh 2 noi tinh dieu kien lech nhau.
+ */
+async function requiresMandatory2FA(role, userId) {
+  if (Number(role) === 1) return true;
+  const permissions = await permissionService.getPermissions(userId);
+  return permissions.isPartnerAdmin;
+}
+
+/**
  * Ket qua sau khi xac minh danh tinh chinh (mat khau hoac van tay/Face ID) THANH CONG - dung
  * chung cho ca 2 duong dang nhap. Thu tu cac buoc bat buoc truoc khi duoc cap phien day du:
  *  1. Doi mat khau (passwordPolicyService.js) - ap dung cho MOI tai khoan, ca quan tri lan
  *     nhan vien, trong LAN DANG NHAP DAU TIEN vao app nay (hoac sau khi bi dat lai mat khau).
- *  2. Xac thuc hai yeu to TOTP (twoFactorService.js) - CHI bat buoc voi tai khoan quan tri
- *     (status=1) VA chi khi dang nhap bang mat khau (skipTwoFactor=false):
+ *  2. Xac thuc hai yeu to TOTP (twoFactorService.js) - CHI bat buoc voi tai khoan can
+ *     `requiresMandatory2FA()` (quan tri day du HOAC "Quan tri doi tac", xem o tren) VA chi khi
+ *     dang nhap bang mat khau (skipTwoFactor=false):
  *      - Chua tung thiet lap 2FA -> tra ve token TAM chi du quyen goi API thiet lap 2FA.
  *      - Da bat 2FA tu truoc -> tra ve token TAM chi du quyen goi API xac minh ma 2FA.
  *  3. Khong con buoc nao khac -> cap phien day du.
@@ -99,7 +114,7 @@ async function buildLoginOutcome(user, { skipTwoFactor = false } = {}) {
     return { passwordChange: 'required', pendingToken: issuePendingToken(user, 'password_change') };
   }
 
-  if (Number(user.status) === 1 && !skipTwoFactor) {
+  if ((await requiresMandatory2FA(user.status, user.UserID)) && !skipTwoFactor) {
     const status = await twoFactorService.getStatus(user.UserID);
     if (!status.enabled) {
       return { twoFactor: 'setup_required', pendingToken: issuePendingToken(user, '2fa_setup') };
@@ -244,4 +259,5 @@ module.exports = {
   changePasswordForced,
   roleOf,
   comparePassword,
+  requiresMandatory2FA,
 };

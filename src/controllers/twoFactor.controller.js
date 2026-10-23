@@ -80,8 +80,9 @@ async function loginVerify(req, res, next) {
       return res.status(400).json({ success: false, message: 'Thieu ma xac thuc' });
     }
 
-    // Chi tai khoan quan tri moi toi duoc buoc nay (2FA chi bat buoc voi status=1), nen luon
-    // dung chinh sach khoa 'admin' (50 lan/2 phut) - xem loginGuard.js.
+    // Chi tai khoan BAT BUOC dung 2FA moi toi duoc buoc nay (quan tri day du hoac "Quan tri doi
+    // tac" - xem authService.js#requiresMandatory2FA), nen luon dung chinh sach khoa 'admin'
+    // (50 lan/2 phut) - xem loginGuard.js.
     loginGuard.assertNotLocked(username);
     try {
       await twoFactorService.verifyLogin(userId, code);

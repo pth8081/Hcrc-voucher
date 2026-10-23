@@ -3,6 +3,7 @@ const controller = require('../controllers/twoFactor.controller');
 const { authenticate } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/requireRole');
 const { require2FAPending, resolveSetupSubject } = require('../middleware/require2FAPending');
+const { require2FAManagement } = require('../middleware/require2FAManagement');
 const { ipLoginRateLimit } = require('../middleware/ipRateLimit');
 
 const router = express.Router();
@@ -20,9 +21,11 @@ router.post('/setup-verify', ipLoginRateLimit, resolveSetupSubject, controller.s
 // Xac minh ma 2FA khi dang nhap (da bat 2FA tu truoc) - CHI chap nhan token TAM purpose='2fa_verify'.
 router.post('/login-verify', ipLoginRateLimit, require2FAPending(['2fa_verify']), controller.loginVerify);
 
-// Quan ly 2FA - can phien day du + quyen quan tri.
-router.get('/status', authenticate, requireAdmin, controller.status);
-router.post('/show-qr', ipLoginRateLimit, authenticate, requireAdmin, controller.showQr);
+// Quan ly 2FA cua CHINH minh - can phien day du + thuoc nhom bat buoc dung 2FA (quan tri day du
+// hoac "Quan tri doi tac", xem require2FAManagement.js).
+router.get('/status', authenticate, require2FAManagement, controller.status);
+router.post('/show-qr', ipLoginRateLimit, authenticate, require2FAManagement, controller.showQr);
+// Quan ly 2FA cua TAI KHOAN KHAC - CHI quan tri day du.
 router.get('/admins', authenticate, requireAdmin, controller.listAdmins);
 router.delete('/admins/:userId', authenticate, requireAdmin, controller.adminReset);
 
