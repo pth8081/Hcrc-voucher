@@ -73,7 +73,8 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     extraFilter += ' AND vs.userid = @userId';
   }
   // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
-  // thich day du y nghia null/[]/[...].
+  // thich day du y nghia null/[]/[...]. M12: "OR vrc.ConnectionId IS NULL" de khong an mat du
+  // lieu CU chua tung duoc gan he thong nao - xem ghi chu chi tiet o reportService.js.
   if (connectionIds !== null && connectionIds !== undefined) {
     if (!connectionIds.length) {
       extraFilter += ' AND 1 = 0';
@@ -82,7 +83,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
         request.input(`connId${i}`, sql.Int, id);
         return `@connId${i}`;
       });
-      extraFilter += ` AND vrc.ConnectionId IN (${placeholders.join(', ')})`;
+      extraFilter += ` AND (vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (${placeholders.join(', ')}))`;
     }
   }
 
