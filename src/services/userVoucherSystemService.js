@@ -10,7 +10,20 @@ const { sql, getPool } = require('../config/db');
  *
  * Quy uoc: khong co dong nao trong UserVoucherSystems = KHONG GIOI HAN (duoc dung/xem TOAN BO
  * he thong hien co). Co it nhat 1 dong = CHI duoc dung/xem DUNG cac he thong do.
+ *
+ * M15 (theo yeu cau): them 1 "he thong ao" dai dien cho du lieu CU - giao dich chua tung duoc
+ * gan he thong nao (VoucherRedemptionConnections.ConnectionId = NULL, truoc khi app tich hop
+ * nhieu he thong voucher, xem muc 12e). Truoc ban nay, 1 tai khoan bi gioi han CHI Fuji/HCRC van
+ * LUON thay duoc du lieu cu do trong bao cao (v3.51/v3.53) - nay doi lai thanh TUY CHON: chi khi
+ * admin tick THEM "Khac" cho tai khoan do thi moi thay du lieu cu, tick rieng Fuji/HCRC se KHONG
+ * con thay du lieu cu nua. Dung ConnectionId = UNTAGGED_CONNECTION_ID (khong trung voi bat ky
+ * ApiConnections.Id that nao, vi Id la IDENTITY bat dau tu 1 va UserVoucherSystems.ConnectionId
+ * KHONG co FK rang buoc toi ApiConnections - xem sql/028) de luu ngay trong chinh bang
+ * UserVoucherSystems, tai su dung toan bo co che tick chon/luu/kiem tra san co, khong can bang
+ * rieng.
  */
+const UNTAGGED_CONNECTION_ID = 0;
+const UNTAGGED_CONNECTION_NAME = 'Khác (dữ liệu cũ, chưa qua hệ thống nào)';
 
 /** null = khong gioi han (tat ca he thong). Mang (co the rong) = CHI duoc dung dung cac id nay. */
 async function getAllowedConnectionIds(userId) {
@@ -81,7 +94,13 @@ async function listUserAccess() {
   const byUser = new Map();
   for (const row of result.recordset) {
     if (!byUser.has(row.userId)) byUser.set(row.userId, []);
-    if (row.connectionId) byUser.get(row.userId).push({ connectionId: row.connectionId, connectionName: row.connectionName });
+    // M15: truoc day dung "if (row.connectionId)" - voucher he thong ao "Khac" co ConnectionId
+    // = 0 (UNTAGGED_CONNECTION_ID), la gia tri falsy trong JS nen bi BO SOT khoi danh sach hien
+    // thi (dieu kien cu tuong "0 = khong co dong nao / NULL do LEFT JOIN", khong phan biet duoc
+    // voi "co dong nhung ConnectionId = 0 that"). Doi sang so sanh ro rang voi null/undefined.
+    if (row.connectionId === null || row.connectionId === undefined) continue;
+    const connectionName = row.connectionId === UNTAGGED_CONNECTION_ID ? UNTAGGED_CONNECTION_NAME : row.connectionName;
+    byUser.get(row.userId).push({ connectionId: row.connectionId, connectionName });
   }
   return byUser;
 }
@@ -110,6 +129,8 @@ async function setAllowedConnections(userId, connectionIds) {
 }
 
 module.exports = {
+  UNTAGGED_CONNECTION_ID,
+  UNTAGGED_CONNECTION_NAME,
   getAllowedConnectionIds,
   getAllowedConnectionIdsForLocation,
   isConnectionAllowedForUser,

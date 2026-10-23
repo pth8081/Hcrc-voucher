@@ -29,6 +29,13 @@ async function resolveScope(req) {
  * du lieu Fuji that. Tra ve them co `includeUntagged`: CHI true khi connectionIds den tu GIOI
  * HAN TAI KHOAN (bat buoc, khong co lua chon UI ro rang) - false (so khop CHINH XAC, khong lan
  * du lieu chua gan he thong) khi nguoi dung DA TU CHON 1 he thong cu the qua o loc.
+ *
+ * M15 (theo yeu cau): v3.51/v3.53 o tren mac dinh LUON cho tai khoan bi gioi han he thong thay
+ * du lieu cu (khong co cach nao tat di) - nay doi thanh TUY CHON, dieu khien boi 1 "he thong ao"
+ * rieng trong UserVoucherSystems (UNTAGGED_CONNECTION_ID, tick "Khac" o man Tai khoan). Tach
+ * rieng gia tri ao nay khoi danh sach connectionId THAT (dung de loc vrc.ConnectionId IN (...)) -
+ * `includeUntagged` gio = true CHI KHI tai khoan DUOC TICK "Khac" (khong con tu dong true moi
+ * khi bi gioi han nhu truoc).
  */
 async function resolveConnectionFilter(req) {
   const allowed = await userVoucherSystemService.getAllowedConnectionIds(req.user.userId);
@@ -38,7 +45,9 @@ async function resolveConnectionFilter(req) {
     return { ids: [requested], includeUntagged: false };
   }
   if (allowed === null) return { ids: null, includeUntagged: false };
-  return { ids: allowed, includeUntagged: true };
+  const includeUntagged = allowed.includes(userVoucherSystemService.UNTAGGED_CONNECTION_ID);
+  const ids = allowed.filter((id) => id !== userVoucherSystemService.UNTAGGED_CONNECTION_ID);
+  return { ids, includeUntagged };
 }
 
 /** Doc 3 tham so loc chung "Cong ty thu / Diem thu hoi / Tai khoan thu hoi" dung cho ca 4 bao

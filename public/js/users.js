@@ -108,6 +108,16 @@ function findUnitForUser(user) {
   return redemptionUnitsCache.find((u) => u.LocationCode === user.locationsDetail) || null;
 }
 
+// M15: id 0 la "he thong ao" dai dien cho du lieu CU (giao dich chua tung duoc gan he thong
+// nao, truoc khi app tich hop nhieu he thong voucher) - dung CUNG co che tick chon/luu voi cac
+// he thong that (xem userVoucherSystemService.js#UNTAGGED_CONNECTION_ID, cung 1 chuoi hien thi).
+// Khong tick gi (ke ca "Khac") van giu nguyen y nghia cu: khong gioi han, xem/dung duoc TAT CA
+// (bao gom ca du lieu cu) - chi khi tick RIENG 1 vai he thong THAT (khong tick "Khac") thi du
+// lieu cu moi bi an di trong bao cao.
+function voucherSystemCheckboxOptions() {
+  return [...voucherConnectionsCache, { id: 0, name: 'Khác (dữ liệu cũ, chưa qua hệ thống nào)' }];
+}
+
 function renderReportFilterOptions() {
   const companySelect = document.getElementById('reportFilterCompany');
   const currentCompany = companySelect.value;
@@ -249,7 +259,7 @@ function renderUsers(users) {
         </td>
         <td data-label="Hệ thống voucher được dùng">
           <div class="voucher-system-checkboxes">
-            ${voucherConnectionsCache
+            ${voucherSystemCheckboxOptions()
               .map(
                 (c) => `
               <label class="checkbox-inline">
@@ -259,7 +269,7 @@ function renderUsers(users) {
                 ${escapeHtmlLayout(c.name)}
               </label>`
               )
-              .join('') || '<span class="text-muted">Chưa có hệ thống nào</span>'}
+              .join('')}
           </div>
         </td>
         <td data-label="Mật khẩu mới"><input type="password" class="edit-password" placeholder="Để trống = giữ nguyên" autocomplete="new-password" /></td>
