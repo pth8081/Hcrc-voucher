@@ -1429,6 +1429,17 @@ tra loi 409 kem so luong cu the thay vi de SQL Server nem loi vi pham khoa ngoai
   xoa mem) co `Users.Locations_Detail` tro dung dia diem cua diem tieu do — phai xoa (xoa mem)
   hoac chuyen het nhan vien sang diem tieu khac truoc (xem muc 6).
 
+**M14 (loi nghiem trong da bao cao, v3.54): sua "Dia diem" cua Diem tieu khong co tac dung.**
+Form "Sua diem tieu" cho doi dropdown **"Dia diem (Locations_Detail)"** sang 1 dia diem khac,
+bam Luu bao thanh cong, nhung du lieu that **KHONG DOI** - danh sach van hien dia diem CU, lap
+lai nhieu lan van vay. Nguyen nhan: cau `UPDATE dbo.RedemptionUnits` trong
+`redemptionUnitService.js#update()` **thieu hoan toan cot `LocationDetailId`** (ca o `.input()`
+lan `SET`) - cung 1 kieu loi nhu vu thieu `PartnerCode` da sua truoc do, lan nay roi vao cot Dia
+diem. Da sua: them lai `LocationDetailId` vao ca 2 cho; dong thoi sua them 1 loi an kem theo no
+- buoc kiem tra "trung ma voi cong ty khac" truoc do vo tinh tra lai dia diem **CU** tu DB (vi
+dia diem chua bao gio doi duoc nen trung voi chinh no), gio tra dung theo dia diem **MOI** dang
+luu de khong bo lot truong hop doi sang 1 dia diem dang trung ma voi cong ty khac.
+
 API: `GET/POST/PUT/DELETE /api/companies` va `GET/POST/PUT/DELETE /api/redemption-units` (chi
 admin). Moi thao tac Sua/Xoa deu ghi `AdminAuditLog` (muc 15c).
 
@@ -1751,17 +1762,19 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.53)**: fix loi phat sinh TU chinh ban sua truoc (v3.51, muc 12e) - khi nguoi
-dung **TU CHON** 1 he thong voucher cu the (vd "Fuji") o o loc bao cao, ket qua bi **lan them du
-lieu CU chua gan he thong nao** (gay hieu nham day la giao dich cua he thong do), du he thong do
-co the chua tung duoc dung lan nao that. Gio chon loc theo 1 he thong cu the se khop **CHINH
-XAC**, chi gioi han tai khoan (khi khong chon gi) moi giu "khong mat du lieu cu" nhu truoc - xem
-muc 12e. Ban truoc do (v3.52): them lop kiem tra **han su dung voucher DOC LAP** tai app - phat
-hien qua test that: he thong Core (D.Smart) **khong tu chan voucher qua han** (van bao `UNUSED`
-du `expiryDate` da qua khu nhieu chuc ngay), nen app tu so sanh `expiryDate` voi ngay hien tai
-(gio VN) o CA buoc Kiem tra lan Xac nhan thu hoi - xem muc 4i. Chi tiet cac ban cu hon xem danh
-sach day du ben duoi.
+Ban **moi nhat (v3.54)**: fix loi nghiem trong - sua **"Dia diem"** cua 1 Diem tieu (man hinh
+"Don vi thu hoi") bao thanh cong nhung du lieu that KHONG DOI, do cau UPDATE thieu hoan toan cot
+`LocationDetailId` - xem muc 12a. Ban truoc do (v3.53): fix loi phat sinh TU chinh ban sua truoc
+(v3.51, muc 12e) - khi nguoi dung **TU CHON** 1 he thong voucher cu the (vd "Fuji") o o loc bao
+cao, ket qua bi **lan them du lieu CU chua gan he thong nao** (gay hieu nham day la giao dich
+cua he thong do), du he thong do co the chua tung duoc dung lan nao that. Chi tiet cac ban cu
+hon xem danh sach day du ben duoi.
 
+- **v3.54** - Fix loi nghiem trong: sua "Dia diem (Locations_Detail)" cua 1 Diem tieu bao thanh
+  cong nhung du lieu that khong doi, vi `redemptionUnitService.js#update()` thieu hoan toan cot
+  `LocationDetailId` trong UPDATE (cung kieu loi voi vu thieu PartnerCode truoc do). Sua kem 1
+  loi an theo: kiem tra trung ma voi cong ty khac gio dung dung dia diem MOI dang luu thay vi
+  dia diem cu - xem muc 12a.
 - **v3.53** - Fix loi phat sinh tu ban sua v3.51 (muc 12e): chon loc theo 1 he thong voucher cu
   the (vd "Fuji") o man hinh bao cao truoc day van lan du lieu CU chua gan he thong nao vao ket
   qua, gay hieu nham. Gio khop CHINH XAC khi nguoi dung chu dong chon 1 he thong; chi gioi han
