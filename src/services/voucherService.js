@@ -3,6 +3,7 @@ const coreVoucherService = require('./coreVoucherService');
 const systemLogService = require('./systemLogService');
 const locationService = require('./locationService');
 const userVoucherSystemService = require('./userVoucherSystemService');
+const apiConnectionService = require('./apiConnectionService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
 const { SYNC_PROC_NAME } = require('../utils/syncConstants');
@@ -43,6 +44,19 @@ async function resolveAllowedConnectionId(userId, requestedConnectionId) {
 }
 
 /**
+ * Kiem tra ma voucher co trung 1 tien to BI LOAI TRU cua ket noi (connectionId, hoac ket noi
+ * active neu connectionId rong) hay khong - so khop CHINH XAC tung ky tu bang voucherCode.startsWith(),
+ * KHONG phai gan dung/khong phan biet hoa thuong. Tra ve null neu khong trung tien to nao (duoc
+ * quet/thu hoi binh thuong), hoac { matchedPrefix, connectionName } neu trung - dung de tu choi
+ * NGAY truoc khi goi Core API, xem checkVoucher()/redeemVoucher() ben duoi.
+ */
+async function checkExclusion(connectionId, voucherCode) {
+  const { connectionName, prefixes } = await apiConnectionService.getExclusionConfig(connectionId);
+  const matchedPrefix = prefixes.find((p) => voucherCode.startsWith(p));
+  return matchedPrefix ? { matchedPrefix, connectionName } : null;
+}
+
+/**
  * Buoc 1: Quet ma -> doi chieu voi Core API xem voucher da tieu hay chua.
  * KHONG lam thay doi trang thai voucher, chi doc + ghi log.
  *
@@ -59,6 +73,25 @@ async function resolveAllowedConnectionId(userId, requestedConnectionId) {
 async function checkVoucher({ voucherCode, user, scanMethod, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
   const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
+
+  const excluded = await checkExclusion(connectionId, voucherCode);
+  if (excluded) {
+    guessGuard.recordResult(user.userId, false);
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'CHECK',
+      resultStatus: 'EXCLUDED',
+      message: `Ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+      connectionName: excluded.connectionName,
+    });
+    return {
+      canRedeem: false,
+      status: 'EXCLUDED',
+      message: 'Ma voucher nay khong hop le cho he thong dang chon.',
+    };
+  }
 
   const localRedeemed = await findLocalRedemption(voucherCode);
   if (localRedeemed) {
@@ -144,6 +177,26 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
   const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
+
+  const excluded = await checkExclusion(connectionId, voucherCode);
+  if (excluded) {
+    guessGuard.recordResult(user.userId, false);
+    await logScan({
+      user,
+      voucherCode,
+      scanMethod,
+      action: 'REDEEM',
+      resultStatus: 'EXCLUDED',
+      clientIp,
+      message: `Tu choi thu hoi: ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+      connectionName: excluded.connectionName,
+    });
+    return {
+      success: false,
+      status: 'EXCLUDED',
+      message: 'Ma voucher nay khong hop le cho he thong dang chon.',
+    };
+  }
 
   // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
   // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),

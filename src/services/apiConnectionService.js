@@ -113,6 +113,26 @@ function getDefaults() {
   };
 }
 
+/**
+ * Chuan hoa danh sach "tien to ma bi loai tru" tu form (chuoi cach nhau boi dau phay, hoac mang
+ * san) ve 1 chuoi luu DB: trim tung phan tu, bo phan tu rong, bo trung, GIU NGUYEN hoa/thuong
+ * (so khop sau nay la CHINH XAC tung ky tu, khong chuan hoa ve 1 kieu chu).
+ */
+function normalizeExcludedPrefixes(raw) {
+  if (!raw) return null;
+  const parts = Array.isArray(raw) ? raw : String(raw).split(',');
+  const cleaned = Array.from(new Set(parts.map((p) => String(p).trim()).filter(Boolean)));
+  return cleaned.length ? cleaned.join(', ') : null;
+}
+
+function parseExcludedPrefixes(stored) {
+  if (!stored) return [];
+  return String(stored)
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 function toRow(data) {
   return {
     name: data.name,
@@ -137,6 +157,7 @@ function toRow(data) {
     redeemMapping: JSON.stringify(data.redeemMapping || DEFAULT_REDEEM_MAPPING),
 
     customCaCert: data.customCaCert ? String(data.customCaCert).trim() : null,
+    excludedCodePrefixes: normalizeExcludedPrefixes(data.excludedCodePrefixes),
   };
 }
 
@@ -179,6 +200,7 @@ function toMaskedDto(row) {
     // Khong phai bi mat (khac AuthTokenEncrypted/BasicPasswordEncrypted o tren) - tra ve nguyen
     // van de admin xem/sua lai duoc, khong can co che "giu nguyen neu de trong" nhu 2 truong secret.
     customCaCert: row.CustomCaCert || null,
+    excludedCodePrefixes: parseExcludedPrefixes(row.ExcludedCodePrefixes),
 
     createdDate: row.CreatedDate,
     updatedDate: row.UpdatedDate,
@@ -237,6 +259,29 @@ async function listOptions() {
   return result.recordset.map((r) => ({ id: r.Id, name: r.Name, isActive: !!r.IsActive }));
 }
 
+/**
+ * Danh sach tien to bi loai tru cua 1 ket noi CU THE (connectionId), hoac cua ket noi dang ACTIVE
+ * neu khong truyen connectionId - dung CHUNG 1 quy tac "khong truyen = dung ket noi active" voi
+ * coreVoucherService.js#resolveConnection, de dam bao danh sach loai tru dung VOI DUNG he thong
+ * voucherService.js sap goi, khong bi lech. Chi doc Name + ExcludedCodePrefixes (khong can giai
+ * ma secret), dung o buoc chan SOM truoc khi goi Core API that su - xem voucherService.js.
+ */
+async function getExclusionConfig(connectionId) {
+  const pool = await getPool();
+  const request = pool.request();
+  let query;
+  if (connectionId) {
+    request.input('id', sql.Int, connectionId);
+    query = 'SELECT Name, ExcludedCodePrefixes FROM dbo.ApiConnections WHERE Id = @id';
+  } else {
+    query = 'SELECT TOP 1 Name, ExcludedCodePrefixes FROM dbo.ApiConnections WHERE IsActive = 1';
+  }
+  const result = await request.query(query);
+  const row = result.recordset[0];
+  if (!row) return { connectionName: null, prefixes: [] };
+  return { connectionName: row.Name, prefixes: parseExcludedPrefixes(row.ExcludedCodePrefixes) };
+}
+
 async function getActiveDecrypted() {
   const pool = await getPool();
   const result = await pool.request().query('SELECT TOP 1 * FROM dbo.ApiConnections WHERE IsActive = 1');
@@ -269,19 +314,20 @@ async function create(data) {
     .input('redeemBodyTemplate', sql.NVarChar(sql.MAX), row.redeemBodyTemplate)
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
     .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
+    .input('excludedCodePrefixes', sql.NVarChar(500), row.excludedCodePrefixes)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null)
     .query(`
       INSERT INTO dbo.ApiConnections
         (Name, IsActive, BaseUrl, AuthType, AuthTokenEncrypted, ApiKeyHeaderName, BasicUsername,
          BasicPasswordEncrypted, TimeoutMs, CheckMethod, CheckPath, CheckParamMode, CheckParamName,
          CheckBodyTemplate, CheckMapping, RedeemMethod, RedeemPath, RedeemParamMode, RedeemParamName,
-         RedeemBodyTemplate, RedeemMapping, CustomCaCert, CreatedDate, UpdatedBy)
+         RedeemBodyTemplate, RedeemMapping, CustomCaCert, ExcludedCodePrefixes, CreatedDate, UpdatedBy)
       OUTPUT INSERTED.Id
       VALUES
         (@name, 0, @baseUrl, @authType, @authTokenEncrypted, @apiKeyHeaderName, @basicUsername,
          @basicPasswordEncrypted, @timeoutMs, @checkMethod, @checkPath, @checkParamMode, @checkParamName,
          @checkBodyTemplate, @checkMapping, @redeemMethod, @redeemPath, @redeemParamMode, @redeemParamName,
-         @redeemBodyTemplate, @redeemMapping, @customCaCert, GETDATE(), @updatedBy)
+         @redeemBodyTemplate, @redeemMapping, @customCaCert, @excludedCodePrefixes, GETDATE(), @updatedBy)
     `);
   return result.recordset[0].Id;
 }
@@ -311,6 +357,7 @@ async function update(id, data) {
     .input('redeemBodyTemplate', sql.NVarChar(sql.MAX), row.redeemBodyTemplate)
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
     .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
+    .input('excludedCodePrefixes', sql.NVarChar(500), row.excludedCodePrefixes)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null);
 
   // L8 (loi that da xay ra): form Sua tren FE luon gui authToken/basicPassword la CHUOI RONG
@@ -341,7 +388,7 @@ async function update(id, data) {
       CheckParamName = @checkParamName, CheckBodyTemplate = @checkBodyTemplate, CheckMapping = @checkMapping,
       RedeemMethod = @redeemMethod, RedeemPath = @redeemPath, RedeemParamMode = @redeemParamMode,
       RedeemParamName = @redeemParamName, RedeemBodyTemplate = @redeemBodyTemplate, RedeemMapping = @redeemMapping,
-      CustomCaCert = @customCaCert,
+      CustomCaCert = @customCaCert, ExcludedCodePrefixes = @excludedCodePrefixes,
       UpdatedDate = GETDATE(), UpdatedBy = @updatedBy
       ${secretSet}
     WHERE Id = @id
@@ -478,6 +525,7 @@ module.exports = {
   getById,
   getByIdDecrypted,
   getActiveDecrypted,
+  getExclusionConfig,
   create,
   update,
   activate,
