@@ -982,6 +982,15 @@ tu buoc quet thay vi phai doi soat lai sau.
 - Logic tap trung o `voucherService.js#checkExclusion()` + `apiConnectionService.js#getExclusionConfig()`;
   luu tai cot `ApiConnections.ExcludedCodePrefixes` (`sql/030_add_excluded_code_prefixes.sql`).
 
+### 4h. Dai thong bao "Dang test cho ket noi nao" (loi UX da bao cao)
+
+O man hinh "Ket noi API", phan **"Test trực tiếp voucher thật"** (nut "Test kiểm tra"/"Test thu
+hồi") nam o CUOI form, cach xa dong tieu de "Sua ket noi: ..." o DAU form - admin de nham lan
+khong biet dang bam test goi sang he thong nao (HCRC hay Fuji) khi khong con nhin thay tieu de.
+Da them 1 dai mau cam ngay phia tren o "Mã voucher dùng để test", luon hien dung **Ten + Base
+URL** cua ket noi SE duoc goi (cap nhat ngay khi go lai o Ten/Base URL, vi test() luon dung DUNG
+du lieu dang co tren form tai thoi diem bam, bat ke da luu hay chua).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1666,14 +1675,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.49)**: them tinh nang **loai tru ma voucher theo tien to** - moi ket noi
-(HCRC/Fuji...) co the khai bao rieng 1 danh sach tien to BI CHAN (so khop CHINH XAC tung ky tu,
-vd tien to "E123" loai ma "E1230001" nhung khong loai "E124..."), ma trung se bi tu choi NGAY luc
-quet/thu hoi, khong goi sang Core - xem muc 4g. Ban truoc do (v3.48): fix UX man hinh Quet voucher
-tren dien thoai - bam "Quet bang camera" truoc day phai **cuon xuong moi thay khung camera**, gio
-tu dong an phan khong can thiet va cuon toi khung camera ngay - xem muc 6. Chi tiet cac ban cu hon
-xem danh sach day du ben duoi.
+Ban **moi nhat (v3.50)**: fix UX man hinh "Ket noi API" - phan "Test trực tiếp voucher thật" o
+cuoi form khong ro dang test cho he thong nao (HCRC/Fuji), gio them dai thong bao luon hien dung
+Ten + Base URL cua ket noi se duoc goi - xem muc 4h. Ban truoc do (v3.49): them tinh nang **loai
+tru ma voucher theo tien to** - moi ket noi (HCRC/Fuji...) co the khai bao rieng 1 danh sach tien
+to BI CHAN (so khop CHINH XAC tung ky tu, vd tien to "E123" loai ma "E1230001" nhung khong loai
+"E124..."), ma trung se bi tu choi NGAY luc quet/thu hoi, khong goi sang Core - xem muc 4g. Chi
+tiet cac ban cu hon xem danh sach day du ben duoi.
 
+- **v3.50** - Fix UX man hinh "Ket noi API": phan "Test trực tiếp voucher thật" gio hien dai
+  thong bao ro Ten + Base URL cua ket noi dang duoc test, tranh nham lan khong biet dang goi
+  sang he thong nao - xem muc 4h.
 - **v3.49** - Them tinh nang loai tru ma voucher theo tien to, rieng cho tung ket noi (HCRC/Fuji):
   khai bao danh sach tien to BI CHAN o man hinh "Ket noi API", so khop CHINH XAC tung ky tu
   (`startsWith`), ma trung bi tu choi NGAY (khong goi Core, khong tao giao dich), ghi ro vao Nhat

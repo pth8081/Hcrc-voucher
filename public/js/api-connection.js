@@ -26,6 +26,13 @@ async function init() {
   el('confirmRedeemCheck').addEventListener('change', (e) => {
     el('testRedeemBtn').disabled = !e.target.checked;
   });
+  // Nguoi dung phan anh: khong ro khi bam "Test kiem tra" la dang goi sang he thong nao (Fuji
+  // hay HCRC) - vi nut test o CUOI form, rat xa dong tieu de "Sua ket noi: ..." o DAU form. Them
+  // 1 dai bang luon hien ro TEN + BASE URL dang duoc dung de test, cap nhat ngay khi go lai
+  // Ten/Base URL (test luon dung dung du lieu TREN FORM tai thoi diem bam, bat ke da luu hay
+  // chua - xem testCheck()/testRedeem() ben duoi) - khong de nguoi dung phai cuon len doi chieu.
+  el('f_name').addEventListener('input', updateTestConnectionBanner);
+  el('f_baseUrl').addEventListener('input', updateTestConnectionBanner);
 
   try {
     defaults = await apiFetch('/api-connections/defaults');
@@ -111,9 +118,24 @@ async function editConnection(id) {
     currentId = id;
     el('formTitle').textContent = `Sửa kết nối: ${conn.name}`;
     populateForm(conn);
+    updateTestConnectionBanner();
     window.scrollTo({ top: el('formTitle').offsetTop - 20, behavior: 'smooth' });
   } catch (err) {
     showToast(err.message);
+  }
+}
+
+/** Hien ro TEN + BASE URL dang duoc dung khi bam "Test kiem tra"/"Test thu hoi" ben duoi form -
+ * luon khop CHINH XAC du lieu test() thuc su gui di (doc truc tiep tu o Ten/Base URL tren form
+ * tai thoi diem goi, khong phai tu currentId - xem testCheck()/testRedeem()). */
+function updateTestConnectionBanner() {
+  const name = el('f_name').value.trim();
+  const baseUrl = el('f_baseUrl').value.trim();
+  const text = el('testConnectionBannerText');
+  if (!name && !baseUrl) {
+    text.textContent = 'Chưa nhập Tên kết nối/Base URL ở trên - điền trước khi test.';
+  } else {
+    text.textContent = `Đang test cho: "${name || '(chưa đặt tên)'}" — ${baseUrl || '(chưa có Base URL)'}`;
   }
 }
 
@@ -175,6 +197,7 @@ function resetForm() {
   el('testResultWrap').classList.add('hidden');
   el('confirmRedeemCheck').checked = false;
   el('testRedeemBtn').disabled = true;
+  updateTestConnectionBanner();
 }
 
 function populateForm(conn) {
