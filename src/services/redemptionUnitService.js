@@ -161,9 +161,17 @@ async function update(id, data) {
   // C4 (xem giai thich chi tiet o create() phia tren): khi doi cong ty cua 1 don vi thu hoi
   // co san, kiem tra lai cung dieu kien - LocationCode cua don vi nay khong duoc trung voi
   // don vi cua 1 cong ty KHAC.
+  //
+  // M14: truoc day subquery lay LocationCode tu CHINH ban ghi CU (WHERE ru0.Id = @id) - vo tinh
+  // "dung" trong luc LocationDetailId con bi loi khong bao gio doi (xem ghi chu M14 o duoi), vi
+  // dia diem cu/moi luon la 1. Sau khi sua loi do, dia diem CO THE thuc su doi khac dia diem cu -
+  // phai kiem tra trung ma theo dia diem MOI (@locationDetailId, dung gia tri tren form) thay vi
+  // tra lai dia diem cu tu DB, neu khong se bo lot truong hop doi sang 1 dia diem dang trung ma
+  // voi cong ty khac.
   const conflictCheck = await pool
     .request()
     .input('id', sql.Int, id)
+    .input('locationDetailId', sql.Int, data.locationDetailId)
     .input('companyId', sql.Int, data.companyId)
     .query(`
       SELECT TOP 1 c.CompanyName
@@ -173,9 +181,8 @@ async function update(id, data) {
       WHERE ru2.Id <> @id
         AND LTRIM(RTRIM(d1.LocationCode)) = (
               SELECT LTRIM(RTRIM(d0.LocationCode))
-              FROM dbo.RedemptionUnits ru0
-              INNER JOIN dbo.Locations_Detail d0 ON d0.id = ru0.LocationDetailId
-              WHERE ru0.Id = @id
+              FROM dbo.Locations_Detail d0
+              WHERE d0.id = @locationDetailId
             )
         AND (
               (ru2.CompanyId IS NOT NULL AND @companyId IS NOT NULL AND ru2.CompanyId <> @companyId)
@@ -194,11 +201,17 @@ async function update(id, data) {
   // Dot ra soat sau phat hien: truoc day thieu PartnerCode trong SET - sua "ma doi tac" tren
   // giao dien bao thanh cong nhung du lieu that KHONG doi. Bat loi vi pham UNIQUE (doi ma trung
   // voi 1 don vi khac) va doi thanh 1 thong bao 409 de hieu.
+  //
+  // M14 (loi that da bao cao): cung 1 kieu loi nhu tren nhung roi vao LocationDetailId - sua
+  // "Dia diem (Locations_Detail)" tren form (vd doi tu "13 Hang Gai" sang "51 Le Dai Hanh") bao
+  // thanh cong nhung du lieu that KHONG doi, vi cot nay bi thieu HOAN TOAN trong ca .input() lan
+  // SET ben duoi - sua lai them vao, giong dung cach da sua PartnerCode truoc do.
   await runWithUniqueConstraintMessage(
     () =>
       pool
         .request()
         .input('id', sql.Int, id)
+        .input('locationDetailId', sql.Int, data.locationDetailId)
         .input('companyId', sql.Int, data.companyId)
         .input('partnerCode', sql.NVarChar(50), data.partnerCode)
         .input('partnerName', sql.NVarChar(300), data.partnerName)
@@ -213,6 +226,7 @@ async function update(id, data) {
         .input('status', sql.Bit, data.status === undefined ? 1 : data.status)
         .query(`
       UPDATE dbo.RedemptionUnits SET
+        LocationDetailId = @locationDetailId,
         CompanyId = @companyId,
         PartnerCode = @partnerCode,
         PartnerName = @partnerName,

@@ -29,7 +29,7 @@ const MAX_LIST_ROWS = 3000;
  * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
  * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, maxRows }) {
+async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections, maxRows }) {
   const pool = await getPool();
   const request = pool.request();
 
@@ -73,8 +73,10 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     extraFilter += ' AND vs.userid = @userId';
   }
   // He thong voucher (BRGmart/Fuji...) - xem reportService.js#buildConnectionFilter cho giai
-  // thich day du y nghia null/[]/[...]. M12: "OR vrc.ConnectionId IS NULL" de khong an mat du
-  // lieu CU chua tung duoc gan he thong nao - xem ghi chu chi tiet o reportService.js.
+  // thich day du y nghia null/[]/[...]. M13: "OR vrc.ConnectionId IS NULL" CHI ap dung khi
+  // includeUntaggedConnections=true (gioi han TAI KHOAN, khong co lua chon UI ro rang) - neu
+  // nguoi dung TU CHON 1 he thong cu the o o loc, phai khop CHINH XAC, khong lan du lieu chua
+  // gan he thong nao vao - xem ghi chu chi tiet o reportService.js#buildConnectionFilter.
   if (connectionIds !== null && connectionIds !== undefined) {
     if (!connectionIds.length) {
       extraFilter += ' AND 1 = 0';
@@ -83,7 +85,8 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
         request.input(`connId${i}`, sql.Int, id);
         return `@connId${i}`;
       });
-      extraFilter += ` AND (vrc.ConnectionId IS NULL OR vrc.ConnectionId IN (${placeholders.join(', ')}))`;
+      const inClause = `vrc.ConnectionId IN (${placeholders.join(', ')})`;
+      extraFilter += includeUntaggedConnections ? ` AND (vrc.ConnectionId IS NULL OR ${inClause})` : ` AND ${inClause}`;
     }
   }
 
