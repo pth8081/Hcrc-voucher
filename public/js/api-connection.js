@@ -54,6 +54,11 @@ async function loadList() {
           <div>
             <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}
             <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
+            ${
+              c.excludedCodePrefixes && c.excludedCodePrefixes.length
+                ? `<div class="conn-row-url">Loại trừ tiền tố: ${c.excludedCodePrefixes.map((p) => `<code>${escapeHtml(p)}</code>`).join(', ')}</div>`
+                : ''
+            }
           </div>
           <div class="flex gap-8">
             <button class="btn-secondary" data-edit="${c.id}">Sửa</button>
@@ -118,6 +123,7 @@ function resetForm() {
   el('f_name').value = '';
   el('f_baseUrl').value = '';
   el('f_timeoutMs').value = 8000;
+  el('f_excludedCodePrefixes').value = '';
   el('f_customCaCert').value = '';
   el('f_customCaCertFile').value = '';
 
@@ -175,6 +181,7 @@ function populateForm(conn) {
   el('f_name').value = conn.name || '';
   el('f_baseUrl').value = conn.baseUrl || '';
   el('f_timeoutMs').value = conn.timeoutMs || 8000;
+  el('f_excludedCodePrefixes').value = (conn.excludedCodePrefixes || []).join(', ');
   el('f_customCaCert').value = conn.customCaCert || '';
   el('f_customCaCertFile').value = '';
   el('f_authType').value = conn.authType || 'NONE';
@@ -310,6 +317,7 @@ function collectFormData() {
     name: el('f_name').value.trim(),
     baseUrl: el('f_baseUrl').value.trim(),
     timeoutMs: Number(el('f_timeoutMs').value) || 8000,
+    excludedCodePrefixes: el('f_excludedCodePrefixes').value.trim() || null,
     customCaCert: el('f_customCaCert').value.trim() || null,
     authType: el('f_authType').value,
     authToken: readAuthTokenField(),

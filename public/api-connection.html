@@ -47,6 +47,18 @@
         </div>
       </div>
 
+      <div class="section-title">Loại trừ mã voucher theo tiền tố (tùy chọn)</div>
+      <p class="hint">
+        Khai báo các tiền tố <strong>KHÔNG được quét/thu hồi</strong> qua kết nối này. Mã quét được
+        sẽ bị từ chối <strong>NGAY</strong> (không gửi sang Core, không tạo giao dịch) nếu <strong>bắt
+        đầu ĐÚNG</strong> bằng 1 trong các tiền tố liệt kê dưới đây — so khớp <strong>chính xác
+        từng ký tự</strong> (phân biệt hoa/thường), không phải khớp gần đúng. VD: tiền tố
+        "<code>E123</code>" sẽ loại mã "<code>E1230001</code>", nhưng <strong>KHÔNG</strong> loại mã
+        "<code>E124...</code>" (không khớp tiền tố).
+      </p>
+      <label>Các tiền tố bị loại trừ (cách nhau bằng dấu phẩy, để trống = không loại trừ gì)</label>
+      <input id="f_excludedCodePrefixes" placeholder="VD: C, TEST, X9" />
+
       <div class="section-title">Chứng chỉ CA của đối tác (chỉ cần khi gọi HTTPS bị lỗi xác minh)</div>
       <p class="hint">
         Bỏ qua mục này nếu Base URL ở trên dùng chứng chỉ HTTPS mua từ CA công khai (vd Let's

@@ -959,6 +959,29 @@ loc theo 1 he thong cu the, vi ho **DANG** co quyen voi he thong do (dung quy uo
 `userVoucherSystemService.js`). Bang nay doc hoan toan tu du lieu da tai cua trang (khong goi
 them API rieng), loc ngay trong trinh duyet.
 
+### 4g. Loai tru ma voucher theo tien to (rieng cho tung he thong)
+
+Moi ket noi (muc 4) co the khai bao them 1 danh sach **tien to ma BI LOAI TRU** (o "Cac tien to
+bi loai tru" tren man hinh "Ket noi API", cach nhau boi dau phay - vd `C, E123, TEST`). Phuc vu
+truong hop can chan han ma quet/thu hoi nham thuoc 1 he thong khac (vd phat hien mot so ma in
+sai dinh dang lai duoc quet nham vao he thong Fuji), **tranh du lieu sai lot vao bao cao** ngay
+tu buoc quet thay vi phai doi soat lai sau.
+
+- **So khop CHINH XAC tung ky tu** (phan biet hoa/thuong), kieu `voucherCode.startsWith(tienTo)`
+  - KHONG phai so gan dung. VD: tien to `E123` se loai ma `E1230001` (bat dau dung "E123"), nhung
+    **KHONG** loai ma `E124...` (khong trung).
+  - De trong (mac dinh) = khong loai tru gi, giu nguyen hanh vi cu.
+- Chan **NGAY tu phia app**, truoc khi goi Core API - ma trung tien to bi loai tru se bi tu choi
+  tuc thi ("Mã voucher này không hợp lệ cho hệ thống đang chọn"), **KHONG** goi sang Core,
+  **KHONG** tao giao dich nao ca (tiet kiem goi Core, va dam bao chac chan khong co ma sai he
+  thong lot duoc vao `VOUCHER_SYNC` du Core co the vo tinh "nhan" nham ma do).
+- Ap dung o **ca 2 buoc** Kiem tra (Check) lan Xac nhan thu hoi (Redeem) - phong truong hop goi
+  thang API thu hoi ma bo qua buoc kiem tra tren giao dien.
+- Moi lan bi chan deu ghi vao **Nhat ky he thong** (`VoucherScanLogs`, `ResultStatus = 'EXCLUDED'`)
+  kem ro ma nao, trung tien to nao, cua he thong nao - de ra soat lai sau neu can.
+- Logic tap trung o `voucherService.js#checkExclusion()` + `apiConnectionService.js#getExclusionConfig()`;
+  luu tai cot `ApiConnections.ExcludedCodePrefixes` (`sql/030_add_excluded_code_prefixes.sql`).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1643,14 +1666,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.48)**: fix UX man hinh Quet voucher tren dien thoai - bam "Quet bang camera"
-truoc day phai **cuon xuong moi thay khung camera** (bi phan gioi thieu + o nhap HID chiem het man
-hinh tren), gio tu dong an phan khong can thiet va cuon toi khung camera ngay - xem muc 6. Ban
-truoc do (v3.47): fix loi logic o loc bao cao - chon 1 **"Diem thu hoi"** cu the gio tu dong loc
-lai dung o **"Tai khoan thu hoi"** va **"He thong voucher"** (truoc day 2 o nay khong lien quan gi
-den Diem dang chon, chon duoc 1 to hop khong thuc su ton tai nen bao cao luon ra rong) - xem muc
-12d. Chi tiet cac ban cu hon xem danh sach day du ben duoi.
+Ban **moi nhat (v3.49)**: them tinh nang **loai tru ma voucher theo tien to** - moi ket noi
+(HCRC/Fuji...) co the khai bao rieng 1 danh sach tien to BI CHAN (so khop CHINH XAC tung ky tu,
+vd tien to "E123" loai ma "E1230001" nhung khong loai "E124..."), ma trung se bi tu choi NGAY luc
+quet/thu hoi, khong goi sang Core - xem muc 4g. Ban truoc do (v3.48): fix UX man hinh Quet voucher
+tren dien thoai - bam "Quet bang camera" truoc day phai **cuon xuong moi thay khung camera**, gio
+tu dong an phan khong can thiet va cuon toi khung camera ngay - xem muc 6. Chi tiet cac ban cu hon
+xem danh sach day du ben duoi.
 
+- **v3.49** - Them tinh nang loai tru ma voucher theo tien to, rieng cho tung ket noi (HCRC/Fuji):
+  khai bao danh sach tien to BI CHAN o man hinh "Ket noi API", so khop CHINH XAC tung ky tu
+  (`startsWith`), ma trung bi tu choi NGAY (khong goi Core, khong tao giao dich), ghi ro vao Nhat
+  ky he thong - xem muc 4g.
 - **v3.48** - Fix UX man hinh Quet voucher tren dien thoai: bam "Quet bang camera" gio tu dong an
   phan gioi thieu + o nhap HID (khong can khi dang dung camera) va tu cuon toi khung camera, thay
   vi phai cuon xuong moi thay duoc nhu truoc - xem muc 6.
