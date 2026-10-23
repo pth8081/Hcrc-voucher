@@ -1820,14 +1820,27 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.57)**: them tuy chon **"Khac" (du lieu cu, chua qua he thong nao)** vao o tick
+Ban **moi nhat (v3.58)**: qua 1 dot ra soat bao mat toan dien (SQL injection, XSS, phan quyen
+API bao cao/IDOR, rate-limit/JWT/SSRF/secrets), phat hien **1 lo ho ro ri thong tin xuyen cong
+ty**: 2 API `GET /api/locations/groups` va `GET /api/locations/details` chi yeu cau dang nhap
+(khong `requireAdmin`), tra ve ten/ma dia diem cua **TOAN BO cong ty** khong loc theo pham vi tai
+khoan - 1 nhan vien chi duoc xem bao cao cong ty cua minh van goi truc tiep 2 API nay (vd bang
+`curl` kem token hop le cua chinh minh) de xem duoc ten/ma dia diem cua cac cong ty khac. Da sua:
+them `requireAdmin` cho ca 4 route trong `location.routes.js` (ca 2 route GET nay va 2 route
+POST/PUT `/details` da co san) - phu hop vi 2 route GET nay tren thuc te chi duoc 1 trang quan
+tri (Diem tieu) goi, va trang do cung da `requireAdmin` o tang API rieng.
+
+Ban truoc do (v3.57): them tuy chon **"Khac" (du lieu cu, chua qua he thong nao)** vao o tick
 "He thong voucher duoc dung" o man hinh Tai khoan - cho phep **BAT/TAT rieng cho tung tai khoan**
 viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay khong, thay vi
-LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Ban truoc do (v3.56): ca 2 trang huong dan
-co them nut **"Xuat PDF"**; va ban **Huong dan nghiep vu** co them muc 6 huong dan **cai ung
-dung ra man hinh chinh** tren Android/iOS - xem muc 16. Chi tiet cac ban cu hon xem danh sach
-day du ben duoi.
+LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
+ben duoi.
 
+- **v3.58** - [Bao mat] Them `requireAdmin` cho `GET /api/locations/groups` va
+  `GET /api/locations/details` (truoc day chi can dang nhap) - chan ro ri ten/ma dia diem cua
+  cac cong ty khac qua goi API truc tiep, boi 1 tai khoan chi duoc xem bao cao cong ty cua minh.
+  Phat hien qua dot ra soat bao mat toan dien (SQL injection, XSS, rate-limit/JWT/SSRF/secrets -
+  khong phat hien them lo ho nao khac).
 - **v3.57** - Them tuy chon "Khac (du lieu cu, chua qua he thong nao)" vao o tick "He thong
   voucher duoc dung" (man hinh Tai khoan) - admin BAT/TAT rieng cho tung tai khoan viec co thay
   du lieu CU trong bao cao hay khong (truoc day luon tu dong hien cho tai khoan bi gioi han he
