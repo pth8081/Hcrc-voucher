@@ -118,6 +118,32 @@ trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CH
 <h2>5. Bảo mật/tài khoản cá nhân</h2>
 <p>Vào mục "Bảo mật" trên topbar để: đăng ký vân tay/Face ID cho thiết bị đang dùng, xem/đổi
 thiết bị xác thực hai yếu tố (nếu là quản trị).</p>
+
+<h2>6. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
+<p>Cài ra màn hình chính giúp mở ứng dụng nhanh như 1 app bình thường (bấm vào icon là vào thẳng
+màn hình quét, không hiện thanh địa chỉ trình duyệt) - nên làm trên điện thoại dùng quét voucher
+hàng ngày.</p>
+<h3>Trên điện thoại Android (trình duyệt Chrome)</h3>
+<ol>
+  <li>Mở Chrome, vào đúng địa chỉ web của hệ thống, đăng nhập như bình thường.</li>
+  <li>Chạm vào nút <strong>menu 3 chấm</strong> ở góc trên bên phải trình duyệt.</li>
+  <li>Chọn <strong>"Cài đặt ứng dụng"</strong> (hoặc "Thêm vào Màn hình chính" - tùy phiên bản
+    Chrome dùng chữ hơi khác nhau).</li>
+  <li>Xác nhận - icon ứng dụng sẽ xuất hiện ngay trên màn hình chính như các app khác.</li>
+</ol>
+<h3>Trên iPhone/iPad (bắt buộc dùng trình duyệt Safari)</h3>
+<p class="hint">Chỉ Safari làm được việc này trên iPhone/iPad - mở bằng Chrome/Cốc Cốc... trên
+iOS sẽ KHÔNG thấy tùy chọn "Thêm vào MH chính" (giới hạn của Apple, không phải lỗi ứng dụng).</p>
+<ol>
+  <li>Mở <strong>Safari</strong>, vào đúng địa chỉ web của hệ thống, đăng nhập như bình thường.</li>
+  <li>Chạm nút <strong>Chia sẻ</strong> (hình vuông có mũi tên đi lên) ở thanh công cụ.</li>
+  <li>Cuộn xuống, chọn <strong>"Thêm vào MH chính"</strong> (Add to Home Screen).</li>
+  <li>Có thể đổi tên hiển thị dưới icon nếu muốn, rồi chạm <strong>"Thêm"</strong> ở góc trên.</li>
+  <li>Icon ứng dụng sẽ xuất hiện ngay trên màn hình chính.</li>
+</ol>
+<p class="hint">Từ sau khi cài, nên mở ứng dụng bằng <strong>icon vừa tạo</strong> trên màn hình
+chính (thay vì mở lại qua trình duyệt) để có trải nghiệm toàn màn hình, không bị thanh địa chỉ
+che mất nội dung.</p>
 `;
 
 const SYSTEM_GUIDE_HTML = `

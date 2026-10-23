@@ -1765,6 +1765,21 @@ chu thich `.cap` da dung san cho so do SVG o ban Huong dan he thong (CSS moi:
 (vd giao dien doi) - chup lai man hinh that (hoac chay lai script Playwright da dung de tao bo
 anh nay), ghi de dung ten file cu trong thu muc tren, khong can sua code.
 
+**Xuat PDF de gui doi tac (v3.56):** ca 2 trang huong dan co nut **"Xuat PDF"** (dau trang, canh
+tieu de) - bam vao se goi `window.print()`, dung tinh nang **"In -> Luu thanh PDF"** co san cua
+trinh duyet (Chrome/Edge...) thay vi app tu tao file PDF rieng (khong them thu vien/phu thuoc
+nao, chay duoc tren moi moi truong trien khai, khong rui ro ve hieu nang/bo nho). Luc in, CSS
+rieng (`@media print` trong `public/css/guide.css`) tu dong **an het topbar/menu/nut Xuat PDF**,
+chi giu lai dung noi dung huong dan (tranh trang hop/bang/anh bi cat ngang trang in) - ket qua ra
+file PDF sach, co the gui thang cho doi tac.
+
+**Muc moi: Cai ung dung ra man hinh chinh (Android/iOS) (v3.56):** them muc 6 vao ban **Huong
+dan nghiep vu** - huong dan cai dat PWA ra man hinh chinh dien thoai (dung "Them vao Man hinh
+chinh"/"Cai dat ung dung" tren Chrome Android, hoac nut Chia se -> "Them vao MH chinh" tren
+Safari iOS - luu y iOS **bat buoc dung Safari**, trinh duyet khac se khong co tuy chon nay) de mo
+nhanh nhu 1 app that, khong con thanh dia chi trinh duyet - nen lam cho dien thoai dung quet
+voucher hang ngay.
+
 ## 17. Lich su phien ban (Changelog)
 
 So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
@@ -1775,14 +1790,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.55)**: ban **Huong dan nghiep vu** (muc 16) co them **6 anh chup man hinh
-that** minh hoa dung cac buoc (dang nhap, quet voucher, hop thoai xac nhan thu hoi, ket qua da
-su dung, vi du bao cao) thay vi chi toan chu nhu truoc - du lieu trong anh deu la vi du, khong
-phai du lieu that. Ban truoc do (v3.54): fix loi nghiem trong - sua **"Dia diem"** cua 1 Diem
-tieu (man hinh "Don vi thu hoi") bao thanh cong nhung du lieu that KHONG DOI, do cau UPDATE
-thieu hoan toan cot `LocationDetailId` - xem muc 12a. Chi tiet cac ban cu hon xem danh sach day
-du ben duoi.
+Ban **moi nhat (v3.56)**: ca 2 trang huong dan co them nut **"Xuat PDF"** (dung tinh nang In cua
+trinh duyet, khong them phu thuoc gi) de gui ban huong dan cho doi tac; va ban **Huong dan
+nghiep vu** co them muc 6 huong dan **cai ung dung ra man hinh chinh** tren Android/iOS - xem
+muc 16. Ban truoc do (v3.55): ban **Huong dan nghiep vu** co them **6 anh chup man hinh that**
+minh hoa dung cac buoc (dang nhap, quet voucher, hop thoai xac nhan thu hoi, ket qua da su dung,
+vi du bao cao) thay vi chi toan chu nhu truoc. Chi tiet cac ban cu hon xem danh sach day du ben
+duoi.
 
+- **v3.56** - Them nut "Xuat PDF" (dung tinh nang In -> Luu thanh PDF co san cua trinh duyet) o
+  ca 2 trang huong dan de gui cho doi tac; them muc 6 "Cai ung dung ra man hinh chinh
+  (Android/iOS)" vao ban Huong dan nghiep vu - xem muc 16.
 - **v3.55** - Them 6 anh chup man hinh that vao ban "Huong dan nghiep vu" (dang nhap, man quet
   san sang, ket qua chua/da su dung, hop thoai xac nhan thu hoi, vi du Bao cao doi soat), chen
   dung buoc minh hoa thay vi chi co chu - xem muc 16.

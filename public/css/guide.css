@@ -2,6 +2,9 @@
    doc thoai mai hon cac man hinh CRUD/bang bieu con lai cua app. */
 .guide-container { max-width: 860px; }
 .guide-card h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.guide-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.guide-head-row h1 { margin-top: 0; }
+.guide-head-row .btn-secondary { flex: none; white-space: nowrap; }
 
 #guideBody h2 {
   font-size: 17px;
@@ -55,4 +58,35 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+}
+
+/* Xuat PDF (nut "Xuat PDF" goi window.print() - xem guide-business.js/guide-system.js): dung
+   tinh nang "In -> Luu thanh PDF" co san cua trinh duyet thay vi tu dung PDF o server (nhe hon,
+   khong them phu thuoc nao, chay duoc tren moi moi truong trien khai). An topbar/nut Xuat PDF va
+   bat ky phan tu nao danh dau .no-print, chi giu lai dung noi dung huong dan khi in. */
+@media print {
+  .topbar, #topbarPanel, .no-print { display: none !important; }
+  body { background: #fff; }
+  .guide-container { max-width: 100%; margin: 0; padding: 0; }
+  .guide-card {
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
+  .guide-head-row { display: block; }
+  #guideBody h2 { break-after: avoid; page-break-after: avoid; }
+  #guideBody h3 { break-after: avoid; page-break-after: avoid; }
+  #guideBody .guide-figure,
+  #guideBody table,
+  #guideBody li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Mac dinh trinh duyet BO MAU NEN khi in (vd badge trang thai, khung .guide-figure) tru khi
+     nguoi dung tu bat "In hinh nen" trong hop thoai In - ep in dung mau de PDF xuat ra giong het
+     giao dien dang xem, khong can nguoi dung tu bat them tuy chon do. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
