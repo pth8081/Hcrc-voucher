@@ -42,3 +42,17 @@
   margin-top: 8px;
   font-style: italic;
 }
+
+/* Anh chup man hinh minh hoa thao tac (vd BUSINESS_GUIDE_HTML trong guideContent.js) - dung
+   chung khung .guide-figure/.cap o tren, chi them bo vien/bong nhe cho anh de nhin ro ranh gioi
+   man hinh tren nen trang cua the .guide-figure. */
+#guideBody .guide-figure img.guide-screenshot {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}

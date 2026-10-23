@@ -1752,6 +1752,19 @@ File lien quan: `src/content/guideContent.js`, `src/controllers/guide.controller
 `src/routes/guide.routes.js`, `public/guide-business.html` + `public/js/guide-business.js`,
 `public/guide-system.html` + `public/js/guide-system.js`, `public/css/guide.css`.
 
+**Anh chup man hinh minh hoa (v3.55):** ban **Huong dan nghiep vu** da co them 6 anh chup man
+hinh THAT cua app (dang nhap, man quet san sang, ket qua "chua su dung" + nut xac nhan, hop
+thoai hoi lai truoc khi thu hoi, ket qua "da su dung", vi du man "Bao cao doi soat") chen xen
+vao dung buoc tuong ung trong noi dung - du lieu trong anh deu la VI DU (ma voucher/ten/so tien
+gia dinh), khong phai du lieu that cua doi tac nao. Anh luu tai
+`public/images/guide-business/*.png` (file tinh, phuc vu truc tiep qua static middleware co san,
+khong can route/API rieng), tham chieu bang the `<img>` thuong trong
+`BUSINESS_GUIDE_HTML` (`src/content/guideContent.js`), boc trong cung 1 khung `.guide-figure` +
+chu thich `.cap` da dung san cho so do SVG o ban Huong dan he thong (CSS moi:
+`#guideBody .guide-figure img.guide-screenshot` trong `public/css/guide.css`). Muon cap nhat anh
+(vd giao dien doi) - chup lai man hinh that (hoac chay lai script Playwright da dung de tao bo
+anh nay), ghi de dung ten file cu trong thu muc tren, khong can sua code.
+
 ## 17. Lich su phien ban (Changelog)
 
 So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
@@ -1762,14 +1775,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.54)**: fix loi nghiem trong - sua **"Dia diem"** cua 1 Diem tieu (man hinh
-"Don vi thu hoi") bao thanh cong nhung du lieu that KHONG DOI, do cau UPDATE thieu hoan toan cot
-`LocationDetailId` - xem muc 12a. Ban truoc do (v3.53): fix loi phat sinh TU chinh ban sua truoc
-(v3.51, muc 12e) - khi nguoi dung **TU CHON** 1 he thong voucher cu the (vd "Fuji") o o loc bao
-cao, ket qua bi **lan them du lieu CU chua gan he thong nao** (gay hieu nham day la giao dich
-cua he thong do), du he thong do co the chua tung duoc dung lan nao that. Chi tiet cac ban cu
-hon xem danh sach day du ben duoi.
+Ban **moi nhat (v3.55)**: ban **Huong dan nghiep vu** (muc 16) co them **6 anh chup man hinh
+that** minh hoa dung cac buoc (dang nhap, quet voucher, hop thoai xac nhan thu hoi, ket qua da
+su dung, vi du bao cao) thay vi chi toan chu nhu truoc - du lieu trong anh deu la vi du, khong
+phai du lieu that. Ban truoc do (v3.54): fix loi nghiem trong - sua **"Dia diem"** cua 1 Diem
+tieu (man hinh "Don vi thu hoi") bao thanh cong nhung du lieu that KHONG DOI, do cau UPDATE
+thieu hoan toan cot `LocationDetailId` - xem muc 12a. Chi tiet cac ban cu hon xem danh sach day
+du ben duoi.
 
+- **v3.55** - Them 6 anh chup man hinh that vao ban "Huong dan nghiep vu" (dang nhap, man quet
+  san sang, ket qua chua/da su dung, hop thoai xac nhan thu hoi, vi du Bao cao doi soat), chen
+  dung buoc minh hoa thay vi chi co chu - xem muc 16.
 - **v3.54** - Fix loi nghiem trong: sua "Dia diem (Locations_Detail)" cua 1 Diem tieu bao thanh
   cong nhung du lieu that khong doi, vi `redemptionUnitService.js#update()` thieu hoan toan cot
   `LocationDetailId` trong UPDATE (cung kieu loi voi vu thieu PartnerCode truoc do). Sua kem 1

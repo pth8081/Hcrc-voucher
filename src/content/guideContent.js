@@ -11,6 +11,10 @@
 
 const BUSINESS_GUIDE_HTML = `
 <h2>1. Đăng nhập</h2>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/01-dang-nhap.png" alt="Màn hình đăng nhập: tên đăng nhập, mật khẩu, mã xác thực hình ảnh" />
+  <p class="cap">Màn hình đăng nhập</p>
+</div>
 <p>Vào địa chỉ web của hệ thống, nhập tên đăng nhập + mật khẩu + mã xác thực hình ảnh (captcha).
 Nếu là tài khoản <strong>quản trị</strong>, sau khi đăng nhập đúng mật khẩu sẽ cần nhập thêm mã
 6 số từ ứng dụng xác thực (Google Authenticator/Microsoft Authenticator...) - xem mục "Bảo mật"
@@ -23,6 +27,10 @@ bắt buộc, không thể bỏ qua.</p>
 
 <h2>2. Quét và thu hồi voucher</h2>
 <p>Đây là màn hình chính, mở ngay sau khi đăng nhập (menu "Quét voucher").</p>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/02-san-sang-quet.png" alt="Màn hình Quét voucher ở trạng thái sẵn sàng, chưa quét mã nào" />
+  <p class="cap">Màn hình "Quét voucher" khi sẵn sàng quét</p>
+</div>
 <ol>
   <li><strong>Quét mã</strong>: đưa mã voucher vào máy quét mã vạch/QR đang cắm vào máy tính
     (ô nhập sẽ tự động nhận ký tự và bấm Enter), hoặc bấm nút <strong>"Quét bằng camera"</strong>
@@ -35,6 +43,10 @@ bắt buộc, không thể bỏ qua.</p>
       <li>Nếu <strong>đã sử dụng</strong> (màu đỏ): chỉ còn nút "Quét mã khác", không thu hồi
         được nữa.</li>
     </ul>
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/03-con-dung-duoc.png" alt="Kết quả kiểm tra: voucher chưa sử dụng, hiện mệnh giá/ngày cấp/hạn sử dụng và nút Xác nhận thu hồi" />
+      <p class="cap">Voucher còn dùng được - sẵn sàng xác nhận thu hồi</p>
+    </div>
   </li>
   <li><strong>Bấm "Xác nhận thu hồi"</strong> sẽ hiện thêm 1 hộp thoại hỏi lại "Bạn có muốn thu
     hồi voucher này không?" - bấm <strong>"Có, thu hồi"</strong> để hoàn tất, hoặc
@@ -50,6 +62,10 @@ bắt buộc, không thể bỏ qua.</p>
         nhiều giao dịch liên tục ở trạng thái này, báo cho quản trị viên kiểm tra đường truyền
         mạng.</li>
     </ul>
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/04-xac-nhan-thu-hoi.png" alt="Hộp thoại hỏi lại: Bạn có muốn thu hồi voucher này không, kèm nút Có thu hồi và Không" />
+      <p class="cap">Hộp thoại hỏi lại trước khi thu hồi thật</p>
+    </div>
   </li>
   <li>Ô nhập sẽ <strong>tự động quay lại</strong> để sẵn sàng quét mã tiếp theo.</li>
 </ol>
@@ -58,6 +74,10 @@ bắt buộc, không thể bỏ qua.</p>
 <p><strong>"Voucher này đã được sử dụng"</strong>: mã voucher đã bị tiêu trước đó (có thể do
 chính mình quét nhầm lại, hoặc quầy/thiết bị khác đã tiêu trước). Không thể thu hồi lại - báo
 khách hàng kiểm tra lại voucher.</p>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/05-da-su-dung.png" alt="Kết quả kiểm tra: voucher đã sử dụng (màu đỏ), chỉ còn nút Quét mã khác" />
+  <p class="cap">Voucher đã sử dụng - không thể thu hồi lại</p>
+</div>
 <p><strong>"Tài khoản tạm khóa quét voucher do có quá nhiều lần kiểm tra không hợp lệ"</strong>:
 hệ thống tự động khóa tạm (vài phút) nếu quét liên tục nhiều mã không hợp lệ/không tồn tại - đây
 là cơ chế bảo vệ, tự hết sau ít phút, không cần làm gì.</p>
@@ -88,6 +108,10 @@ mục đích khác nhau:</p>
     </tr>
   </tbody>
 </table>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/06-bao-cao-doi-soat.png" alt="Ví dụ màn hình Báo cáo đối soát: bộ lọc theo ngày/công ty/điểm/tài khoản và bảng tổng hợp theo địa điểm" />
+  <p class="cap">Ví dụ: Báo cáo đối soát - chọn khoảng ngày rồi bấm "Xem báo cáo"</p>
+</div>
 <p class="hint">Cột "Đồng bộ" trong bảng giao dịch gần đây cho biết 1 giao dịch đã được hệ thống
 trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CHỜ ĐỒNG BỘ) - xem lại mục 2 ở trên.</p>
 
