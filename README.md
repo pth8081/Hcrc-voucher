@@ -991,6 +991,37 @@ Da them 1 dai mau cam ngay phia tren o "Mã voucher dùng để test", luon hien
 URL** cua ket noi SE duoc goi (cap nhat ngay khi go lai o Ten/Base URL, vi test() luon dung DUNG
 du lieu dang co tren form tai thoi diem bam, bat ke da luu hay chua).
 
+### 4i. Kiem tra han su dung voucher DOC LAP (khong chi dua vao status Core tra ve)
+
+**Phat hien that qua "Test kiểm tra" tren voucher that:** he thong Core (D.Smart) **KHONG tu
+chan voucher qua han** - truong `status` van tra ve `UNUSED` (va `canRedeem: true`) du
+`expiryDate` da o qua khu nhieu chuc ngay. Truoc day app hoan toan tin vao `status` Core tra ve
+(chi phan biet UNUSED/USED/EXPIRED/CANCELLED theo dung chu Core noi), nen 1 voucher da het han se
+VAN duoc cho thu hoi binh thuong neu Core bao UNUSED.
+
+**Da them 1 lop kiem tra DOC LAP tai chinh app**, ap dung o CA buoc Kiem tra (Check) lan Xac nhan
+thu hoi (Redeem) - khong thay the kiem tra `status` cua Core (van giu nguyen), chi THEM dieu kien:
+
+- Neu Core bao `UNUSED` nhung `expiryDate` Core tra ve **da qua ngay hien tai (gio Viet Nam)** ->
+  app tu choi, tra ve `status = EXPIRED`, **khong goi tiep** sang Core de thu hoi.
+- **Quy tac so sanh**: chi so sanh cap **NGAY** (bo qua gio) - con dung duoc **den HET ngay** ghi
+  tren `expiryDate`, qua ngay hom sau moi coi la het han (vd han "29/9/2026" thi dung duoc ca
+  ngay 29/9, sang 30/9 moi bi chan).
+- **Mui gio**: tinh "hom nay" theo gio Viet Nam (+7) co dinh, khong phu thuoc mui gio thuc te cua
+  may chu dang chay app - tranh lech ngay neu may chu trien khai o mui gio khac.
+- `expiryDate` Core tra ve dang chuoi ISO kem hau to `Z` (vd `"2026-09-29T00:00:00.000Z"`) nhung
+  **khong phai 1 thoi diem UTC chinh xac** - doi chieu voi du lieu DB goc cua Core (cot
+  `DUE_DATE` kieu `datetime`, luon la `00:00:00`, server Core chay gio +07:00) xac nhan day thuc
+  chat la 1 **NGAY** theo gio VN ma Core serialize sai (gan nham `Z`). Vi vay chi doc truc tiep
+  Nam/Thang/Ngay co trong chuoi (khong quy doi mui gio gi them) de tranh phu thuoc vao loi quy
+  doi nay cua Core.
+- Khong co `expiryDate` (rong/null) -> **khong chan gi ca** (coi nhu khong gioi han han dung),
+  an toan theo huong khong chan nham.
+- Moi lan bi chan deu ghi ro vao **Nhat ky he thong** (`ResultStatus = 'EXPIRED'`, kem
+  `expiryDate` that de doi chieu), phan biet duoc voi truong hop chinh Core tra ve EXPIRED.
+- Logic tap trung o `voucherService.js#isExpiredByDate()`, goi tu ca `checkVoucher()` va
+  `redeemVoucher()`.
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1707,14 +1738,19 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.51)**: fix loi nghiem trong - du lieu voucher **CU** (truoc khi app tich hop
-nhieu he thong voucher) bi **am tham loai khoi ca 3 bao cao** doi voi BAT KY tai khoan nao bi
-gioi han he thong voucher (ke ca admin), du da duoc cap quyen xem day du cong ty/dia diem - xem
-muc 12e. Ban truoc do (v3.50): fix UX man hinh "Ket noi API" - phan "Test trực tiếp voucher thật"
-o cuoi form khong ro dang test cho he thong nao (HCRC/Fuji), gio them dai thong bao luon hien
-dung Ten + Base URL cua ket noi se duoc goi - xem muc 4h. Chi tiet cac ban cu hon xem danh sach
-day du ben duoi.
+Ban **moi nhat (v3.52)**: them lop kiem tra **han su dung voucher DOC LAP** tai app - phat hien
+qua test that: he thong Core (D.Smart) **khong tu chan voucher qua han** (van bao `UNUSED` du
+`expiryDate` da qua khu nhieu chuc ngay), nen gio app tu so sanh `expiryDate` voi ngay hien tai
+(gio VN) o CA buoc Kiem tra lan Xac nhan thu hoi, khong con hoan toan tin vao `status` Core tra
+ve - xem muc 4i. Ban truoc do (v3.51): fix loi nghiem trong - du lieu voucher **CU** (truoc khi
+app tich hop nhieu he thong voucher) bi **am tham loai khoi ca 3 bao cao** doi voi BAT KY tai
+khoan nao bi gioi han he thong voucher (ke ca admin), du da duoc cap quyen xem day du cong
+ty/dia diem - xem muc 12e. Chi tiet cac ban cu hon xem danh sach day du ben duoi.
 
+- **v3.52** - Them kiem tra han su dung voucher DOC LAP tai app (khong chi dua vao `status` Core
+  tra ve) - phat hien Core (D.Smart) khong tu chan voucher qua han, voucher het han van duoc bao
+  UNUSED. App tu so sanh `expiryDate` voi ngay hien tai (gio VN, chi so sanh cap ngay) o ca buoc
+  Kiem tra/Xac nhan thu hoi, tu choi neu da qua han du Core noi UNUSED - xem muc 4i.
 - **v3.51** - Fix loi nghiem trong: du lieu voucher CU (truoc khi co tinh nang nhieu he thong
   voucher) bi am tham loai khoi ca 3 bao cao (doi soat/tong hop/voucher da su dung) doi voi tai
   khoan bi gioi han he thong voucher, ke ca admin - sua dieu kien loc o ca 3 bao cao de coi du
