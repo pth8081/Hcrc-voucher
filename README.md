@@ -1820,7 +1820,22 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.58)**: qua 1 dot ra soat bao mat toan dien (SQL injection, XSS, phan quyen
+Ban **moi nhat (v3.59)**: nguoi dung bao loi "Da xay ra loi he thong" khi quet THAT (camera), khac
+voi ket qua "Test truc tiep voucher that" (man hinh Ket noi API) van dung - dieu tra qua Nhat ky he
+thong (tab "Hoat dong quet/thu hoi") cho thay lan quet bi loi **KHONG co dong nao** duoc ghi lai, va
+cung **KHONG co lenh goi nao toi Core** trong log rieng cua Core quanh thoi diem do - nghia la loi
+xay ra o 1 buoc CHUAN BI ngay trong app (truoc khi kip goi Core), rat co the la 1 truy van CSDL that
+bai (vd thieu migration/lech schema tren server dang chay) nhung TRUOC DAY khong gan publicMessage
+ro rang, nen nguoi dung chi thay thong bao chung chung, khong co cach nao bao dung nguyen nhan neu
+khong xem duoc log server. Da sua: gan publicMessage ro rang (ten loi CSDL that, dung buoc nao that
+bai) cho MOI buoc chuan bi truoc khi goi Core (`requireFeature.js`, va cac buoc `resolveAllowedConnectionId`/
+`checkExclusion`/`findLocalRedemption` trong `voucherService.js`) - KHONG ghi de len cac loi nghiep
+vu da duoc phan loai san (vd "chua duoc cap quyen he thong nao"). Lan sau neu loi lap lai, toast se
+hien dung nguyen nhan thuc su thay vi chi "Da xay ra loi he thong", khong can xem log server moi
+biet huong xu ly. **Chua ro nguyen nhan goc** (dang cho nguoi dung tai hien lai de xac minh qua
+thong bao moi).
+
+Ban truoc do (v3.58): qua 1 dot ra soat bao mat toan dien (SQL injection, XSS, phan quyen
 API bao cao/IDOR, rate-limit/JWT/SSRF/secrets), phat hien **1 lo ho ro ri thong tin xuyen cong
 ty**: 2 API `GET /api/locations/groups` va `GET /api/locations/details` chi yeu cau dang nhap
 (khong `requireAdmin`), tra ve ten/ma dia diem cua **TOAN BO cong ty** khong loc theo pham vi tai
@@ -1836,6 +1851,12 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.59** - Gan `publicMessage` ro rang cho loi o cac buoc CHUAN BI truoc khi goi Core API
+  (`requireFeature.js`, `resolveAllowedConnectionId`/`checkExclusion`/`findLocalRedemption` trong
+  `voucherService.js`) - theo bao cao "quet that bao loi he thong chung chung, khong ghi duoc Nhat
+  ky he thong, Core cung khong nhan duoc goi nao" (nghi loi CSDL o 1 buoc chuan bi, chua xac minh
+  duoc nguyen nhan goc do khong xem duoc log server luc xay ra) - lan sau loi lap lai se hien dung
+  nguyen nhan that tren toast thay vi chi "Da xay ra loi he thong".
 - **v3.58** - [Bao mat] Them `requireAdmin` cho `GET /api/locations/groups` va
   `GET /api/locations/details` (truoc day chi can dang nhap) - chan ro ri ten/ma dia diem cua
   cac cong ty khac qua goi API truc tiep, boi 1 tai khoan chi duoc xem bao cao cong ty cua minh.
