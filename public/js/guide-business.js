@@ -3,6 +3,8 @@ renderTopbar('guide-business');
 
 const guideBody = document.getElementById('guideBody');
 
+document.getElementById('exportPdfBtn').addEventListener('click', () => window.print());
+
 load();
 
 async function load() {
