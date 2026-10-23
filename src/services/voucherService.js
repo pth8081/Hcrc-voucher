@@ -63,6 +63,31 @@ async function checkExclusion(connectionId, voucherCode) {
   return matchedPrefix ? { matchedPrefix, connectionName } : null;
 }
 
+/**
+ * Dot ra soat sau phat hien (bao cao nguoi dung: quet that bao "Da xay ra loi he thong" chung
+ * chung, KHONG goi duoc toi Core (khong co dong nao trong log goi Core) VA KHONG ghi duoc vao
+ * Nhat ky he thong (khong co dong nao trong VoucherScanLogs) - nghia la loi xay ra o 1 trong cac
+ * buoc CHUAN BI truoc khi goi Core (vd truy van CSDL that bai do thieu migration/sai schema...),
+ * nhung cac buoc nay truoc day KHONG gan publicMessage khi gap loi CHUA duoc phan loai, nen roi
+ * thang vao nhanh 500 chung chung cua errorHandler.js - nguoi dung (va ca admin, neu khong co
+ * quyen xem log server/console) khong co cach nao biet LOI GI de bao cho dung huong.
+ *
+ * Boc MOI buoc chuan bi (truoc khi goi Core) bang ham nay: gan publicMessage neu loi CHUA duoc
+ * phan loai tu truoc (vd loi nghiep vu nhu "chua duoc cap quyen he thong nao" da tu gan san
+ * publicMessage roi, KHONG bi ghi de o day) - de toast hien thi dung nguyen nhan that (ten loi
+ * CSDL, cau truy van nao that bai...) thay vi chi "Da xay ra loi he thong".
+ */
+async function withDiagnostic(stepLabel, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!err.publicMessage) {
+      err.publicMessage = `Loi o buoc chuan bi "${stepLabel}" (truoc khi goi Core API, chua tieu thu ma voucher): ${err.message}`;
+    }
+    throw err;
+  }
+}
+
 // Mui gio Viet Nam (+7, khong co gio mua he) - dung de tinh "hom nay" doc lap voi mui gio thuc
 // te cua may chu dang chay Node (co the la UTC tuy ha tang trien khai).
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -114,9 +139,11 @@ function isExpiredByDate(expiryDateStr) {
  */
 async function checkVoucher({ voucherCode, user, scanMethod, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
-  const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
+  const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
+    resolveAllowedConnectionId(user.userId, requestedConnectionId)
+  );
 
-  const excluded = await checkExclusion(connectionId, voucherCode);
+  const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
   if (excluded) {
     guessGuard.recordResult(user.userId, false);
     await logScan({
@@ -135,7 +162,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
     };
   }
 
-  const localRedeemed = await findLocalRedemption(voucherCode);
+  const localRedeemed = await withDiagnostic('tra cuu da thu hoi cuc bo (VOUCHER_SYNC)', () => findLocalRedemption(voucherCode));
   if (localRedeemed) {
     guessGuard.recordResult(user.userId, true);
     await logScan({
@@ -240,9 +267,11 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
-  const connectionId = await resolveAllowedConnectionId(user.userId, requestedConnectionId);
+  const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
+    resolveAllowedConnectionId(user.userId, requestedConnectionId)
+  );
 
-  const excluded = await checkExclusion(connectionId, voucherCode);
+  const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
   if (excluded) {
     guessGuard.recordResult(user.userId, false);
     await logScan({

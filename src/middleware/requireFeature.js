@@ -24,6 +24,14 @@ function requireFeature(flag) {
       }
       return next();
     } catch (err) {
+      // Dot ra soat sau phat hien: loi o day (vd truy van CSDL that bai) truoc day roi thang vao
+      // nhanh 500 chung chung cua errorHandler.js ("Da xay ra loi he thong") - nguoi dung thay
+      // thong bao vo nghia, khong biet huong xu ly, con khong co log server thi khong cach nao
+      // biet LOI GI. Gan publicMessage ro rang (chi khi CHUA co san - khong ghi de loi nghiep vu
+      // da duoc phan loai tu truoc) de toast hien thi dung nguyen nhan that.
+      if (!err.publicMessage) {
+        err.publicMessage = `Loi khi kiem tra quyen su dung tinh nang: ${err.message}`;
+      }
       return next(err);
     }
   };
