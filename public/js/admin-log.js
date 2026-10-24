@@ -55,8 +55,14 @@ function detailText(raw) {
 }
 
 async function loadAudit() {
+  const fromDate = document.getElementById('auditFromDate').value;
+  const toDate = document.getElementById('auditToDate').value;
+  const params = new URLSearchParams();
+  if (fromDate) params.set('fromDate', fromDate);
+  if (toDate) params.set('toDate', toDate);
+
   try {
-    const rows = await apiFetch('/admin/audit-log');
+    const rows = await apiFetch(`/admin/audit-log?${params.toString()}`);
     auditBody.innerHTML = rows.length
       ? rows
           .map(
@@ -116,7 +122,49 @@ function escapeHtml(str) {
   }[c]));
 }
 
+/** Xuat Excel PHAI di qua fetch() kem header Authorization (giong het used-vouchers.js/report.js),
+ * khong the dung the <a href> thuong vi API yeu cau dang nhap. Dung chung cho ca 2 tab, chi khac
+ * duong dan API va phan ten file tai ve. */
+async function exportExcel(btn, apiPath, fromInputId, toInputId, fileNamePrefix) {
+  const fromDate = document.getElementById(fromInputId).value;
+  const toDate = document.getElementById(toInputId).value;
+  const params = new URLSearchParams();
+  if (fromDate) params.set('fromDate', fromDate);
+  if (toDate) params.set('toDate', toDate);
+
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api${apiPath}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Lỗi xuất Excel (${res.status})`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileNamePrefix}_${fromDate || 'toanbo'}_${toDate || 'toanbo'}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('loadAuditBtn').addEventListener('click', loadAudit);
+document.getElementById('exportAuditBtn').addEventListener('click', (e) =>
+  exportExcel(e.target, '/admin/audit-log/export', 'auditFromDate', 'auditToDate', 'nhat-ky-quan-tri')
+);
 document.getElementById('loadScanBtn').addEventListener('click', loadScan);
+document.getElementById('exportScanBtn').addEventListener('click', (e) =>
+  exportExcel(e.target, '/admin/scan-log/export', 'scanFromDate', 'scanToDate', 'hoat-dong-quet-thu-hoi')
+);
 
 // Chi tai tab "Hoat dong quet" NEU da xac nhan la admin (loadAudit thanh cong) - tranh goi them
 // 1 API se 403 va bao thua 1 toast trung voi khoi "chi admin" da hien tu loadAudit.

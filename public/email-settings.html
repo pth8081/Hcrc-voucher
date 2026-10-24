@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thiết lập email - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chỉ tài khoản quản trị mới xem được trang này.</p>
+    </div>
+
+    <div id="settingsCard" class="card">
+      <h2>Thiết lập email</h2>
+      <p class="hint mb-10">
+        Cấu hình máy chủ gửi email (SMTP) dùng CHUNG cho toàn hệ thống - áp dụng cho mọi lịch gửi
+        báo cáo tự động (kể cả lịch do "Quản trị đối tác" tạo). Chỉ tài khoản quản trị đầy đủ mới
+        xem/sửa được trang này.
+      </p>
+      <form id="settingsForm">
+        <label>Máy chủ SMTP (Host) *</label>
+        <input id="f_host" required placeholder="vd: 172.16.80.41" />
+
+        <label>Cổng (Port) *</label>
+        <input id="f_port" type="number" required placeholder="vd: 465, 587, 25" />
+
+        <label class="checkbox-inline mt-6">
+          <input type="checkbox" id="f_secure" />
+          Secure (SSL/TLS)
+        </label>
+        <p class="hint mb-10">
+          Cổng 465 thường dùng TLS ngay từ đầu kết nối - nên tick "Secure" khi dùng cổng này. Nếu
+          "Gửi thử" báo lỗi OpenSSL kiểu "wrong version number", máy chủ SMTP này KHÔNG thật sự
+          bật TLS ở cổng đang dùng - hãy BỎ tick "Secure" rồi thử lại.
+        </p>
+
+        <label class="checkbox-inline">
+          <input type="checkbox" id="f_rejectUnauthorized" checked />
+          Kiểm tra chứng chỉ TLS (bỏ tick nếu máy chủ SMTP nội bộ dùng chứng chỉ tự ký)
+        </label>
+
+        <label class="mt-6">Username</label>
+        <input id="f_username" placeholder="Tên đăng nhập SMTP (nếu máy chủ yêu cầu)" />
+
+        <label>Password</label>
+        <input id="f_password" type="password" placeholder="Bỏ trống để giữ nguyên mật khẩu đã lưu" autocomplete="new-password" />
+
+        <label>Email gửi (From) *</label>
+        <input id="f_fromEmail" type="email" required placeholder="vd: report@hcrc.vn" />
+
+        <label>Tên hiển thị</label>
+        <input id="f_fromName" placeholder="vd: Hệ thống báo cáo HCRC" />
+
+        <button class="btn-primary btn-block mt-10" type="submit" id="saveBtn">Lưu cấu hình</button>
+      </form>
+
+      <div class="flex flex-wrap gap-8 mt-10">
+        <input id="testEmail" type="email" placeholder="Email nhận thử" class="flex-1 m-0" />
+        <button id="testBtn" class="btn-secondary" type="button">Gửi thử</button>
+      </div>
+      <p id="statusText" class="hint mt-10"></p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/email-settings.js"></script>
+</body>
+</html>

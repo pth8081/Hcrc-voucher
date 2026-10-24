@@ -4,6 +4,7 @@ const createApp = require('./app');
 const logger = require('./utils/logger');
 const { getPool } = require('./config/db');
 const { startSyncScheduler } = require('./utils/syncScheduler');
+const { startEmailScheduler } = require('./utils/emailScheduler');
 const { resolveWorkerCount } = require('./utils/clusterConfig');
 const { assertSecretsStrong } = require('./config/env');
 const { assertSchemaUpToDate } = require('./utils/schemaCheck');
@@ -42,7 +43,10 @@ async function runHttpProcess({ withScheduler }) {
     process.exit(1);
   }
 
-  if (withScheduler) startSyncScheduler();
+  if (withScheduler) {
+    startSyncScheduler();
+    startEmailScheduler();
+  }
 
   const app = createApp();
   app.listen(PORT, () => {
@@ -74,6 +78,7 @@ async function runSchedulerOnlyProcess() {
     process.exit(1);
   }
   startSyncScheduler();
+  startEmailScheduler();
 }
 
 function startCluster(workerCount) {

@@ -31,7 +31,19 @@
       </div>
 
       <div id="tabAudit" class="tab-panel">
-        <p class="hint">Ghi lại các thao tác quản trị: tạo tài khoản, đổi quyền, đổi lịch hiệu lực, gỡ 2FA người khác...</p>
+        <p class="hint">Ghi lại các thao tác quản trị: tạo tài khoản, đổi quyền, đổi lịch hiệu lực, gỡ 2FA người khác... Để trống cả 2 ô ngày để xem toàn bộ lịch sử gần nhất.</p>
+        <div class="summary-filters">
+          <div class="field">
+            <label>Từ ngày (tùy chọn)</label>
+            <input id="auditFromDate" type="date" />
+          </div>
+          <div class="field">
+            <label>Đến ngày (tùy chọn)</label>
+            <input id="auditToDate" type="date" />
+          </div>
+          <button id="loadAuditBtn" class="btn-primary">Xem</button>
+          <button id="exportAuditBtn" class="btn-secondary">Xuất Excel</button>
+        </div>
         <div class="table-wrap table-responsive">
         <table>
           <thead>
@@ -54,6 +66,7 @@
             <input id="scanToDate" type="date" />
           </div>
           <button id="loadScanBtn" class="btn-primary">Xem</button>
+          <button id="exportScanBtn" class="btn-secondary">Xuất Excel</button>
         </div>
         <div class="table-wrap table-responsive">
         <table>
