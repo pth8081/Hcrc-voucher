@@ -46,7 +46,21 @@
             <option value="LAST_30_DAYS">30 ngày gần nhất</option>
             <option value="THIS_MONTH">Tháng này (từ đầu tháng)</option>
             <option value="LAST_MONTH">Tháng trước</option>
+            <option value="THIS_YEAR">Năm này (từ đầu năm)</option>
+            <option value="LAST_YEAR">Năm trước</option>
+            <option value="CUSTOM">Tự chọn khoảng ngày...</option>
           </select>
+
+          <div id="customDateRangeField" class="summary-filters hidden">
+            <div class="field">
+              <label>Từ ngày *</label>
+              <input id="f_customFromDate" type="date" />
+            </div>
+            <div class="field">
+              <label>Đến ngày *</label>
+              <input id="f_customToDate" type="date" />
+            </div>
+          </div>
 
           <label>Công ty (tùy chọn)</label>
           <select id="f_companyId"><option value="">-- Tất cả công ty bạn được xem --</option></select>
@@ -54,8 +68,9 @@
           <label>Điểm thu hồi (tùy chọn)</label>
           <select id="f_redemptionUnitId"><option value="">-- Tất cả điểm thu hồi bạn được xem --</option></select>
 
-          <label>Hệ thống voucher (tùy chọn)</label>
-          <select id="f_connectionId"><option value="">-- Tất cả hệ thống bạn được xem --</option></select>
+          <label>Hệ thống voucher * (chọn ít nhất 1)</label>
+          <p class="hint mb-6">Chỉ chọn được trong số hệ thống bạn đang được phép xem - lịch sẽ luôn tự giới hạn lại đúng quyền hiện tại khi gửi.</p>
+          <div id="f_connectionIds" class="voucher-system-checkboxes"></div>
 
           <label>Email người nhận *</label>
           <input id="f_recipients" required placeholder="cách nhau bởi dấu phẩy, vd: a@hcrc.vn, b@fuji.vn" />

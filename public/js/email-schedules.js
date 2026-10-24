@@ -52,10 +52,19 @@ async function loadFilterOptions() {
       '<option value="">-- Tất cả điểm thu hồi bạn được xem --</option>' +
       units.map((u) => `<option value="${u.Id}">${escapeHtml(u.PartnerName)}</option>`).join('');
 
-    const connSelect = document.getElementById('f_connectionId');
-    connSelect.innerHTML =
-      '<option value="">-- Tất cả hệ thống bạn được xem --</option>' +
-      systems.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+    // He thong voucher: checkbox (KHONG con la 1 select "all/1 he thong") - nguoi dung PHAI tu
+    // tick ro rang he thong nao muon gui, dung chi trong pham vi ho duoc xem (danh sach tra ve
+    // tu /reports/filters/systems da la danh sach DA LOC theo quyen cua chinh ho).
+    const connWrap = document.getElementById('f_connectionIds');
+    connWrap.innerHTML = systems
+      .map(
+        (s) => `
+          <label class="checkbox-inline">
+            <input type="checkbox" class="f-connection-checkbox" value="${s.id}" />
+            ${escapeHtml(s.name)}
+          </label>`
+      )
+      .join('') || '<p class="text-muted m-0">Bạn chưa được cấp quyền xem hệ thống voucher nào.</p>';
   } catch (err) {
     // Khong chan luong tao lich neu loi o day (vd mang cham) - chi khong co o loc tuy chon,
     // giong triet ly loadSystemOptions() trong scan.js.
@@ -70,11 +79,29 @@ function toggleFrequencyFields() {
 }
 document.getElementById('f_frequency').addEventListener('change', toggleFrequencyFields);
 
+function toggleCustomDateRangeField() {
+  const mode = document.getElementById('f_dateRangeMode').value;
+  document.getElementById('customDateRangeField').classList.toggle('hidden', mode !== 'CUSTOM');
+}
+document.getElementById('f_dateRangeMode').addEventListener('change', toggleCustomDateRangeField);
+
+function setConnectionCheckboxes(ids) {
+  const idSet = new Set((ids || []).map(Number));
+  document.querySelectorAll('.f-connection-checkbox').forEach((el) => {
+    el.checked = idSet.has(Number(el.value));
+  });
+}
+function getConnectionCheckboxes() {
+  return Array.from(document.querySelectorAll('.f-connection-checkbox:checked')).map((el) => Number(el.value));
+}
+
 function resetForm() {
   editingId = null;
   scheduleForm.reset();
   document.getElementById('f_sendTime').value = '08:00';
+  setConnectionCheckboxes([]);
   toggleFrequencyFields();
+  toggleCustomDateRangeField();
   formTitle.textContent = 'Tạo lịch gửi email mới';
   submitBtn.textContent = 'Tạo lịch';
   cancelEditBtn.classList.add('hidden');
@@ -144,15 +171,18 @@ function startEdit(s) {
   document.getElementById('f_name').value = s.name;
   document.getElementById('f_reportType').value = s.reportType;
   document.getElementById('f_dateRangeMode').value = s.dateRangeMode;
+  document.getElementById('f_customFromDate').value = s.customFromDate || '';
+  document.getElementById('f_customToDate').value = s.customToDate || '';
   document.getElementById('f_companyId').value = s.companyId || '';
   document.getElementById('f_redemptionUnitId').value = s.redemptionUnitId || '';
-  document.getElementById('f_connectionId').value = s.connectionId || '';
+  setConnectionCheckboxes(s.connectionIds);
   document.getElementById('f_recipients').value = s.recipients;
   document.getElementById('f_frequency').value = s.frequency;
   if (s.weekDay !== null && s.weekDay !== undefined) document.getElementById('f_weekDay').value = String(s.weekDay);
   if (s.monthDay !== null && s.monthDay !== undefined) document.getElementById('f_monthDay').value = s.monthDay;
   document.getElementById('f_sendTime').value = `${String(s.sendHour).padStart(2, '0')}:${String(s.sendMinute).padStart(2, '0')}`;
   toggleFrequencyFields();
+  toggleCustomDateRangeField();
   formTitle.textContent = `Sửa lịch "${s.name}"`;
   submitBtn.textContent = 'Lưu thay đổi';
   cancelEditBtn.classList.remove('hidden');
@@ -198,13 +228,21 @@ scheduleForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const frequency = document.getElementById('f_frequency').value;
   const [sendHour, sendMinute] = document.getElementById('f_sendTime').value.split(':').map(Number);
+  const dateRangeMode = document.getElementById('f_dateRangeMode').value;
+  const connectionIds = getConnectionCheckboxes();
+  if (!connectionIds.length) {
+    showToast('Cần chọn ít nhất 1 hệ thống voucher để gửi báo cáo');
+    return;
+  }
   const body = {
     name: document.getElementById('f_name').value.trim(),
     reportType: document.getElementById('f_reportType').value,
-    dateRangeMode: document.getElementById('f_dateRangeMode').value,
+    dateRangeMode,
+    customFromDate: dateRangeMode === 'CUSTOM' ? document.getElementById('f_customFromDate').value : null,
+    customToDate: dateRangeMode === 'CUSTOM' ? document.getElementById('f_customToDate').value : null,
     companyId: document.getElementById('f_companyId').value || null,
     redemptionUnitId: document.getElementById('f_redemptionUnitId').value || null,
-    connectionId: document.getElementById('f_connectionId').value || null,
+    connectionIds,
     recipients: document.getElementById('f_recipients').value.trim(),
     frequency,
     sendHour,
@@ -233,5 +271,6 @@ scheduleForm.addEventListener('submit', async (e) => {
 
 populateReportTypeOptions();
 toggleFrequencyFields();
+toggleCustomDateRangeField();
 loadFilterOptions();
 loadList();

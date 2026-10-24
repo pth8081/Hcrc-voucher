@@ -9,7 +9,11 @@ const emailGatewayService = require('./emailGatewayService');
 
 const REPORT_TYPES = ['DAILY', 'SUMMARY', 'USED_VOUCHERS'];
 const FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY'];
-const DATE_RANGE_MODES = ['YESTERDAY', 'TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS', 'THIS_MONTH', 'LAST_MONTH'];
+const DATE_RANGE_MODES = [
+  'YESTERDAY', 'TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS', 'THIS_MONTH', 'LAST_MONTH',
+  'THIS_YEAR', 'LAST_YEAR', 'CUSTOM',
+];
+const DATE_STR_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function badRequest(message) {
   const err = new Error(message);
@@ -24,6 +28,16 @@ function forbidden(message) {
   return err;
 }
 
+/** Cot ConnectionIds luu dang chuoi "1,5,9" (hoac rong/NULL = khong gioi han them) - tach thanh
+ * mang so nguyen, dung chung cho rowToDto() va resolveScheduleScope(). */
+function parseConnectionIdsColumn(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n));
+}
+
 function rowToDto(row) {
   return {
     id: row.Id,
@@ -32,7 +46,9 @@ function rowToDto(row) {
     dateRangeMode: row.DateRangeMode,
     companyId: row.CompanyId,
     redemptionUnitId: row.RedemptionUnitId,
-    connectionId: row.ConnectionId,
+    connectionIds: parseConnectionIdsColumn(row.ConnectionIds),
+    customFromDate: row.CustomFromDate ? toDateStr(new Date(row.CustomFromDate)) : null,
+    customToDate: row.CustomToDate ? toDateStr(new Date(row.CustomToDate)) : null,
     recipients: row.Recipients,
     frequency: row.Frequency,
     sendHour: row.SendHour,
@@ -120,13 +136,36 @@ function validateInput(data) {
     monthDay = Number(data.monthDay);
     if (!Number.isInteger(monthDay) || monthDay < 1 || monthDay > 31) throw badRequest('Ngay trong thang khong hop le');
   }
+
+  // "He thong" la lua chon RO RANG (checkbox nhieu he thong) - KHONG con mac dinh "tat ca/full"
+  // ngoai y muon nhu truoc. Mang rong = van cho phep (se bi loc lai theo quyen thuc te luc gui,
+  // xem resolveScheduleScope()) nhung KHONG tu dong suy ra "tat ca" - frontend luon gui du danh
+  // sach he thong nguoi dung CHON (co the la toan bo danh sach ho duoc xem, nhung la lua chon
+  // tuong minh, khong phai gia tri rong ngam dinh).
+  const connectionIdsRaw = Array.isArray(data.connectionIds) ? data.connectionIds : [];
+  const connectionIds = connectionIdsRaw.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0);
+  if (!connectionIds.length) throw badRequest('Can chon it nhat 1 he thong voucher de gui bao cao');
+
+  let customFromDate = null;
+  let customToDate = null;
+  if (data.dateRangeMode === 'CUSTOM') {
+    customFromDate = String(data.customFromDate || '').trim();
+    customToDate = String(data.customToDate || '').trim();
+    if (!DATE_STR_RE.test(customFromDate) || !DATE_STR_RE.test(customToDate)) {
+      throw badRequest('Khoang ngay tuy chon khong hop le');
+    }
+    if (customFromDate > customToDate) throw badRequest('"Tu ngay" phai truoc hoac bang "Den ngay"');
+  }
+
   return {
     name,
     reportType: data.reportType,
     dateRangeMode: data.dateRangeMode,
+    customFromDate,
+    customToDate,
     companyId: data.companyId ? Number(data.companyId) : null,
     redemptionUnitId: data.redemptionUnitId ? Number(data.redemptionUnitId) : null,
-    connectionId: data.connectionId ? Number(data.connectionId) : null,
+    connectionIds,
     recipients: parseRecipients(data.recipients),
     frequency: data.frequency,
     sendHour,
@@ -144,9 +183,11 @@ async function createSchedule(data, user) {
     .input('name', sql.NVarChar(200), v.name)
     .input('reportType', sql.NVarChar(20), v.reportType)
     .input('dateRangeMode', sql.NVarChar(20), v.dateRangeMode)
+    .input('customFromDate', sql.Date, v.customFromDate)
+    .input('customToDate', sql.Date, v.customToDate)
     .input('companyId', sql.Int, v.companyId)
     .input('redemptionUnitId', sql.Int, v.redemptionUnitId)
-    .input('connectionId', sql.Int, v.connectionId)
+    .input('connectionIds', sql.NVarChar(200), v.connectionIds.join(','))
     .input('recipients', sql.NVarChar(1000), v.recipients)
     .input('frequency', sql.NVarChar(20), v.frequency)
     .input('sendHour', sql.TinyInt, v.sendHour)
@@ -157,11 +198,11 @@ async function createSchedule(data, user) {
     .input('createdByUsername', sql.NVarChar(100), user.username)
     .query(`
       INSERT INTO dbo.EmailReportSchedules
-        (Name, ReportType, DateRangeMode, CompanyId, RedemptionUnitId, ConnectionId, Recipients,
+        (Name, ReportType, DateRangeMode, CustomFromDate, CustomToDate, CompanyId, RedemptionUnitId, ConnectionIds, Recipients,
          Frequency, SendHour, SendMinute, WeekDay, MonthDay, IsEnabled, CreatedByUserId, CreatedByUsername, CreatedDate)
       OUTPUT INSERTED.Id
       VALUES
-        (@name, @reportType, @dateRangeMode, @companyId, @redemptionUnitId, @connectionId, @recipients,
+        (@name, @reportType, @dateRangeMode, @customFromDate, @customToDate, @companyId, @redemptionUnitId, @connectionIds, @recipients,
          @frequency, @sendHour, @sendMinute, @weekDay, @monthDay, 1, @createdByUserId, @createdByUsername, GETDATE())
     `);
   return { id: result.recordset[0].Id };
@@ -177,9 +218,11 @@ async function updateSchedule(id, data, user) {
     .input('name', sql.NVarChar(200), v.name)
     .input('reportType', sql.NVarChar(20), v.reportType)
     .input('dateRangeMode', sql.NVarChar(20), v.dateRangeMode)
+    .input('customFromDate', sql.Date, v.customFromDate)
+    .input('customToDate', sql.Date, v.customToDate)
     .input('companyId', sql.Int, v.companyId)
     .input('redemptionUnitId', sql.Int, v.redemptionUnitId)
-    .input('connectionId', sql.Int, v.connectionId)
+    .input('connectionIds', sql.NVarChar(200), v.connectionIds.join(','))
     .input('recipients', sql.NVarChar(1000), v.recipients)
     .input('frequency', sql.NVarChar(20), v.frequency)
     .input('sendHour', sql.TinyInt, v.sendHour)
@@ -189,7 +232,8 @@ async function updateSchedule(id, data, user) {
     .query(`
       UPDATE dbo.EmailReportSchedules SET
         Name = @name, ReportType = @reportType, DateRangeMode = @dateRangeMode,
-        CompanyId = @companyId, RedemptionUnitId = @redemptionUnitId, ConnectionId = @connectionId,
+        CustomFromDate = @customFromDate, CustomToDate = @customToDate,
+        CompanyId = @companyId, RedemptionUnitId = @redemptionUnitId, ConnectionIds = @connectionIds,
         Recipients = @recipients, Frequency = @frequency, SendHour = @sendHour, SendMinute = @sendMinute,
         WeekDay = @weekDay, MonthDay = @monthDay, UpdatedDate = GETDATE()
       WHERE Id = @id
@@ -223,8 +267,9 @@ function toDateStr(d) {
 }
 
 /** Tinh khoang ngay (fromDate/toDate, dang "YYYY-MM-DD") theo DateRangeMode - tinh theo "hom nay"
- * gio Viet Nam, doc lap mui gio may chu. */
-function resolveDateRange(dateRangeMode) {
+ * gio Viet Nam, doc lap mui gio may chu. Voi mode 'CUSTOM', lay nguyen CustomFromDate/CustomToDate
+ * da luu tren lich (customFromDate/customToDate - co the la string "YYYY-MM-DD" hoac Date tu CSDL). */
+function resolveDateRange(dateRangeMode, customFromDate, customToDate) {
   const now = nowVn();
   const todayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const dayMs = 24 * 60 * 60 * 1000;
@@ -248,6 +293,20 @@ function resolveDateRange(dateRangeMode) {
       const lastPrev = new Date(firstThis.getTime() - dayMs);
       const firstPrev = new Date(Date.UTC(lastPrev.getUTCFullYear(), lastPrev.getUTCMonth(), 1));
       return { fromDate: toDateStr(firstPrev), toDate: toDateStr(lastPrev) };
+    }
+    case 'THIS_YEAR': {
+      const first = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      return { fromDate: toDateStr(first), toDate: atOffset(0) };
+    }
+    case 'LAST_YEAR': {
+      const firstPrev = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1));
+      const lastPrev = new Date(Date.UTC(now.getUTCFullYear() - 1, 11, 31));
+      return { fromDate: toDateStr(firstPrev), toDate: toDateStr(lastPrev) };
+    }
+    case 'CUSTOM': {
+      const from = customFromDate instanceof Date ? toDateStr(customFromDate) : String(customFromDate || '').slice(0, 10);
+      const to = customToDate instanceof Date ? toDateStr(customToDate) : String(customToDate || '').slice(0, 10);
+      return { fromDate: from || atOffset(0), toDate: to || atOffset(0) };
     }
     default:
       return { fromDate: atOffset(0), toDate: atOffset(0) };
@@ -274,17 +333,15 @@ async function resolveScheduleScope(schedule) {
   });
 
   const allowed = await userVoucherSystemService.getAllowedConnectionIds(owner.UserID);
+  const selected = parseConnectionIdsColumn(schedule.ConnectionIds);
   let connectionIds;
   let includeUntaggedConnections;
-  if (schedule.ConnectionId) {
-    // Nguoi tao lich co chon rieng 1 he thong (o loc tuy chon) - PHAI nam trong quyen thuc te cua
-    // ho, giong het cach report.controller.js#resolveConnectionFilter xu ly tham so connectionId
-    // tu query string (khong tin client/du lieu da luu, doi chieu lai voi quyen hien tai).
-    if (allowed !== null && !allowed.includes(schedule.ConnectionId)) {
-      connectionIds = [];
-    } else {
-      connectionIds = [schedule.ConnectionId];
-    }
+  if (selected.length) {
+    // Nguoi tao lich da CHON TUONG MINH 1 hay nhieu he thong (checkbox) - GIAO (intersect) voi
+    // quyen THUC TE hien tai cua ho, giong het cach report.controller.js#resolveConnectionFilter
+    // xu ly tham so connectionId tu query string (khong tin du lieu da luu tren lich, doi chieu
+    // lai voi quyen hien tai moi lan gui - quyen bi thu hoi sau khi tao lich se tu dong thu hep).
+    connectionIds = allowed === null ? selected : selected.filter((id) => allowed.includes(id));
     includeUntaggedConnections = false;
   } else if (allowed === null) {
     connectionIds = null;
@@ -301,7 +358,7 @@ async function resolveScheduleScope(schedule) {
  * da co san (giong het luong man hinh "Xuat Excel" dang dung) - dam bao cung 1 cach tinh toan,
  * khong trung lap logic truy van. */
 async function buildReportAttachment(schedule, scope) {
-  const { fromDate, toDate } = resolveDateRange(schedule.DateRangeMode);
+  const { fromDate, toDate } = resolveDateRange(schedule.DateRangeMode, schedule.CustomFromDate, schedule.CustomToDate);
   const extra = {
     visibleLocationCodes: scope.visibleLocationCodes,
     companyId: schedule.CompanyId,

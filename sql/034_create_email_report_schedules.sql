@@ -16,10 +16,12 @@ BEGIN
         Id                  INT NOT NULL PRIMARY KEY IDENTITY(1,1),
         Name                NVARCHAR(200) NOT NULL,
         ReportType          NVARCHAR(20) NOT NULL,       -- 'DAILY' | 'SUMMARY' | 'USED_VOUCHERS'
-        DateRangeMode       NVARCHAR(20) NOT NULL,       -- 'YESTERDAY' | 'TODAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_MONTH' | 'LAST_MONTH'
+        DateRangeMode       NVARCHAR(20) NOT NULL,       -- 'YESTERDAY' | 'TODAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_MONTH' | 'LAST_MONTH' | 'THIS_YEAR' | 'LAST_YEAR' | 'CUSTOM'
+        CustomFromDate      DATE NULL,                   -- CHI dung khi DateRangeMode = 'CUSTOM' (nguoi dung tu chon ngay-den-ngay)
+        CustomToDate        DATE NULL,
         CompanyId           INT NULL,                    -- loc THEM tuy chon (giong o loc "Cong ty" tren man hinh bao cao)
         RedemptionUnitId    INT NULL,                    -- loc THEM tuy chon (giong o loc "Diem thu hoi")
-        ConnectionId        INT NULL,                    -- loc THEM tuy chon 1 he thong cu the (chi co y nghia voi tai khoan duoc xem nhieu he thong - vd admin; tai khoan bi gioi han van LUON bi loc dung quyen thuc te cua ho bat ke cot nay, xem emailScheduleService.js)
+        ConnectionIds       NVARCHAR(200) NULL,          -- loc THEM tuy chon 1-n he thong CU THE (vd "1,5" - danh sach Id ApiConnections cach nhau dau phay). Rong/NULL = tat ca he thong tai khoan nay duoc xem (KHONG mac dinh "full" ngoai y muon - tai khoan bi gioi han van LUON bi loc dung quyen thuc te cua ho bat ke cot nay, xem emailScheduleService.js)
         Recipients          NVARCHAR(1000) NOT NULL,     -- danh sach email nguoi nhan, cach nhau dau phay
         Frequency           NVARCHAR(20) NOT NULL,       -- 'DAILY' | 'WEEKLY' | 'MONTHLY'
         SendHour            TINYINT NOT NULL,

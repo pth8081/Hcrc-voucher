@@ -1936,9 +1936,12 @@ bao cao do), khong rieng admin/"Quan tri doi tac":
 
 - **Tao lich**: chon Bao cao (chi hien cac loai tai khoan THAT SU co quyen xem - vd tai khoan chi
   co `canViewReconciliation` se khong thay "Bao cao tong hop" trong danh sach chon), Khoang ngay
-  lay du lieu (Hom qua/Hom nay/7 ngay/30 ngay/Thang nay/Thang truoc), loc THEM tuy chon Cong ty/
-  Diem thu hoi/He thong voucher (CHI gom cac gia tri tai khoan nay duoc xem - dung lai nguyen
-  `GET /api/reports/filters/*` da co san cho 3 man hinh bao cao), Email nguoi nhan, Tan suat
+  lay du lieu (Hom qua/Hom nay/7 ngay/30 ngay/Thang nay/Thang truoc/Nam nay/Nam truoc/**Tu chon
+  khoang ngay** - voi "Tu chon" nguoi dung nhap truc tiep Tu ngay-Den ngay), loc THEM tuy chon
+  Cong ty/Diem thu hoi, **He thong voucher - BAT BUOC tick RO RANG it nhat 1 he thong** (checkbox
+  nhieu lua chon, CHI gom cac he thong tai khoan nay duoc xem - dung lai nguyen
+  `GET /api/reports/filters/*` da co san cho 3 man hinh bao cao; KHONG con mac dinh ngam "tat ca/
+  full" nhu ban dau - phai chon tuong minh he thong nao muon gui), Email nguoi nhan, Tan suat
   (Hang ngay/Hang tuan - chon them Thu/Hang thang - chon them Ngay trong thang), Gio gui.
 - **Danh sach lich**: Sua/Gui ngay/Tat-Bat/Xoa. Quan tri day du thay **TOAN BO** lich (ca cua
   nguoi khac tao); tai khoan khac (ke ca "Quan tri doi tac") **CHI thay lich do CHINH MINH tao** -
@@ -1950,7 +1953,11 @@ chinh quyen HIEN TAI cua tai khoan da tao lich (`emailScheduleService.js#resolve
 dung lai dung `reportAccessService.resolveVisibleLocationCodes()` + `userVoucherSystemService.getAllowedConnectionIds()`
 ma man hinh bao cao binh thuong dang dung) - dam bao 1 lich do tai khoan "Quan tri doi tac" Fuji
 tao **LUON CHI** gui dung du lieu Fuji, ke ca neu quyen cua tai khoan do bi thu hep/thu hoi sau
-nay (tu dong "thu hep theo" ma khong can sua lai tung lich).
+nay (tu dong "thu hep theo" ma khong can sua lai tung lich). Danh sach he thong da **CHON TUONG
+MINH** tren lich (cot `ConnectionIds`, dang chuoi "1,5" - xem `sql/034`) duoc **GIAO (intersect)**
+voi danh sach he thong quyen THUC TE hien tai, khong phai dung nguyen - vd nguoi tao lich chon
+he thong A+B luc tao, sau do bi thu hoi quyen xem he thong B, lich se tu dong chi con gui du lieu
+he thong A tu lan gui ke tiep.
 
 Job nen (`src/utils/emailScheduler.js`, mau hinh giong `syncScheduler.js`) kiem tra moi phut, gui
 cac lich den dung gio/ngay VA chua gui trong hom nay (tranh gui trung neu tien trinh khoi dong
@@ -1971,7 +1978,16 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.64)**: them tinh nang **gui bao cao qua email** - man hinh "Thiet lap email"
+Ban **moi nhat (v3.65)**: hoan thien tinh nang gui bao cao qua email (v3.64) theo gop y thuc te
+sau khi dung thu: (1) **he thong voucher khong con mac dinh "tat ca/full"** - nguoi tao lich PHAI
+tick checkbox chon TUONG MINH it nhat 1 he thong muon gui (truoc day chi co 1 select tuy chon,
+de trong = ngam dinh toan bo); (2) them 2 lua chon khoang ngay **Nam nay/Nam truoc** va **Tu chon
+khoang ngay** (nhap truc tiep Tu ngay-Den ngay) ben canh 6 lua chon co san; (3) sua `sql/034` them
+cot `ConnectionIds` (thay `ConnectionId` don, luu dang chuoi "1,5") va `CustomFromDate`/
+`CustomToDate` (migration nay chua merge/chay o production nen sua truc tiep, khong tao file moi).
+Xem muc 17b.
+
+Ban truoc do (v3.64): them tinh nang **gui bao cao qua email** - man hinh "Thiet lap email"
 (cau hinh SMTP dung chung, CHI quan tri day du) + man hinh "Lich gui email bao cao" (tao lich
 dinh ky ngay/tuan/thang, mo cho bat ky ai xem duoc bao cao) - **quan tri day du gui duoc bao cao
 TOAN HE THONG, "Quan tri doi tac" (vd Fuji) chi gui duoc dung pham vi du lieu cua ho**, tinh lai
