@@ -606,7 +606,10 @@ server {
 
 ### 3g. Checklist xac nhan sau khi trien khai
 
-- [ ] `npm run migrate` chay xong khong loi (xem log co dong "Migration complete").
+- [ ] `npm run migrate` chay xong khong loi (xem log co dong "Migration complete"). Tu v3.62,
+      **neu buoc nay bi bo sot** o lan cap nhat sau, app se **tu choi khoi dong** (xem muc 3h) thay
+      vi chay roi gian doan am tham - nhung van nen chay dung thu tu (migrate TRUOC khi restart)
+      de tranh ca khoang downtime cho den khi phat hien.
 - [ ] Dang nhap thu **1 tai khoan nhan vien cu** co san trong `Users` — vao duoc, hien dung ho
       ten/dia diem cua ho.
 - [ ] Dang nhap thu **tai khoan admin** (cu hoac vua tao qua `create-admin` o 3a) — di qua dung
@@ -644,6 +647,17 @@ downtime bao lau va khong co buoc "rollback schema" phuc tap — truong hop can 
 phien ban truoc, chi can `git checkout` lai commit cu va khoi dong lai process (cac bang moi
 du con ton tai trong DB cung khong anh huong gi den code cu, vi code cu don gian la khong biet
 den chung).
+
+**An toan truoc truong hop QUEN buoc `npm run migrate` (v3.62):** doi khang sau 1 su co thuc te —
+nhieu doan code (vd kiem tra quyen tinh nang, chay o MOI lan quet/thu hoi cua MOI tai khoan nhan
+vien) doc VO DIEU KIEN cac cot duoc them boi migration moi nhat, du tai khoan do co lien quan toi
+tinh nang moi hay khong — quen 1 buoc migrate duy nhat co the lam **gian doan hoan toan** chuc
+nang quet/thu hoi cho moi nguoi ma khong ai de y kip. Tu ban nay, app **tu kiem tra** luc khoi
+dong (truoc khi mo cong HTTP): neu CSDL con thieu bat ky file `sql/*.sql` nao so voi code dang
+chay (doi chieu bang `dbo.SchemaMigrations`, duoc `npm run migrate` tu ghi lai sau moi lan chay
+thanh cong), tien trinh **se tu DUNG ngay** kem thong bao liet ke chinh xac ten file con thieu,
+thay vi chay "binh thuong" roi gian doan am tham khi co nguoi dung that gap loi. Xem
+`src/utils/schemaCheck.js`.
 
 > **Dung `root` (hoac tai khoan admin co `sudo`) de `git pull`/copy code co duoc khong?** —
 > **Duoc**, khong lien quan gi den viec han che `hcrcapp` o muc 3d/3e (tach `hcrcapp` chi de
@@ -1881,7 +1895,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.61)**: tai khoan **"Quan tri doi tac"** (v3.60, vd tai khoan cap rieng cho
+Ban **moi nhat (v3.62)**: phat hien qua 1 su co thuc te (quet voucher that bao loi, dieu tra ra
+nguyen nhan la CSDL production chua duoc chay du migration cho cac ban truoc) - app nay **tu kiem
+tra schema CSDL luc khoi dong**, tu CHOI chay (khong mo cong HTTP) neu con thieu bat ky file
+`sql/*.sql` nao so voi code dang chay, kem thong bao liet ke chinh xac file con thieu. Truoc ban
+nay, quen 1 buoc `npm run migrate` duy nhat sau khi cap nhat code co the lam **gian doan hoan
+toan** chuc nang quet/thu hoi cho MOI tai khoan ma khong ai de y kip (nhieu doan code doc VO DIEU
+KIEN cac cot moi nhat, du tai khoan goi khong lien quan gi toi tinh nang moi do) - xem muc 3h.
+
+Ban truoc do (v3.61): tai khoan **"Quan tri doi tac"** (v3.60, vd tai khoan cap rieng cho
 Fuji) nay **bat buoc** phai bat xac thuc hai yeu to (TOTP) tu lan dang nhap tiep theo, tuong tu
 quan tri day du - vi ho cung co quyen tao/khoa tai khoan nguoi khac nen rui ro cao hon nhan vien
 thuong neu mat khau bi lo. Trang "Bao mat" cung duoc tach lai: tai khoan nay xem/quan ly duoc 2FA
@@ -1889,7 +1911,7 @@ cua CHINH minh (bat buoc di qua man hinh thiet lap TOTP ngay sau khi dang nhap),
 khong** thay duoc danh sach/trang thai 2FA cua CAC quan tri vien khac (API do van gioi han chi
 quan tri day du) - xem muc 10.
 
-Ban truoc do (v3.60): them tinh nang **"Quan tri doi tac"** - cho phep cap 1 tai khoan rieng
+Ban truoc do nua (v3.60): them tinh nang **"Quan tri doi tac"** - cho phep cap 1 tai khoan rieng
 cho doi tac (vd Fuji) de HO TU xem/tao/khoa cac tai khoan nhan vien **CHI dung dung he thong cua
 ho**, ma KHONG thay duoc tai khoan quan tri HCRC hay tai khoan cua doi tac khac, khong can nho
 admin HCRC moi lan cap/thu hoi tai khoan cho nhan vien cua ho. Cap qua 1 o chon moi "Quan tri doi
@@ -1929,6 +1951,13 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.62** - App tu kiem tra schema CSDL luc khoi dong, TU CHOI chay (khong mo cong HTTP) neu con
+  thieu bat ky migration nao so voi code dang chay, kem thong bao liet ke chinh xac file con
+  thieu - `sql/032` them bang `SchemaMigrations` (scripts/migrate.js tu ghi lai sau moi lan chay
+  thanh cong), `src/utils/schemaCheck.js` doi chieu luc khoi dong. Phat hien qua 1 su co thuc te:
+  CSDL production chua chay du migration cho cac ban truoc khien quet voucher that bao loi chung
+  chung, khong ghi duoc log, tai hien lai duoc chinh xac nguyen nhan (thieu cot `ExcludedCodePrefixes`
+  cua sql/030) - xem muc 3h.
 - **v3.61** - Bat buoc xac thuc hai yeu to (2FA) cho tai khoan "Quan tri doi tac" (v3.60), tuong tu
   quan tri day du - gop dieu kien vao 1 ham duy nhat `authService.js#requiresMandatory2FA()`, dung
   chung cho luc dang nhap, API `GET /status`/`POST /show-qr` cua chinh minh, va luong doi thiet bi

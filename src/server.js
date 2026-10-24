@@ -6,6 +6,7 @@ const { getPool } = require('./config/db');
 const { startSyncScheduler } = require('./utils/syncScheduler');
 const { resolveWorkerCount } = require('./utils/clusterConfig');
 const { assertSecretsStrong } = require('./config/env');
+const { assertSchemaUpToDate } = require('./utils/schemaCheck');
 const { version: APP_VERSION } = require('../package.json');
 
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,15 @@ async function runHttpProcess({ withScheduler }) {
     process.exit(1);
   }
 
+  // Doi khang sau phat hien (muc 3h): thieu 1 migration co the lam gian doan quet/thu hoi cho MOI
+  // tai khoan ma khong ai de y kip - dung han truoc khi mo cong HTTP, xem schemaCheck.js.
+  try {
+    await assertSchemaUpToDate();
+  } catch (err) {
+    logger.error(err.message);
+    process.exit(1);
+  }
+
   if (withScheduler) startSyncScheduler();
 
   const app = createApp();
@@ -55,6 +65,12 @@ async function runSchedulerOnlyProcess() {
     logger.info('Da ket noi MSSQL thanh cong (tien trinh chinh - chi chay job nen, khong nhan HTTP)');
   } catch (err) {
     logger.error({ err }, 'Khong the ket noi MSSQL khi khoi dong (tien trinh chinh)');
+    process.exit(1);
+  }
+  try {
+    await assertSchemaUpToDate();
+  } catch (err) {
+    logger.error(err.message);
     process.exit(1);
   }
   startSyncScheduler();
