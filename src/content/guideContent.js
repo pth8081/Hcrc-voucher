@@ -115,11 +115,20 @@ mục đích khác nhau:</p>
 <p class="hint">Cột "Đồng bộ" trong bảng giao dịch gần đây cho biết 1 giao dịch đã được hệ thống
 trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CHỜ ĐỒNG BỘ) - xem lại mục 2 ở trên.</p>
 
-<h2>5. Bảo mật/tài khoản cá nhân</h2>
+<h2>5. Nhận báo cáo qua email tự động</h2>
+<p>Nếu tài khoản của bạn xem được ít nhất 1 trong 3 loại báo cáo ở mục 4, bạn có thể tự tạo 1
+<strong>lịch gửi báo cáo qua email</strong> (menu "Lịch gửi email báo cáo") thay vì phải vào xem
+rồi tự xuất Excel mỗi lần: chọn loại báo cáo, khoảng ngày (có cả lựa chọn tự chọn Từ ngày-Đến
+ngày), hệ thống voucher muốn gửi (bắt buộc tick ít nhất 1), email người nhận, và tần suất gửi
+(hàng ngày/tuần/tháng). Bạn chỉ thấy và quản lý được đúng lịch do chính mình tạo. Dữ liệu gửi đi
+luôn đúng phạm vi bạn đang được phép xem tại thời điểm gửi, không rộng hơn những gì bạn tự xem
+được trên màn hình báo cáo.</p>
+
+<h2>6. Bảo mật/tài khoản cá nhân</h2>
 <p>Vào mục "Bảo mật" trên topbar để: đăng ký vân tay/Face ID cho thiết bị đang dùng, xem/đổi
 thiết bị xác thực hai yếu tố (nếu là quản trị).</p>
 
-<h2>6. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
+<h2>7. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
 <p>Cài ra màn hình chính giúp mở ứng dụng nhanh như 1 app bình thường (bấm vào icon là vào thẳng
 màn hình quét, không hiện thanh địa chỉ trình duyệt) - nên làm trên điện thoại dùng quét voucher
 hàng ngày.</p>
@@ -440,7 +449,49 @@ cột "Nhóm quyền xem báo cáo").</p>
     (cả thành công lẫn thất bại), lọc theo ngày.</li>
 </ul>
 
-<h2>7. Tài liệu kỹ thuật đầy đủ</h2>
+<h2>7. Gửi báo cáo qua email (SMTP + lịch gửi tự động)</h2>
+<p>Cho phép gửi file Excel của 3 loại báo cáo (mục 4 ở Hướng dẫn nghiệp vụ) qua email theo lịch
+định kỳ ngày/tuần/tháng, thay vì phải vào xem rồi tự xuất Excel mỗi lần.</p>
+
+<h3>7a. Thiết lập email (menu Quản trị -&gt; Thiết lập email) - chỉ quản trị đầy đủ</h3>
+<p>Khai báo <strong>1 máy chủ gửi email (SMTP) dùng chung</strong> cho toàn hệ thống: Host/Port/
+Secure (SSL-TLS)/bỏ qua kiểm tra chứng chỉ TLS (dành cho máy chủ SMTP nội bộ dùng chứng chỉ tự
+ký)/Username/Password/Email gửi (From)/Tên hiển thị. Bấm <strong>"Gửi thử"</strong> tới 1 địa chỉ
+bất kỳ để xác nhận cấu hình đúng trước khi dựa vào dùng thật. Đây là hạ tầng dùng chung (địa chỉ
+máy chủ nội bộ, mật khẩu tài khoản gửi mail thật) nên <strong>chỉ quản trị đầy đủ mới xem/sửa
+được</strong> - "Quản trị đối tác" (vd Fuji, xem mục 2b) không thấy màn hình này.</p>
+<p class="hint">Để trống ô Password khi sửa = giữ nguyên mật khẩu đã lưu (không bắt phải gõ lại
+mỗi lần chỉnh sửa các trường khác).</p>
+
+<h3>7b. Lịch gửi email báo cáo (menu "Lịch gửi email báo cáo") - dùng chung mọi tài khoản</h3>
+<p>Mở cho <strong>bất kỳ tài khoản nào xem được ít nhất 1 trong 3 loại báo cáo</strong> (không
+riêng quản trị) - mỗi người tự tạo lịch gửi cho chính mình hoặc cho đồng nghiệp/đối tác (ô "Email
+người nhận"), không cần chia sẻ tài khoản chỉ để lấy báo cáo định kỳ.</p>
+<ul>
+  <li><strong>Báo cáo</strong>: chỉ hiện đúng loại tài khoản đang đăng nhập có quyền xem (giống
+    hệt điều kiện của 3 màn hình báo cáo).</li>
+  <li><strong>Khoảng ngày lấy dữ liệu</strong>: Hôm qua/Hôm nay/7 ngày/30 ngày/Tháng này/Tháng
+    trước/Năm này/Năm trước, hoặc <strong>"Tự chọn khoảng ngày"</strong> để nhập thẳng 1 khoảng
+    Từ ngày-Đến ngày cố định.</li>
+  <li><strong>Công ty/Điểm thu hồi</strong>: lọc thêm tùy chọn, giống hệt bộ lọc trên màn hình báo
+    cáo thường.</li>
+  <li><strong>Hệ thống voucher</strong>: <strong>bắt buộc tick chọn rõ ràng ít nhất 1 hệ thống</strong>
+    trong số hệ thống tài khoản đang được phép xem (không còn kiểu để trống = ngầm hiểu "gửi tất
+    cả" như bản đầu tiên) - tránh gửi nhầm dữ liệu rộng hơn ý muốn khi tài khoản được cấp thêm
+    quyền xem hệ thống mới sau này.</li>
+  <li><strong>Tần suất</strong>: Hàng ngày, hoặc Hàng tuần (chọn thêm thứ), hoặc Hàng tháng (chọn
+    thêm ngày trong tháng) + giờ gửi cụ thể.</li>
+</ul>
+<p>Danh sách lịch: <strong>Sửa / Gửi ngay / Tắt-Bật / Xóa</strong>. Quản trị đầy đủ thấy
+<strong>toàn bộ</strong> lịch của mọi tài khoản; tài khoản khác (kể cả "Quản trị đối tác")
+<strong>chỉ thấy lịch do chính mình tạo</strong>.</p>
+<p class="hint"><strong>Phạm vi dữ liệu gửi đi luôn được tính lại TƯƠI ngay tại thời điểm gửi</strong>
+theo đúng quyền hiện tại của người tạo lịch - không cố định từ lúc tạo. Nếu quyền xem của người
+đó bị thu hẹp/thu hồi sau này (ví dụ đối tác Fuji bị rút bớt quyền xem 1 hệ thống), lịch đã tạo từ
+trước sẽ <strong>tự động gửi dữ liệu hẹp lại theo đúng quyền mới</strong> mà không cần vào sửa lại
+từng lịch. Hiện tại chỉ hỗ trợ file đính kèm Excel, chưa hỗ trợ PDF.</p>
+
+<h2>8. Tài liệu kỹ thuật đầy đủ</h2>
 <p>Bản hướng dẫn này tập trung vào thao tác trên giao diện admin. Các chủ đề sau dành cho đội
 kỹ thuật/IT triển khai hệ thống (không thực hiện được qua trình duyệt): cài đặt server, biến
 môi trường (.env), chạy migration CSDL, cấu hình nhiều worker, reverse proxy/HTTPS - xem file

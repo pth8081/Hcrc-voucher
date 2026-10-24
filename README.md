@@ -1978,7 +1978,11 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.65)**: hoan thien tinh nang gui bao cao qua email (v3.64) theo gop y thuc te
+Ban **moi nhat (v3.66)**: cap nhat 2 trang "Huong dan" trong app (muc "Huong dan he thong" cho
+quan tri, "Huong dan nghiep vu" cho nhan vien) de co them huong dan su dung tinh nang gui bao cao
+qua email (v3.64-v3.65) - truoc do 2 trang nay chua nhac gi den tinh nang email.
+
+Ban truoc do (v3.65): hoan thien tinh nang gui bao cao qua email (v3.64) theo gop y thuc te
 sau khi dung thu: (1) **he thong voucher khong con mac dinh "tat ca/full"** - nguoi tao lich PHAI
 tick checkbox chon TUONG MINH it nhat 1 he thong muon gui (truoc day chi co 1 select tuy chon,
 de trong = ngam dinh toan bo); (2) them 2 lua chon khoang ngay **Nam nay/Nam truoc** va **Tu chon
