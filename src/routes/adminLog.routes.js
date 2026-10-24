@@ -7,6 +7,8 @@ const router = express.Router();
 router.use(authenticate, requireAdmin);
 
 router.get('/audit-log', controller.auditLog);
+router.get('/audit-log/export', controller.auditLogExport);
 router.get('/scan-log', controller.scanLog);
+router.get('/scan-log/export', controller.scanLogExport);
 
 module.exports = router;

@@ -1144,8 +1144,10 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/auth/webauthn/register-verify` | Xac minh + luu passkey moi vao `WebAuthnCredentials` |
 | GET | `/api/auth/webauthn/devices` | Danh sach passkey da dang ky cua tai khoan dang dang nhap |
 | DELETE | `/api/auth/webauthn/devices/:id` | Xoa 1 passkey (vi du mat thiet bi) |
-| GET | `/api/admin/audit-log` | (can quyen admin) Nhat ky thao tac quan tri — muc 15c |
+| GET | `/api/admin/audit-log?fromDate=&toDate=` | (can quyen admin) Nhat ky thao tac quan tri — muc 15c |
+| GET | `/api/admin/audit-log/export?fromDate=&toDate=` | (can quyen admin) Xuat Excel nhat ky thao tac quan tri — muc 15c |
 | GET | `/api/admin/scan-log?fromDate=&toDate=` | (can quyen admin) Nhat ky quet/kiem tra voucher (doc lai `VoucherScanLogs`) — muc 15c |
+| GET | `/api/admin/scan-log/export?fromDate=&toDate=` | (can quyen admin) Xuat Excel hoat dong quet/thu hoi — muc 15c |
 | GET | `/api/guides/business` | (can quyen `canViewBusinessGuide`) Noi dung ban huong dan nghiep vu — muc 16 |
 | GET | `/api/guides/system` | (can quyen `canViewSystemGuide`) Noi dung ban huong dan he thong — muc 16 |
 
@@ -1819,6 +1821,14 @@ Hai nguon, 2 tab tren 1 trang:
   lan quet/kiem tra ca thanh cong lan that bai) qua `scanLogService.js`, truoc day khong co
   giao dien nao xem duoc, chi nam trong DB.
 
+**Xuat Excel (v3.63):** ca 2 tab deu co nut **"Xuat Excel"** canh nut "Xem" - xuat dung du lieu
+dang loc (tu ngay/den ngay, de trong ca 2 o = toan bo lich su) ra file `.xlsx`, gioi han toi da
+50.000 dong/lan xuat (`MAX_EXPORT_ROWS`) - rong hon nhieu GIOI HAN HIEN THI mac dinh tren man
+hinh (1000 dong) de phuc vu doi soat/kiem tra theo khoang ngay dai. Tab "Nhat ky quan tri" cung
+duoc them 2 o loc Tu ngay/Den ngay (truoc day chi co gioi han so dong, khong loc duoc theo ngay)
+de nhat quan voi tab con lai. API: `GET /api/admin/audit-log/export`, `GET /api/admin/scan-log/export`
+(deu chi admin, cung tham so `fromDate`/`toDate` nhu man hinh xem).
+
 File lien quan: `src/services/permissionService.js`, `src/services/userAdminService.js`,
 `src/services/auditLogService.js`, `src/services/scanLogService.js`,
 `src/middleware/requireFeature.js`, `public/users.html` + `public/js/users.js`,
@@ -1895,7 +1905,12 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.62)**: phat hien qua 1 su co thuc te (quet voucher that bao loi, dieu tra ra
+Ban **moi nhat (v3.63)**: man hinh "Nhat ky he thong" them nut **"Xuat Excel"** o ca 2 tab (Nhat
+ky quan tri + Hoat dong quet/thu hoi), ho tro xuat theo khoang ngay (toi da 50.000 dong/lan) de
+phuc vu lay bao cao dai ngay doi soat - tab "Nhat ky quan tri" cung duoc them o loc Tu ngay/Den
+ngay de nhat quan voi tab con lai (truoc day chi co gioi han so dong) - xem muc 15c.
+
+Ban truoc do (v3.62): phat hien qua 1 su co thuc te (quet voucher that bao loi, dieu tra ra
 nguyen nhan la CSDL production chua duoc chay du migration cho cac ban truoc) - app nay **tu kiem
 tra schema CSDL luc khoi dong**, tu CHOI chay (khong mo cong HTTP) neu con thieu bat ky file
 `sql/*.sql` nao so voi code dang chay, kem thong bao liet ke chinh xac file con thieu. Truoc ban
@@ -1951,6 +1966,9 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.63** - Them nut "Xuat Excel" cho ca 2 tab man hinh "Nhat ky he thong" (toi da 50.000 dong/lan,
+  ho tro loc theo khoang ngay) - phuc vu lay bao cao dai ngay de doi soat; tab "Nhat ky quan tri"
+  them o loc Tu ngay/Den ngay cho nhat quan voi tab "Hoat dong quet/thu hoi".
 - **v3.62** - App tu kiem tra schema CSDL luc khoi dong, TU CHOI chay (khong mo cong HTTP) neu con
   thieu bat ky migration nao so voi code dang chay, kem thong bao liet ke chinh xac file con
   thieu - `sql/032` them bang `SchemaMigrations` (scripts/migrate.js tu ghi lai sau moi lan chay
