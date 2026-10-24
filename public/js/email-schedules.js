@@ -1,0 +1,237 @@
+requireAuth();
+renderTopbar('email-schedules');
+
+const notAllowedNotice = document.getElementById('notAllowedNotice');
+const schedulesCard = document.getElementById('schedulesCard');
+const scheduleForm = document.getElementById('scheduleForm');
+const formTitle = document.getElementById('formTitle');
+const submitBtn = document.getElementById('submitBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const listBody = document.getElementById('listBody');
+
+const REPORT_TYPE_OPTIONS = [
+  { value: 'DAILY', label: 'Báo cáo đối soát (hàng ngày)', permission: 'canViewReconciliation' },
+  { value: 'SUMMARY', label: 'Báo cáo tổng hợp', permission: 'canViewSummary' },
+  { value: 'USED_VOUCHERS', label: 'Danh sách voucher đã sử dụng', permission: 'canViewUsedVouchers' },
+];
+const REPORT_TYPE_LABEL = Object.fromEntries(REPORT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
+const FREQUENCY_LABEL = { DAILY: 'Hàng ngày', WEEKLY: 'Hàng tuần', MONTHLY: 'Hàng tháng' };
+const WEEKDAY_LABEL = { 0: 'CN', 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7' };
+
+let editingId = null;
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function populateReportTypeOptions() {
+  const user = getUser();
+  const permissions = (user && user.permissions) || {};
+  const isAdmin = user && user.role === 'admin';
+  const allowed = REPORT_TYPE_OPTIONS.filter((o) => isAdmin || permissions[o.permission]);
+  const select = document.getElementById('f_reportType');
+  select.innerHTML = allowed.map((o) => `<option value="${o.value}">${escapeHtml(o.label)}</option>`).join('');
+}
+
+async function loadFilterOptions() {
+  try {
+    const [companies, units, systems] = await Promise.all([
+      apiFetch('/reports/filters/companies'),
+      apiFetch('/reports/filters/redemption-units'),
+      apiFetch('/reports/filters/systems'),
+    ]);
+    const companySelect = document.getElementById('f_companyId');
+    companySelect.innerHTML =
+      '<option value="">-- Tất cả công ty bạn được xem --</option>' +
+      companies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('');
+
+    const unitSelect = document.getElementById('f_redemptionUnitId');
+    unitSelect.innerHTML =
+      '<option value="">-- Tất cả điểm thu hồi bạn được xem --</option>' +
+      units.map((u) => `<option value="${u.Id}">${escapeHtml(u.PartnerName)}</option>`).join('');
+
+    const connSelect = document.getElementById('f_connectionId');
+    connSelect.innerHTML =
+      '<option value="">-- Tất cả hệ thống bạn được xem --</option>' +
+      systems.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  } catch (err) {
+    // Khong chan luong tao lich neu loi o day (vd mang cham) - chi khong co o loc tuy chon,
+    // giong triet ly loadSystemOptions() trong scan.js.
+    console.error('Khong tai duoc danh sach loc tuy chon:', err.message);
+  }
+}
+
+function toggleFrequencyFields() {
+  const freq = document.getElementById('f_frequency').value;
+  document.getElementById('weekDayField').classList.toggle('hidden', freq !== 'WEEKLY');
+  document.getElementById('monthDayField').classList.toggle('hidden', freq !== 'MONTHLY');
+}
+document.getElementById('f_frequency').addEventListener('change', toggleFrequencyFields);
+
+function resetForm() {
+  editingId = null;
+  scheduleForm.reset();
+  document.getElementById('f_sendTime').value = '08:00';
+  toggleFrequencyFields();
+  formTitle.textContent = 'Tạo lịch gửi email mới';
+  submitBtn.textContent = 'Tạo lịch';
+  cancelEditBtn.classList.add('hidden');
+}
+cancelEditBtn.addEventListener('click', resetForm);
+
+function scheduleLabel(s) {
+  const timeLabel = `${String(s.sendHour).padStart(2, '0')}:${String(s.sendMinute).padStart(2, '0')}`;
+  if (s.frequency === 'WEEKLY') return `${FREQUENCY_LABEL.WEEKLY} (${WEEKDAY_LABEL[s.weekDay]}) lúc ${timeLabel}`;
+  if (s.frequency === 'MONTHLY') return `${FREQUENCY_LABEL.MONTHLY} (ngày ${s.monthDay}) lúc ${timeLabel}`;
+  return `${FREQUENCY_LABEL.DAILY} lúc ${timeLabel}`;
+}
+
+function lastSentLabel(s) {
+  if (!s.lastSentDate) return '<span class="text-muted">Chưa gửi lần nào</span>';
+  const badge = s.lastSentStatus === 'SUCCESS'
+    ? '<span class="status-badge status-unused">THÀNH CÔNG</span>'
+    : `<span class="status-badge status-used">LỖI</span>`;
+  return `${fmtDate(s.lastSentDate)}<br/>${badge}${s.lastSentStatus !== 'SUCCESS' && s.lastSentMessage ? `<div class="fs-13 text-muted">${escapeHtml(s.lastSentMessage)}</div>` : ''}`;
+}
+
+async function loadList() {
+  try {
+    const rows = await apiFetch('/email-schedules');
+    renderList(rows);
+  } catch (err) {
+    notAllowedNotice.classList.remove('hidden');
+    schedulesCard.classList.add('hidden');
+  }
+}
+
+function renderList(rows) {
+  if (!rows.length) {
+    listBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có lịch nào - tạo mới ở form bên trên</td></tr>';
+    return;
+  }
+  listBody.innerHTML = rows
+    .map((s) => `
+      <tr data-id="${s.id}">
+        <td data-label="Tên lịch">${escapeHtml(s.name)}${s.isEnabled ? '' : ' <span class="status-badge status-other">ĐÃ TẮT</span>'}</td>
+        <td data-label="Báo cáo">${escapeHtml(REPORT_TYPE_LABEL[s.reportType] || s.reportType)}</td>
+        <td data-label="Giờ gửi">${scheduleLabel(s)}</td>
+        <td data-label="Lần gửi gần nhất">${lastSentLabel(s)}</td>
+        <td data-label="Hành động">
+          <div class="actions-cell">
+            <button class="btn-secondary edit-btn" type="button">Sửa</button>
+            <button class="btn-secondary send-now-btn" type="button">Gửi ngay</button>
+            <button class="btn-secondary toggle-btn" type="button">${s.isEnabled ? 'Tắt' : 'Bật'}</button>
+            <button class="btn-danger delete-btn" type="button">Xóa</button>
+          </div>
+        </td>
+      </tr>`)
+    .join('');
+
+  listBody.querySelectorAll('tr[data-id]').forEach((tr) => {
+    const id = tr.dataset.id;
+    const schedule = rows.find((s) => String(s.id) === id);
+    tr.querySelector('.edit-btn').addEventListener('click', () => startEdit(schedule));
+    tr.querySelector('.send-now-btn').addEventListener('click', () => sendNow(id, schedule.name));
+    tr.querySelector('.toggle-btn').addEventListener('click', () => toggleEnabled(id, !schedule.isEnabled, schedule.name));
+    tr.querySelector('.delete-btn').addEventListener('click', () => removeSchedule(id, schedule.name));
+  });
+}
+
+function startEdit(s) {
+  editingId = s.id;
+  document.getElementById('f_name').value = s.name;
+  document.getElementById('f_reportType').value = s.reportType;
+  document.getElementById('f_dateRangeMode').value = s.dateRangeMode;
+  document.getElementById('f_companyId').value = s.companyId || '';
+  document.getElementById('f_redemptionUnitId').value = s.redemptionUnitId || '';
+  document.getElementById('f_connectionId').value = s.connectionId || '';
+  document.getElementById('f_recipients').value = s.recipients;
+  document.getElementById('f_frequency').value = s.frequency;
+  if (s.weekDay !== null && s.weekDay !== undefined) document.getElementById('f_weekDay').value = String(s.weekDay);
+  if (s.monthDay !== null && s.monthDay !== undefined) document.getElementById('f_monthDay').value = s.monthDay;
+  document.getElementById('f_sendTime').value = `${String(s.sendHour).padStart(2, '0')}:${String(s.sendMinute).padStart(2, '0')}`;
+  toggleFrequencyFields();
+  formTitle.textContent = `Sửa lịch "${s.name}"`;
+  submitBtn.textContent = 'Lưu thay đổi';
+  cancelEditBtn.classList.remove('hidden');
+  scheduleForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function sendNow(id, name) {
+  if (!confirm(`Gửi ngay lịch "${name}" bây giờ?`)) return;
+  try {
+    await apiFetch(`/email-schedules/${encodeURIComponent(id)}/send-now`, { method: 'POST' });
+    showToast(`Đã gửi "${name}"`);
+    loadList();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function toggleEnabled(id, isEnabled, name) {
+  try {
+    await apiFetch(`/email-schedules/${encodeURIComponent(id)}/enabled`, {
+      method: 'PUT',
+      body: JSON.stringify({ isEnabled }),
+    });
+    showToast(isEnabled ? `Đã bật lại "${name}"` : `Đã tắt "${name}"`);
+    loadList();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function removeSchedule(id, name) {
+  if (!confirm(`Xóa lịch "${name}"? Không thể khôi phục.`)) return;
+  try {
+    await apiFetch(`/email-schedules/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    showToast(`Đã xóa "${name}"`);
+    loadList();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+scheduleForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const frequency = document.getElementById('f_frequency').value;
+  const [sendHour, sendMinute] = document.getElementById('f_sendTime').value.split(':').map(Number);
+  const body = {
+    name: document.getElementById('f_name').value.trim(),
+    reportType: document.getElementById('f_reportType').value,
+    dateRangeMode: document.getElementById('f_dateRangeMode').value,
+    companyId: document.getElementById('f_companyId').value || null,
+    redemptionUnitId: document.getElementById('f_redemptionUnitId').value || null,
+    connectionId: document.getElementById('f_connectionId').value || null,
+    recipients: document.getElementById('f_recipients').value.trim(),
+    frequency,
+    sendHour,
+    sendMinute,
+    weekDay: frequency === 'WEEKLY' ? Number(document.getElementById('f_weekDay').value) : null,
+    monthDay: frequency === 'MONTHLY' ? Number(document.getElementById('f_monthDay').value) : null,
+  };
+
+  submitBtn.disabled = true;
+  try {
+    if (editingId) {
+      await apiFetch(`/email-schedules/${encodeURIComponent(editingId)}`, { method: 'PUT', body: JSON.stringify(body) });
+      showToast('Đã lưu thay đổi');
+    } else {
+      await apiFetch('/email-schedules', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Đã tạo lịch gửi email');
+    }
+    resetForm();
+    loadList();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+populateReportTypeOptions();
+toggleFrequencyFields();
+loadFilterOptions();
+loadList();

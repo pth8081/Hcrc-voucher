@@ -690,7 +690,7 @@ Man hinh cho phep khai bao truc quan, khong can biet lap trinh:
    plaintext cho trinh duyet sau khi luu (chi hien "da luu, de trong de giu nguyen") - **de
    trong O DO khi Sua (vd chi doi Ten/Base URL) se GIU NGUYEN secret cu, khong can go lai**
    (loi that da tung xay ra: de trong bi hieu nham thanh "xoa secret", khien ket noi bien mat
-   khoi o chon he thong tren man Quet voucher - da sua, xem muc 17 Changelog).
+   khoi o chon he thong tren man Quet voucher - da sua, xem muc 18 Changelog).
 2. **Endpoint kiem tra (Check)**: chon method GET/POST, khai bao ma voucher nam o dau
    (path `{code}` / query string / body JSON), va **anh xa duong dan field** trong response
    JSON tra ve (vi du `status`, `valueAmt`, `issueDate`...) sang cac truong chuan cua app.
@@ -1148,6 +1148,15 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | GET | `/api/admin/audit-log/export?fromDate=&toDate=` | (can quyen admin) Xuat Excel nhat ky thao tac quan tri — muc 15c |
 | GET | `/api/admin/scan-log?fromDate=&toDate=` | (can quyen admin) Nhat ky quet/kiem tra voucher (doc lai `VoucherScanLogs`) — muc 15c |
 | GET | `/api/admin/scan-log/export?fromDate=&toDate=` | (can quyen admin) Xuat Excel hoat dong quet/thu hoi — muc 15c |
+| GET | `/api/email-gateway` | (can quyen admin) Cau hinh SMTP hien tai (mat khau luon an) — muc 17a |
+| PUT | `/api/email-gateway` | (can quyen admin) Luu cau hinh SMTP — muc 17a |
+| POST | `/api/email-gateway/test` | (can quyen admin) Gui email thu — `{ toEmail }` — muc 17a |
+| GET | `/api/email-schedules` | Danh sach lich gui email (admin = tat ca, tai khoan khac = chi lich cua minh) — muc 17b |
+| POST | `/api/email-schedules` | Tao lich gui email moi — muc 17b |
+| PUT | `/api/email-schedules/:id` | Sua 1 lich (chi chu lich hoac admin) — muc 17b |
+| PUT | `/api/email-schedules/:id/enabled` | Bat/tat 1 lich (chi chu lich hoac admin) — muc 17b |
+| DELETE | `/api/email-schedules/:id` | Xoa 1 lich (chi chu lich hoac admin) — muc 17b |
+| POST | `/api/email-schedules/:id/send-now` | Gui ngay 1 lich (chi chu lich hoac admin) — muc 17b |
 | GET | `/api/guides/business` | (can quyen `canViewBusinessGuide`) Noi dung ban huong dan nghiep vu — muc 16 |
 | GET | `/api/guides/system` | (can quyen `canViewSystemGuide`) Noi dung ban huong dan he thong — muc 16 |
 
@@ -1895,7 +1904,64 @@ Safari iOS - luu y iOS **bat buoc dung Safari**, trinh duyet khac se khong co tu
 nhanh nhu 1 app that, khong con thanh dia chi trinh duyet - nen lam cho dien thoai dung quet
 voucher hang ngay.
 
-## 17. Lich su phien ban (Changelog)
+## 17. Gui bao cao qua email (cau hinh SMTP + lich gui tu dong)
+
+Cho phep gui file Excel bao cao qua email theo lich dinh ky (ngay/tuan/thang), theo mau tham
+khao nguoi dung cung cap - **phan quyen theo dung mo hinh "Quan tri doi tac" (muc 4j)**: quan tri
+day du gui duoc bao cao cua **TOAN BO he thong**, con tai khoan "Quan tri doi tac" (vd Fuji) **chi
+gui duoc bao cao trong dung pham vi du lieu cua ho**.
+
+### 17a. Cau hinh may chu gui email (SMTP) - chi quan tri day du
+
+Man hinh **"Thiet lap email"** (`/email-settings.html`, trong dropdown "Quan tri") - CHI 1 cau
+hinh DUNG CHUNG cho toan he thong (khong co rieng cho tung doi tac): Host/Port/Secure (SSL-TLS)/
+bo qua kiem tra chung chi TLS (danh cho may chu SMTP noi bo dung chung chi tu ky)/Username/
+Password/Email gui (From)/Ten hien thi, kem nut **"Gui thu"** de xac nhan cau hinh dung truoc khi
+dua vao dung that. Day la ha tang DUNG CHUNG (vd dia chi IP noi bo, mat khau tai khoan gui mail
+that) nen **CHI quan tri day du moi xem/sua duoc** - "Quan tri doi tac" khong thay man hinh nay,
+chi dung duoc may chu da cau hinh san de gui lich cua chinh ho.
+
+Mat khau SMTP ma hoa AES-256-GCM (cung co che voi `ApiConnections.AuthTokenEncrypted`, dung chung
+`ENCRYPTION_KEY`) - API `GET /api/email-gateway` khong bao gio tra ve mat khau that (chi bao
+`hasPassword: true/false`), de trong o Password khi sua = **giu nguyen** mat khau da luu.
+
+Du lieu: `sql/033_create_email_gateway_config.sql` (bang `EmailGatewayConfig`, CHI 1 dong duy
+nhat). Logic: `src/services/emailGatewayService.js`.
+
+### 17b. Lich gui email tu dong - dung chung ca 2 nhom, pham vi khac nhau
+
+Man hinh **"Lich gui email bao cao"** (`/email-schedules.html`) - mo cho **bat ky tai khoan nao
+xem duoc it nhat 1 trong 3 bao cao** (dieu kien giong het `requireFeature` cua chinh 3 man hinh
+bao cao do), khong rieng admin/"Quan tri doi tac":
+
+- **Tao lich**: chon Bao cao (chi hien cac loai tai khoan THAT SU co quyen xem - vd tai khoan chi
+  co `canViewReconciliation` se khong thay "Bao cao tong hop" trong danh sach chon), Khoang ngay
+  lay du lieu (Hom qua/Hom nay/7 ngay/30 ngay/Thang nay/Thang truoc), loc THEM tuy chon Cong ty/
+  Diem thu hoi/He thong voucher (CHI gom cac gia tri tai khoan nay duoc xem - dung lai nguyen
+  `GET /api/reports/filters/*` da co san cho 3 man hinh bao cao), Email nguoi nhan, Tan suat
+  (Hang ngay/Hang tuan - chon them Thu/Hang thang - chon them Ngay trong thang), Gio gui.
+- **Danh sach lich**: Sua/Gui ngay/Tat-Bat/Xoa. Quan tri day du thay **TOAN BO** lich (ca cua
+  nguoi khac tao); tai khoan khac (ke ca "Quan tri doi tac") **CHI thay lich do CHINH MINH tao** -
+  khong thay duoc lich cua admin hay cua tai khoan khac, giong het nguyen tac cua man hinh "Quan
+  tri doi tac" (muc 4j).
+
+**Pham vi du lieu LUON duoc tinh LAI TUOI tai thoi diem gui** (khong luu co dinh trong lich) - tu
+chinh quyen HIEN TAI cua tai khoan da tao lich (`emailScheduleService.js#resolveScheduleScope`,
+dung lai dung `reportAccessService.resolveVisibleLocationCodes()` + `userVoucherSystemService.getAllowedConnectionIds()`
+ma man hinh bao cao binh thuong dang dung) - dam bao 1 lich do tai khoan "Quan tri doi tac" Fuji
+tao **LUON CHI** gui dung du lieu Fuji, ke ca neu quyen cua tai khoan do bi thu hep/thu hoi sau
+nay (tu dong "thu hep theo" ma khong can sua lai tung lich).
+
+Job nen (`src/utils/emailScheduler.js`, mau hinh giong `syncScheduler.js`) kiem tra moi phut, gui
+cac lich den dung gio/ngay VA chua gui trong hom nay (tranh gui trung neu tien trinh khoi dong
+lai gan dung gio). Tat qua bien moi truong `EMAIL_SCHEDULER_ENABLED=false` neu can.
+
+Du lieu: `sql/034_create_email_report_schedules.sql` (bang `EmailReportSchedules`). Logic:
+`src/services/emailScheduleService.js`, `src/utils/emailScheduler.js`. Hien tai **chi ho tro xuat
+Excel** (dung lai dung engine xuat Excel cua 3 bao cao, khong them thu vien moi) - chua ho tro
+PDF.
+
+## 18. Lich su phien ban (Changelog)
 
 So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
 dang chay dung version nao sau khi cap nhat code" o muc 3e), khong phai tang tuy y — moi dong
@@ -1905,12 +1971,19 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.63)**: man hinh "Nhat ky he thong" them nut **"Xuat Excel"** o ca 2 tab (Nhat
+Ban **moi nhat (v3.64)**: them tinh nang **gui bao cao qua email** - man hinh "Thiet lap email"
+(cau hinh SMTP dung chung, CHI quan tri day du) + man hinh "Lich gui email bao cao" (tao lich
+dinh ky ngay/tuan/thang, mo cho bat ky ai xem duoc bao cao) - **quan tri day du gui duoc bao cao
+TOAN HE THONG, "Quan tri doi tac" (vd Fuji) chi gui duoc dung pham vi du lieu cua ho**, tinh lai
+TUOI tai thoi diem gui tu quyen hien tai cua nguoi tao lich (khong luu co dinh). Hien chi ho tro
+file dinh kem Excel - xem muc 17.
+
+Ban truoc do (v3.63): man hinh "Nhat ky he thong" them nut **"Xuat Excel"** o ca 2 tab (Nhat
 ky quan tri + Hoat dong quet/thu hoi), ho tro xuat theo khoang ngay (toi da 50.000 dong/lan) de
 phuc vu lay bao cao dai ngay doi soat - tab "Nhat ky quan tri" cung duoc them o loc Tu ngay/Den
 ngay de nhat quan voi tab con lai (truoc day chi co gioi han so dong) - xem muc 15c.
 
-Ban truoc do (v3.62): phat hien qua 1 su co thuc te (quet voucher that bao loi, dieu tra ra
+Ban truoc do nua (v3.62): phat hien qua 1 su co thuc te (quet voucher that bao loi, dieu tra ra
 nguyen nhan la CSDL production chua duoc chay du migration cho cac ban truoc) - app nay **tu kiem
 tra schema CSDL luc khoi dong**, tu CHOI chay (khong mo cong HTTP) neu con thieu bat ky file
 `sql/*.sql` nao so voi code dang chay, kem thong bao liet ke chinh xac file con thieu. Truoc ban
@@ -1966,6 +2039,11 @@ viec co thay du lieu CU (truoc khi tich hop nhieu he thong) trong bao cao hay kh
 LUON tu dong hien nhu ban v3.51/v3.53 - xem muc 4f. Chi tiet cac ban cu hon xem danh sach day du
 ben duoi.
 
+- **v3.64** - Them tinh nang gui bao cao qua email: man hinh "Thiet lap email" (cau hinh SMTP
+  dung chung, chi quan tri day du), man hinh "Lich gui email bao cao" (tao lich dinh ky ngay/tuan/
+  thang, mo cho bat ky tai khoan xem duoc bao cao) - quan tri day du gui duoc toan he thong,
+  "Quan tri doi tac" chi gui duoc dung pham vi du lieu cua ho (tinh lai tuoi tu quyen hien tai luc
+  gui, khong luu co dinh). Hien chi ho tro file dinh kem Excel - xem muc 17.
 - **v3.63** - Them nut "Xuat Excel" cho ca 2 tab man hinh "Nhat ky he thong" (toi da 50.000 dong/lan,
   ho tro loc theo khoang ngay) - phuc vu lay bao cao dai ngay de doi soat; tab "Nhat ky quan tri"
   them o loc Tu ngay/Den ngay cho nhat quan voi tab "Hoat dong quet/thu hoi".

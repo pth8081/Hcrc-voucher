@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lịch gửi email báo cáo - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container">
+    <div id="notAllowedNotice" class="card hidden">
+      <p class="text-muted m-0">Tài khoản của bạn không có quyền xem báo cáo nào để lên lịch gửi email.</p>
+    </div>
+
+    <div id="schedulesCard">
+      <div class="card">
+        <h2 id="formTitle">Tạo lịch gửi email mới</h2>
+        <p class="hint mb-10">
+          Hệ thống tự gửi file Excel báo cáo qua email theo đúng lịch bên dưới. Dữ liệu gửi đi
+          LUÔN đúng phạm vi bạn được phép xem tại thời điểm gửi (không rộng hơn những gì bạn tự
+          xem được trên màn hình báo cáo) - không cần/không nên chia sẻ tài khoản chỉ để lấy báo cáo.
+        </p>
+        <form id="scheduleForm">
+          <label>Tên lịch *</label>
+          <input id="f_name" required placeholder="vd: Báo cáo doanh thu cuối ngày" />
+
+          <label>Báo cáo *</label>
+          <select id="f_reportType" required></select>
+
+          <label>Khoảng ngày lấy dữ liệu *</label>
+          <select id="f_dateRangeMode" required>
+            <option value="YESTERDAY">Hôm qua</option>
+            <option value="TODAY">Hôm nay (tính đến giờ gửi)</option>
+            <option value="LAST_7_DAYS">7 ngày gần nhất</option>
+            <option value="LAST_30_DAYS">30 ngày gần nhất</option>
+            <option value="THIS_MONTH">Tháng này (từ đầu tháng)</option>
+            <option value="LAST_MONTH">Tháng trước</option>
+          </select>
+
+          <label>Công ty (tùy chọn)</label>
+          <select id="f_companyId"><option value="">-- Tất cả công ty bạn được xem --</option></select>
+
+          <label>Điểm thu hồi (tùy chọn)</label>
+          <select id="f_redemptionUnitId"><option value="">-- Tất cả điểm thu hồi bạn được xem --</option></select>
+
+          <label>Hệ thống voucher (tùy chọn)</label>
+          <select id="f_connectionId"><option value="">-- Tất cả hệ thống bạn được xem --</option></select>
+
+          <label>Email người nhận *</label>
+          <input id="f_recipients" required placeholder="cách nhau bởi dấu phẩy, vd: a@hcrc.vn, b@fuji.vn" />
+
+          <label>Tần suất gửi *</label>
+          <select id="f_frequency" required>
+            <option value="DAILY">Hàng ngày</option>
+            <option value="WEEKLY">Hàng tuần</option>
+            <option value="MONTHLY">Hàng tháng</option>
+          </select>
+
+          <div id="weekDayField" class="hidden">
+            <label>Vào thứ *</label>
+            <select id="f_weekDay">
+              <option value="1">Thứ Hai</option>
+              <option value="2">Thứ Ba</option>
+              <option value="3">Thứ Tư</option>
+              <option value="4">Thứ Năm</option>
+              <option value="5">Thứ Sáu</option>
+              <option value="6">Thứ Bảy</option>
+              <option value="0">Chủ Nhật</option>
+            </select>
+          </div>
+
+          <div id="monthDayField" class="hidden">
+            <label>Vào ngày (trong tháng) *</label>
+            <input id="f_monthDay" type="number" min="1" max="31" placeholder="1-31" />
+            <p class="hint mb-6">Tháng nào không đủ số ngày này (vd chọn 31 nhưng tháng chỉ có 30 ngày) sẽ tự bỏ qua tháng đó.</p>
+          </div>
+
+          <label>Giờ gửi *</label>
+          <input id="f_sendTime" type="time" required value="08:00" />
+
+          <button class="btn-primary btn-block mt-10" type="submit" id="submitBtn">Tạo lịch</button>
+          <button class="btn-secondary btn-block hidden" type="button" id="cancelEditBtn">Hủy sửa</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Danh sách lịch gửi</h2>
+        <p class="hint mb-10">Bạn chỉ thấy lịch do chính tài khoản này tạo (quản trị đầy đủ thấy toàn bộ).</p>
+        <div class="table-wrap table-responsive">
+          <table>
+            <thead>
+              <tr><th>Tên lịch</th><th>Báo cáo</th><th>Giờ gửi</th><th>Lần gửi gần nhất</th><th>Hành động</th></tr>
+            </thead>
+            <tbody id="listBody"><tr><td colspan="5" class="text-muted">Đang tải...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/email-schedules.js"></script>
+</body>
+</html>

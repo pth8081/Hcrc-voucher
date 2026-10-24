@@ -16,5 +16,7 @@ router.use('/vouchers', require('./voucher.routes'));
 router.use('/reports', require('./report.routes'));
 router.use('/admin', require('./adminLog.routes'));
 router.use('/guides', require('./guide.routes'));
+router.use('/email-gateway', require('./emailGateway.routes'));
+router.use('/email-schedules', require('./emailSchedule.routes'));
 
 module.exports = router;

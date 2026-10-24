@@ -18,6 +18,7 @@ const NAV_ICONS = {
   adminLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   guide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15.5"/><path d="M6 22a2 2 0 0 1-2-2.5C4 18.5 5 18 6 18h13"/><path d="M9 8h7M9 11h5"/></svg>',
+  email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
@@ -37,6 +38,10 @@ const NAV_ITEMS = [
   // nay (permissions.isPartnerAdmin luon false - xem permissionService.js#ADMIN_PERMISSIONS) nen
   // muc nay tu an voi ho, khong trung lap voi man hinh "Tai khoan" day du da co san.
   { key: 'partner-admin', href: '/partner-admin.html', label: 'Quản trị đối tác', icon: NAV_ICONS.users, permission: 'isPartnerAdmin' },
+  // Mo cho bat ky tai khoan nao xem duoc IT NHAT 1 trong 3 bao cao (giong dieu kien
+  // requireFeature o routes/emailSchedule.routes.js) - "permission" o day la MANG (OR), khac voi
+  // cac muc khac chi nhan 1 chuoi, xem logic loc o renderTopbar() ben duoi.
+  { key: 'email-schedules', href: '/email-schedules.html', label: 'Lịch gửi email báo cáo', icon: NAV_ICONS.email, permission: ['canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'] },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];
 
@@ -47,6 +52,7 @@ const ADMIN_NAV_ITEMS = [
   { key: 'connection', href: '/api-connection.html', label: 'Kết nối API', icon: NAV_ICONS.connection },
   { key: 'users', href: '/users.html', label: 'Tài khoản', icon: NAV_ICONS.users },
   { key: 'admin-log', href: '/admin-log.html', label: 'Nhật ký hệ thống', icon: NAV_ICONS.adminLog },
+  { key: 'email-settings', href: '/email-settings.html', label: 'Thiết lập email', icon: NAV_ICONS.email },
 ];
 
 function initials(name) {
@@ -70,7 +76,14 @@ function renderTopbar(activeKey) {
   // anh huong giao dien, server van chan dung qua requireFeature.js/requireRole.js du sao).
   const permissions = user && user.permissions ? user.permissions : null;
   const role = user && user.role ? user.role : null;
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || !permissions || permissions[item.permission]);
+  // item.permission co the la 1 chuoi (phai co DUNG quyen do) hoac 1 mang (OR - co IT NHAT 1
+  // trong cac quyen do la du, vd muc "Lich gui email bao cao" dung chung ca 3 loai bao cao).
+  const hasPermission = (item) => {
+    if (!item.permission || !permissions) return true;
+    const required = Array.isArray(item.permission) ? item.permission : [item.permission];
+    return required.some((p) => permissions[p]);
+  };
+  const visibleNavItems = NAV_ITEMS.filter(hasPermission);
   const showAdminMenu = role !== 'staff';
   const adminMenuActive = ADMIN_NAV_ITEMS.some((item) => item.key === activeKey);
 
