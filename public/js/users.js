@@ -272,6 +272,12 @@ function renderUsers(users) {
               .join('')}
           </div>
         </td>
+        <td data-label="Quản trị đối tác">
+          <select class="partner-admin-connection" ${isAdmin ? 'disabled' : ''}>
+            <option value="">-- Không --</option>
+            ${voucherConnectionsCache.map((c) => `<option value="${c.id}">${escapeHtmlLayout(c.name)}</option>`).join('')}
+          </select>
+        </td>
         <td data-label="Mật khẩu mới"><input type="password" class="edit-password" placeholder="Để trống = giữ nguyên" autocomplete="new-password" /></td>
         <td data-label="Hành động">
           <div class="actions-cell">
@@ -294,6 +300,9 @@ function renderUsers(users) {
     if (user && user.locationsDetail) {
       const matchedUnit = redemptionUnitsCache.find((u) => u.LocationCode === user.locationsDetail);
       if (matchedUnit) tr.querySelector('.redemption-unit').value = String(matchedUnit.Id);
+    }
+    if (user && user.permissions && user.permissions.partnerAdminConnectionId) {
+      tr.querySelector('.partner-admin-connection').value = String(user.permissions.partnerAdminConnectionId);
     }
 
     const lockBtn = tr.querySelector('.lock-btn');
@@ -382,6 +391,8 @@ async function saveUser(tr) {
     permissions[field] = !!(el && el.checked);
   });
   const connectionIds = Array.from(tr.querySelectorAll('.voucher-system-checkbox:checked')).map((el) => Number(el.dataset.id));
+  const partnerAdminConnectionRaw = tr.querySelector('.partner-admin-connection').value;
+  const partnerAdminConnectionId = partnerAdminConnectionRaw ? Number(partnerAdminConnectionRaw) : null;
 
   const saveBtn = tr.querySelector('.save-btn');
   saveBtn.disabled = true;
@@ -427,6 +438,13 @@ async function saveUser(tr) {
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/profile`, {
         method: 'PUT',
         body: JSON.stringify({ fullName, password, username }),
+      }),
+    },
+    {
+      label: 'Quản trị đối tác',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/partner-admin`, {
+        method: 'PUT',
+        body: JSON.stringify({ connectionId: partnerAdminConnectionId, username }),
       }),
     },
   ];

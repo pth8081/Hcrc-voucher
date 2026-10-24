@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const authService = require('../services/authService');
 
 /**
  * Chap nhan CHI token TAM (xem authService.issuePendingToken) co purpose nam trong
@@ -29,11 +30,13 @@ function require2FAPending(allowedPurposes) {
  * Rieng cho 2 API thiet lap 2FA (setup-init/setup-verify): chap nhan CA HAI truong hop -
  *  - Token TAM purpose='2fa_setup' (buoc BAT BUOC ngay sau khi dang nhap lan dau, chua co
  *    phien day du).
- *  - Phien dang nhap DAY DU cua chinh admin do (tu chon "doi thiet bi 2FA" khi da dang nhap
- *    binh thuong, van con giu duoc thiet bi cu).
+ *  - Phien dang nhap DAY DU cua chinh tai khoan do (tu chon "doi thiet bi 2FA" khi da dang
+ *    nhap binh thuong, van con giu duoc thiet bi cu) - CHI tai khoan BAT BUOC dung 2FA (quan
+ *    tri day du hoac "Quan tri doi tac", xem authService.js#requiresMandatory2FA - dung CHUNG
+ *    dieu kien voi luc dang nhap, khong con hardcode rieng role=1 o day nua).
  * Ket qua chuan hoa vao req.twoFactorSubject = { userId, username }.
  */
-function resolveSetupSubject(req, res, next) {
+async function resolveSetupSubject(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) {
@@ -51,10 +54,14 @@ function resolveSetupSubject(req, res, next) {
     req.twoFactorContext = 'pending';
     return next();
   }
-  if (payload.purpose === 'session' && Number(payload.role) === 1) {
-    req.twoFactorSubject = { userId: payload.userId, username: payload.username };
-    req.twoFactorContext = 'session';
-    return next();
+  try {
+    if (payload.purpose === 'session' && (await authService.requiresMandatory2FA(payload.role, payload.userId))) {
+      req.twoFactorSubject = { userId: payload.userId, username: payload.username };
+      req.twoFactorContext = 'session';
+      return next();
+    }
+  } catch (err) {
+    return next(err);
   }
   return res.status(401).json({ success: false, message: 'Token khong hop le hoac het han' });
 }

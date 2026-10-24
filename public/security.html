@@ -32,50 +32,48 @@
       </div>
     </div>
 
-    <div id="notAdminNotice" class="card hidden">
-      <p class="text-muted m-0">Các mục bên dưới chỉ dành cho tài khoản quản trị.</p>
+    <div id="notAllowedNotice" class="card hidden">
+      <p class="text-muted m-0">Tài khoản của bạn không bắt buộc xác thực hai yếu tố.</p>
     </div>
 
-    <div id="securityCards">
-      <div class="card">
-        <h2>Xác thực hai yếu tố của tôi</h2>
-        <p id="myStatus" class="text-muted">Đang tải...</p>
-        <div class="flex gap-8 flex-wrap">
-          <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Đổi thiết bị xác thực</button>
-          <button id="showQrBtn" class="btn-secondary hidden" type="button">Thêm thiết bị Authenticator khác</button>
-        </div>
-
-        <div id="showQrPanel" class="hidden mt-10">
-          <p class="hint">
-            Hiện lại đúng mã QR đang dùng để quét thêm trên 1 thiết bị thứ 2 - không ảnh hưởng
-            thiết bị hiện tại. Nhập lại mật khẩu để xác nhận.
-          </p>
-          <div class="flex flex-wrap gap-8">
-            <input id="showQrPassword" type="password" placeholder="Mật khẩu" class="flex-1 m-0" autocomplete="current-password" />
-            <button id="showQrConfirmBtn" class="btn-secondary" type="button">Hiện mã QR</button>
-          </div>
-          <div id="showQrResult" class="hidden mt-10">
-            <div class="twofa-qr"><img id="showQrImg" alt="Mã QR xác thực hai yếu tố" /></div>
-            <p class="twofa-key-label">Hoặc nhập tay mã này vào ứng dụng Authenticator:</p>
-            <p id="showQrKey" class="twofa-key"></p>
-          </div>
-        </div>
+    <div id="my2faCard" class="card hidden">
+      <h2>Xác thực hai yếu tố của tôi</h2>
+      <p id="myStatus" class="text-muted">Đang tải...</p>
+      <div class="flex gap-8 flex-wrap">
+        <button id="changeDeviceBtn" class="btn-secondary hidden" type="button">Đổi thiết bị xác thực</button>
+        <button id="showQrBtn" class="btn-secondary hidden" type="button">Thêm thiết bị Authenticator khác</button>
       </div>
 
-      <div class="card">
-        <h2>Quản trị viên &amp; trạng thái 2FA</h2>
-        <p class="security-note">
-          Chỉ quản trị viên khác mới gỡ được xác thực hai yếu tố của bạn - không thể tự gỡ của chính mình,
-          để tránh 1 phiên bị chiếm quyền tự vô hiệu hóa lớp bảo vệ này.
+      <div id="showQrPanel" class="hidden mt-10">
+        <p class="hint">
+          Hiện lại đúng mã QR đang dùng để quét thêm trên 1 thiết bị thứ 2 - không ảnh hưởng
+          thiết bị hiện tại. Nhập lại mật khẩu để xác nhận.
         </p>
-        <div class="table-wrap table-responsive">
-        <table>
-          <thead>
-            <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái 2FA</th><th>Kích hoạt lúc</th><th>Dùng gần nhất</th><th></th></tr>
-          </thead>
-          <tbody id="adminsBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
-        </table>
+        <div class="flex flex-wrap gap-8">
+          <input id="showQrPassword" type="password" placeholder="Mật khẩu" class="flex-1 m-0" autocomplete="current-password" />
+          <button id="showQrConfirmBtn" class="btn-secondary" type="button">Hiện mã QR</button>
         </div>
+        <div id="showQrResult" class="hidden mt-10">
+          <div class="twofa-qr"><img id="showQrImg" alt="Mã QR xác thực hai yếu tố" /></div>
+          <p class="twofa-key-label">Hoặc nhập tay mã này vào ứng dụng Authenticator:</p>
+          <p id="showQrKey" class="twofa-key"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminsListCard" class="card hidden">
+      <h2>Quản trị viên &amp; trạng thái 2FA</h2>
+      <p class="security-note">
+        Chỉ quản trị viên khác mới gỡ được xác thực hai yếu tố của bạn - không thể tự gỡ của chính mình,
+        để tránh 1 phiên bị chiếm quyền tự vô hiệu hóa lớp bảo vệ này.
+      </p>
+      <div class="table-wrap table-responsive">
+      <table>
+        <thead>
+          <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái 2FA</th><th>Kích hoạt lúc</th><th>Dùng gần nhất</th><th></th></tr>
+        </thead>
+        <tbody id="adminsBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
+      </table>
       </div>
     </div>
   </div>
