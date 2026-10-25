@@ -21,17 +21,31 @@ const VOUCHER_STATUS = {
  * khong truyen) -> giu nguyen hanh vi cu (dung ket noi active).
  */
 async function resolveConnection(connectionId) {
+  let connection;
   if (connectionId) {
-    const connection = await apiConnectionService.getByIdDecrypted(connectionId);
+    connection = await apiConnectionService.getByIdDecrypted(connectionId);
     if (!connection) {
       const err = new Error('Khong tim thay he thong voucher da chon');
       err.statusCode = 400;
       err.publicMessage = 'He thong voucher ban da chon khong con ton tai (co the da bi xoa) - vui long tai lai trang va chon lai.';
       throw err;
     }
-    return connection;
+  } else {
+    connection = await apiConnectionService.getActiveDecrypted();
   }
-  return apiConnectionService.getActiveDecrypted();
+
+  // Diem kiem tra TRUNG TAM cho ca checkVoucher() va redeemVoucher() - admin khoa 1 ket noi
+  // (man hinh "Ket noi API") nghia la vo hieu hoa hoan toan, bat ke dang duoc chon rieng qua
+  // connectionId HAY la ket noi active mac dinh (ca 2 nhanh phia tren deu di qua day truoc
+  // khi tra ve cho noi goi), tranh truong hop admin da khoa nhung van con 1 duong khac lach qua.
+  if (connection && connection.isLocked) {
+    const err = new Error('He thong voucher da bi khoa');
+    err.statusCode = 400;
+    err.publicMessage = `He thong voucher "${connection.name}" dang bi khoa (tam vo hieu hoa) - vui long chon he thong khac hoac lien he quan tri vien de mo khoa.`;
+    throw err;
+  }
+
+  return connection;
 }
 
 async function checkVoucher(voucherCode, { connectionId } = {}) {

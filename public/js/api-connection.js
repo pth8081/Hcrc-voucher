@@ -57,9 +57,9 @@ async function loadList() {
     wrap.innerHTML = list
       .map(
         (c) => `
-        <div class="conn-row">
+        <div class="conn-row${c.isLocked ? ' conn-row-locked' : ''}">
           <div>
-            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}
+            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}${c.isLocked ? '<span class="badge-locked">ĐÃ KHÓA</span>' : ''}
             <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
             ${
               c.excludedCodePrefixes && c.excludedCodePrefixes.length
@@ -67,9 +67,14 @@ async function loadList() {
                 : ''
             }
           </div>
-          <div class="flex gap-8">
+          <div class="flex gap-8 items-center">
+            <label class="conn-toggle" title="${c.isLocked ? 'Đang tắt - bấm để bật lại (cho phép dùng)' : 'Đang bật - bấm để tắt (vô hiệu hóa)'}">
+              <input type="checkbox" data-toggle="${c.id}" ${c.isLocked ? '' : 'checked'} />
+              <span class="conn-toggle-track"></span>
+              <span class="conn-toggle-text">${c.isLocked ? 'Tắt' : 'Bật'}</span>
+            </label>
             <button class="btn-secondary" data-edit="${c.id}">Sửa</button>
-            ${!c.isActive ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
+            ${!c.isActive && !c.isLocked ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
             <button class="btn-danger" data-remove="${c.id}">Xóa</button>
           </div>
         </div>`
@@ -81,6 +86,9 @@ async function loadList() {
     );
     wrap.querySelectorAll('[data-activate]').forEach((btn) =>
       btn.addEventListener('click', () => activateConnection(Number(btn.dataset.activate)))
+    );
+    wrap.querySelectorAll('[data-toggle]').forEach((input) =>
+      input.addEventListener('change', (e) => setLockedConnection(Number(input.dataset.toggle), !e.target.checked))
     );
     wrap.querySelectorAll('[data-remove]').forEach((btn) =>
       btn.addEventListener('click', () => removeConnection(Number(btn.dataset.remove)))
@@ -97,6 +105,25 @@ async function activateConnection(id) {
     await loadList();
   } catch (err) {
     showToast(err.message);
+  }
+}
+
+async function setLockedConnection(id, locked) {
+  // Bam vao cong tac se lam trinh duyet tu doi trang thai checkbox NGAY LAP TUC (truoc khi ham
+  // nay chay) - neu nguoi dung bam Huy o hop xac nhan, hoac goi API that bai, phai ve lai danh
+  // sach tu du lieu THAT tren server (loadList()) de cong tac tro ve dung trang thai cu, khong
+  // de lai giao dien sai lech voi du lieu da luu.
+  if (locked && !confirm('Tắt kết nối này? Kết nối sẽ không dùng được cho đến khi bật lại.')) {
+    await loadList();
+    return;
+  }
+  try {
+    await apiFetch(`/api-connections/${id}/${locked ? 'lock' : 'unlock'}`, { method: 'POST' });
+    showToast(locked ? 'Đã tắt kết nối' : 'Đã bật kết nối');
+    await loadList();
+  } catch (err) {
+    showToast(err.message);
+    await loadList();
   }
 }
 
