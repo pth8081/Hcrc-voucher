@@ -14,6 +14,157 @@ const STATE_CHIP = {
   expired: '<span class="status-badge status-used">ĐÃ HẾT HẠN</span>',
 };
 
+// L5 (dung chung cach lam voi admin-log.js): chi can nhan tieng Viet cho cac ma hanh dong THUC
+// SU co the lien quan pham vi "Quan tri doi tac" (chinh ho thao tac, hoac HCRC thao tac tren
+// tai khoan nhan vien cua ho) - khong can day du nhu admin-log.js vi cac hanh dong ngoai pham vi
+// (vd sua Ket noi API, tao Cong ty...) se khong bao gio xuat hien o day.
+const ACTION_LABEL = {
+  CREATE_USER: 'Tạo tài khoản',
+  UPDATE_USER_LOCATION: 'Đổi điểm tiêu tài khoản',
+  UPDATE_USER_PROFILE: 'Sửa họ tên/đặt lại mật khẩu',
+  DELETE_USER: 'Xóa tài khoản',
+  RESTORE_USER: 'Khôi phục tài khoản',
+  UPDATE_PERMISSIONS: 'Đổi quyền tính năng',
+  UPDATE_SCHEDULE: 'Đổi lịch hiệu lực',
+  UPDATE_REPORT_ACCESS: 'Đổi nhóm quyền báo cáo',
+  RESET_2FA: 'Gỡ xác thực hai yếu tố',
+  UPDATE_USER_VOUCHER_SYSTEMS: 'Đổi hệ thống voucher được dùng',
+  UPDATE_PARTNER_ADMIN: 'Đổi quyền quản trị đối tác',
+  PARTNER_ADMIN_CREATE_USER: 'Bạn tạo tài khoản mới',
+  PARTNER_ADMIN_LOCK_USER: 'Bạn khóa tài khoản',
+  PARTNER_ADMIN_UNLOCK_USER: 'Bạn mở khóa tài khoản',
+};
+
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tabUsers').classList.toggle('hidden', btn.dataset.tab !== 'users');
+    document.getElementById('tabAudit').classList.toggle('hidden', btn.dataset.tab !== 'audit');
+    document.getElementById('tabScan').classList.toggle('hidden', btn.dataset.tab !== 'scan');
+    if (btn.dataset.tab === 'audit' && !auditLoaded) loadAudit();
+    if (btn.dataset.tab === 'scan' && !scanLoaded) loadScan();
+  });
+});
+
+function detailText(raw) {
+  if (!raw) return '-';
+  try {
+    return JSON.stringify(JSON.parse(raw));
+  } catch (err) {
+    return raw;
+  }
+}
+
+let auditLoaded = false;
+async function loadAudit() {
+  const fromDate = document.getElementById('auditFromDate').value;
+  const toDate = document.getElementById('auditToDate').value;
+  const params = new URLSearchParams();
+  if (fromDate) params.set('fromDate', fromDate);
+  if (toDate) params.set('toDate', toDate);
+
+  const auditBody = document.getElementById('auditBody');
+  try {
+    const rows = await apiFetch(`/partner-admin/audit-log?${params.toString()}`);
+    auditLoaded = true;
+    auditBody.innerHTML = rows.length
+      ? rows
+          .map(
+            (r) => `
+        <tr>
+          <td data-label="Thời gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Người thực hiện">${escapeHtml(r.ActorUsername)}</td>
+          <td data-label="Hành động">${escapeHtml(ACTION_LABEL[r.Action] || r.Action)}</td>
+          <td data-label="Đối tượng">${escapeHtml(r.TargetUsername || '-')}</td>
+          <td class="fs-13 text-muted" data-label="Chi tiết">${escapeHtml(detailText(r.Detail))}</td>
+        </tr>`
+          )
+          .join('')
+      : '<tr><td colspan="5" class="text-muted">Chưa có nhật ký nào</td></tr>';
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+let scanLoaded = false;
+async function loadScan() {
+  const fromDate = document.getElementById('scanFromDate').value;
+  const toDate = document.getElementById('scanToDate').value;
+  const params = new URLSearchParams();
+  if (fromDate) params.set('fromDate', fromDate);
+  if (toDate) params.set('toDate', toDate);
+
+  const scanBody = document.getElementById('scanBody');
+  try {
+    scanBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải...</td></tr>';
+    const rows = await apiFetch(`/partner-admin/scan-log?${params.toString()}`);
+    scanLoaded = true;
+    scanBody.innerHTML = rows.length
+      ? rows
+          .map(
+            (r) => `
+        <tr>
+          <td data-label="Thời gian">${fmtDate(r.CreatedDate)}</td>
+          <td data-label="Người quét">${escapeHtml(r.UserName || '-')}</td>
+          <td data-label="Địa điểm">${escapeHtml(r.LocationsDetail || '-')}</td>
+          <td data-label="Mã voucher">${escapeHtml(r.VoucherCode)}</td>
+          <td data-label="Cách quét">${escapeHtml(r.ScanMethod)}</td>
+          <td data-label="Hành động">${escapeHtml(r.Action)}</td>
+          <td data-label="Kết quả">${escapeHtml(r.ResultStatus)}</td>
+        </tr>`
+          )
+          .join('')
+      : '<tr><td colspan="7" class="text-muted">Không có dữ liệu trong khoảng đã chọn</td></tr>';
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+/** Xuat Excel PHAI di qua fetch() kem header Authorization (giong het used-vouchers.js/report.js),
+ * khong the dung the <a href> thuong vi API yeu cau dang nhap. Dung chung cho ca 2 tab, chi khac
+ * duong dan API va phan ten file tai ve. */
+async function exportExcel(btn, apiPath, fromInputId, toInputId, fileNamePrefix) {
+  const fromDate = document.getElementById(fromInputId).value;
+  const toDate = document.getElementById(toInputId).value;
+  const params = new URLSearchParams();
+  if (fromDate) params.set('fromDate', fromDate);
+  if (toDate) params.set('toDate', toDate);
+
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api${apiPath}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Lỗi xuất Excel (${res.status})`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileNamePrefix}_${fromDate || 'toanbo'}_${toDate || 'toanbo'}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('loadAuditBtn').addEventListener('click', loadAudit);
+document.getElementById('exportAuditBtn').addEventListener('click', (e) =>
+  exportExcel(e.target, '/partner-admin/audit-log/export', 'auditFromDate', 'auditToDate', 'nhat-ky-quan-tri')
+);
+document.getElementById('loadScanBtn').addEventListener('click', loadScan);
+document.getElementById('exportScanBtn').addEventListener('click', (e) =>
+  exportExcel(e.target, '/partner-admin/scan-log/export', 'scanFromDate', 'scanToDate', 'hoat-dong-quet-thu-hoi')
+);
+
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',

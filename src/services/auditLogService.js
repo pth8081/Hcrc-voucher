@@ -36,9 +36,20 @@ async function log({ actorUsername, action, targetUsername, detail }) {
 // chi man hinh xem truc tiep moi can gioi han chat de tai nhanh.
 const MAX_EXPORT_ROWS = 50000;
 
-/** fromDate/toDate (tuy chon): loc theo CreatedDate, dung CHUNG 1 quy uoc voi scanLogService.js#list
- * de 2 tab dung 1 kieu bo loc nhat quan. */
-async function list({ fromDate, toDate, limit }) {
+/**
+ * fromDate/toDate (tuy chon): loc theo CreatedDate, dung CHUNG 1 quy uoc voi scanLogService.js#list
+ * de 2 tab dung 1 kieu bo loc nhat quan.
+ *
+ * `usernames` (tuy chon, mang chuoi): loc CHI con cac dong co ActorUsername HOAC TargetUsername
+ * TRUNG 1 trong danh sach nay - dung boi partnerAdmin.controller.js de "Quan tri doi tac" (vd
+ * Fuji) CHI xem duoc nhat ky lien quan DUNG den tai khoan trong pham vi cua ho (chinh ho + cac
+ * tai khoan nhan vien ho dang quan ly, xem partnerAdminService.js#listScopedUsers) - khong thay
+ * duoc nhat ky quan tri cua HCRC lien quan tai khoan/he thong khac. Mang RONG (truyen []) =
+ * khong khop dong nao (an toan "chan het" thay vi vo tinh tra ve toan bo khi danh sach rong do
+ * loi logic o noi goi). Khong truyen gi (undefined) = KHONG loc gi them, dung cho man hinh admin
+ * day du (adminLog.controller.js), giu dung hanh vi cu.
+ */
+async function list({ fromDate, toDate, limit, usernames }) {
   const pool = await getPool();
   // Dot ra soat sau phat hien: truoc day chi gioi han CAN TREN - 1 gia tri am (vd ?limit=-1)
   // van "truthy" nen vuot qua "|| 200", roi lam SELECT TOP (@limit) bao loi SQL. Ep ve khoang
@@ -54,6 +65,17 @@ async function list({ fromDate, toDate, limit }) {
   if (toDate) {
     request.input('toDate', sql.Date, toDate);
     filter += ' AND CAST(CreatedDate AS DATE) <= @toDate';
+  }
+  if (usernames) {
+    if (!usernames.length) {
+      filter += ' AND 1 = 0';
+    } else {
+      const placeholders = usernames.map((u, i) => {
+        request.input(`u${i}`, sql.NVarChar(100), u);
+        return `@u${i}`;
+      });
+      filter += ` AND (ActorUsername IN (${placeholders.join(', ')}) OR TargetUsername IN (${placeholders.join(', ')}))`;
+    }
   }
 
   const result = await request.query(`

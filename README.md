@@ -1073,6 +1073,23 @@ thao tac:
   TRUOC moi thao tac tren 1 userId cu the - tu choi (403) neu userId ngoai pham vi; tu choi (400)
   neu co gang tu khoa chinh tai khoan dang dang nhap.
 
+**Xem Nhat ky he thong theo PHAM VI (v3.67):** man hinh `/partner-admin.html` co them 2 tab
+(giong het giao dien "Nhat ky he thong" cua quan tri day du, muc 15c) nhung LUON loc theo dung
+pham vi cua ho - KHONG tai su dung chung route `/api/admin/*` (van CHI danh cho quan tri day du,
+`requireAdmin`), ma la 4 route rieng `/api/partner-admin/audit-log(/export)` va
+`/api/partner-admin/scan-log(/export)`:
+- **Hoat dong quet/thu hoi**: loc `VoucherScanLogs.ConnectionName = <ten he thong cua ho>` (so
+  khop chinh xac, giong cach loc "He thong" o cac man hinh bao cao) - `scanLogService.js#list()`
+  nhan them tham so `connectionName` TUY CHON (khong truyen = khong loc gi them, dung cho man
+  hinh admin day du, giu nguyen hanh vi cu).
+- **Nhat ky quan tri**: loc `AdminAuditLog.ActorUsername` HOAC `TargetUsername` TRUNG 1 trong
+  danh sach = chinh ho + toan bo tai khoan nhan vien dang trong pham vi cua ho
+  (`partnerAdminService.js#listScopedUsers()`, doc TUOI tu CSDL moi lan goi) - vi du thay duoc ca
+  dong do CHINH quan tri HCRC thao tac (vd go 2FA) nhung tac dong len 1 tai khoan nhan vien cua
+  ho. `auditLogService.js#list()` nhan them tham so `usernames` TUY CHON (mang RONG `[]` = CHAN
+  het, khong tra ve dong nao - an toan "fail-closed"; khong truyen gi = khong loc, dung cho man
+  hinh admin day du).
+
 **Bao mat:** `middleware/requirePartnerAdmin.js` luon doc TRUC TIEP tu CSDL (khong tin JWT da
 "chup"), tu choi ca tai khoan quan tri DAY DU (role=1 - ho dung man hinh "Tai khoan" day du, khong
 dung duong nay) lan tai khoan khong co quyen nay. Da kiem thu day du (mock DB, goi thang route
@@ -1138,6 +1155,8 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | GET | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
 | POST | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri — muc 4j |
 | PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi — `{ isDeleted }` — muc 4j |
+| GET | `/api/partner-admin/audit-log(/export)` | (can quyen "Quan tri doi tac") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j |
+| GET | `/api/partner-admin/scan-log(/export)` | (can quyen "Quan tri doi tac") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -1978,7 +1997,14 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.66)**: cap nhat 2 trang "Huong dan" trong app (muc "Huong dan he thong" cho
+Ban **moi nhat (v3.67)**: man hinh "Quan tri doi tac" (vd Fuji, muc 4j) co them 2 tab moi **"Nhat
+ky quan tri"** va **"Hoat dong quet/thu hoi"** - truoc day doi tac hoan toan khong xem duoc Nhat
+ky he thong (man hinh do chi danh cho quan tri day du). Ca 2 tab LUON loc dung pham vi cua ho
+(dung he thong voucher cua ho / cac tai khoan nhan vien ho dang quan ly), dung 4 route rieng
+(`/api/partner-admin/audit-log`, `/api/partner-admin/scan-log`, ca 2 co them `/export`), KHONG
+dong gi den route `/api/admin/*` hien co (van chi danh cho quan tri day du).
+
+Ban truoc do (v3.66): cap nhat 2 trang "Huong dan" trong app (muc "Huong dan he thong" cho
 quan tri, "Huong dan nghiep vu" cho nhan vien) de co them huong dan su dung tinh nang gui bao cao
 qua email (v3.64-v3.65) - truoc do 2 trang nay chua nhac gi den tinh nang email.
 
