@@ -195,20 +195,29 @@ function renderList(rows) {
       const stateLabel = u.isDeleted ? '<span class="status-badge status-used">ĐÃ KHÓA</span>' : STATE_CHIP[u.state] || '';
       const actionLabel = u.isDeleted ? 'Mở khóa' : 'Khóa';
       const actionClass = u.isDeleted ? 'btn-secondary' : 'btn-danger';
+      // Tai khoan dang dung CHUNG them he thong khac (duoc quan tri day du cap them quyen, vd 1
+      // tai khoan Fuji tao nhung duoc gan them he thong HCRC de dang nhap 1 lan quet duoc ca 2) -
+      // VAN hien de minh bach (doi tac biet tai khoan nay ton tai, dang hoat dong the nao o phan
+      // cua ho), nhung AN nut Khoa/Mo khoa - server (setScopedUserActive) cung tu choi 403 neu co
+      // gang goi thang API, day chi la an UI cho ro rang, khong phai lop bao ve duy nhat.
+      const action = u.exclusiveToThisSystem
+        ? `<button type="button" class="${actionClass} toggle-active-btn">${actionLabel}</button>`
+        : '<span class="text-muted fs-13">Chỉ quản trị đầy đủ thao tác được</span>';
+      const sharedBadge = u.exclusiveToThisSystem
+        ? ''
+        : ' <span class="status-badge status-other">DÙNG CHUNG HỆ THỐNG KHÁC</span>';
       return `
       <tr data-user-id="${u.userId}" data-username="${escapeHtml(u.username)}">
-        <td data-label="Tên đăng nhập">${escapeHtml(u.username)}</td>
+        <td data-label="Tên đăng nhập">${escapeHtml(u.username)}${sharedBadge}</td>
         <td data-label="Họ tên">${escapeHtml(u.fullName || '')}</td>
         <td data-label="Trạng thái">${stateLabel}</td>
-        <td data-label="Hành động">
-          <button type="button" class="${actionClass} toggle-active-btn">${actionLabel}</button>
-        </td>
+        <td data-label="Hành động">${action}</td>
       </tr>`;
     })
     .join('');
 
-  listBody.querySelectorAll('tr[data-user-id]').forEach((tr) => {
-    tr.querySelector('.toggle-active-btn').addEventListener('click', () => toggleActive(tr));
+  listBody.querySelectorAll('tr[data-user-id] .toggle-active-btn').forEach((btn) => {
+    btn.addEventListener('click', () => toggleActive(btn.closest('tr')));
   });
 }
 

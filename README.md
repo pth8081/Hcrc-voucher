@@ -1061,17 +1061,38 @@ hien co - admin tu dieu chinh rieng neu can.
 **Tai khoan duoc cap** dang nhap se thay 1 muc menu rieng **"Quan tri doi tac"** (khong thay
 menu "Quan tri" day du cua HCRC), vao man hinh rut gon `/partner-admin.html` chi gom dung 3
 thao tac:
-- **Xem danh sach**: CHI hien tai khoan nhan vien (role=0) ma he thong voucher duoc dung la
-  **DUNG VA CHI DUY NHAT** he thong cua ho (so khop chinh xac - "whitelist exact match", xem
-  `partnerAdminService.js#listScopedUsers`). Tai khoan quan tri, tai khoan dung chung nhieu he
-  thong, hoac tai khoan khong gioi han deu **khong bao gio** hien ra, du doan dung userId.
+- **Xem danh sach**: hien tai khoan nhan vien (role=0) co **DUNG trong danh sach he thong** he
+  thong cua ho (tu v3.68 - truoc do bat buoc **CHI DUY NHAT**, xem muc "Tai khoan dung chung" bo
+  sung ben duoi). Tai khoan quan tri (role=1) hoac tai khoan khong gioi han he thong nao (dung
+  duoc toan bo, ke ca he thong tuong lai) van **khong bao gio** hien ra, du doan dung userId.
 - **Tao tai khoan moi**: tu dong gan **DUY NHAT** he thong cua ho cho tai khoan moi tao, bo qua
   hoan toan moi gia tri role/he thong khac trong request (chan leo thang quyen qua goi API truc
   tiep, xem kiem thu o duoi).
 - **Khoa/Mo khoa**: tai su dung co che xoa mem/khoi phuc co san (`UserAccountSchedule.IsDeleted`),
   KHONG dong den UserVoucherSystems cua tai khoan do. Bat buoc kiem tra lai `assertInScope()`
   TRUOC moi thao tac tren 1 userId cu the - tu choi (403) neu userId ngoai pham vi; tu choi (400)
-  neu co gang tu khoa chinh tai khoan dang dang nhap.
+  neu co gang tu khoa chinh tai khoan dang dang nhap. **Khong co xoa that (hard delete)** o bat ky
+  man hinh nao trong app (ke ca man hinh "Tai khoan" cua quan tri day du) - "Xoa" tren giao dien
+  luon la xoa mem (`IsDeleted=1`, chi an khoi danh sach + chan dang nhap), du lieu quet/VOUCHER_SYNC
+  nam o bang hoan toan rieng, khong bao gio bi dong toi - an toan cho du lieu doi soat/bao cao.
+
+**Tai khoan dung chung nhieu he thong (v3.68):** 1 tai khoan do Fuji tao (ban dau CHI dung he
+thong Fuji) co the duoc quan tri day du cap THEM quyen dung he thong khac (vd HCRC, qua man hinh
+"Tai khoan" > "He thong voucher duoc dung") - vi du de 1 nhan vien dang nhap MOT LAN quet duoc ca
+2 he thong, khong can 2 tai khoan rieng. Khi do:
+- Tai khoan **VAN hien** trong danh sach cua Fuji (khong con bi an di hoan toan nhu ban dau) -
+  minh bach, Fuji biet tai khoan nay ton tai va dang hoat dong the nao o phan cua ho (bao gom ca
+  "Hoat dong quet/thu hoi" va "Nhat ky quan tri" lien quan - 2 tab nay van loc dung du lieu cua ho,
+  xem muc duoi), kem nhan **"DUNG CHUNG HE THONG KHAC"**.
+- Nhung **KHONG Khoa/Mo khoa duoc nua** - nut bi an o giao dien, VA server (`setScopedUserActive`)
+  tu choi 403 neu co gang goi thang API. Ly do: "Khoa" la khoa **TOAN BO dang nhap** (khong co khai
+  niem "khoa rieng phan cua Fuji"), neu de Fuji tu khoa 1 tai khoan dung chung se vo tinh (hoac co
+  y) chan luon ca dang nhap phia he thong kia - chi quan tri day du (nguoi co day du boi canh ca 2
+  phia) moi duoc phep khoa/mo khoa tai khoan dang dung chung.
+- Co `exclusiveToThisSystem` (tra ve trong `listScopedUsers()`) duoc **tinh LAI TUOI moi lan goi**
+  (doc truc tiep UserVoucherSystems hien tai, khong luu cache) - ngay khi quan tri day du **go bot**
+  he thong HCRC khoi tai khoan do (dua ve lai DUNG 1 he thong cua Fuji), Fuji **tu dong co lai**
+  toan quyen Khoa/Mo khoa ngay lan goi tiep theo, khong can ai can thiep them.
 
 **Xem Nhat ky he thong theo PHAM VI (v3.67):** man hinh `/partner-admin.html` co them 2 tab
 (giong het giao dien "Nhat ky he thong" cua quan tri day du, muc 15c) nhung LUON loc theo dung
@@ -1997,7 +2018,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.67)**: man hinh "Quan tri doi tac" (vd Fuji, muc 4j) co them 2 tab moi **"Nhat
+Ban **moi nhat (v3.68)**: man hinh "Quan tri doi tac" (muc 4j) ho tro dung **tai khoan dung chung
+nhieu he thong** (vd 1 tai khoan Fuji tao duoc quan tri day du cap them quyen dung ca he thong
+HCRC, de 1 lan dang nhap quet duoc ca 2 ben) - truoc day cac tai khoan nhu vay bi **an hoan toan**
+khoi man hinh cua Fuji. Gio van hien (minh bach, kem nhan "DUNG CHUNG HE THONG KHAC") nhung Fuji
+**khong con Khoa/Mo khoa duoc nua** (chi quan tri day du lam duoc, vi "Khoa" la khoa toan bo dang
+nhap, anh huong ca 2 phia) - tu dong tra lai toan quyen cho Fuji ngay khi quan tri day du go bot
+quyen he thong khac khoi tai khoan do.
+
+Ban truoc do (v3.67): man hinh "Quan tri doi tac" (vd Fuji, muc 4j) co them 2 tab moi **"Nhat
 ky quan tri"** va **"Hoat dong quet/thu hoi"** - truoc day doi tac hoan toan khong xem duoc Nhat
 ky he thong (man hinh do chi danh cho quan tri day du). Ca 2 tab LUON loc dung pham vi cua ho
 (dung he thong voucher cua ho / cac tai khoan nhan vien ho dang quan ly), dung 4 route rieng
