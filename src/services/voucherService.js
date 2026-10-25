@@ -6,6 +6,7 @@ const userVoucherSystemService = require('./userVoucherSystemService');
 const apiConnectionService = require('./apiConnectionService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
+const redeemRateLimit = require('../utils/redeemRateLimit');
 const { SYNC_PROC_NAME } = require('../utils/syncConstants');
 
 const { VOUCHER_STATUS } = coreVoucherService;
@@ -322,6 +323,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
+  redeemRateLimit.assertNotLocked(user.userId);
   return withUserScanLock(user.userId, async () => {
     const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
@@ -485,6 +487,12 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connecti
     }
 
     const { pendingSync, redeemResult, syncErrorMessage } = outcome;
+
+    // M19: CHI dem lan THU HOI THAT SU THANH CONG (toi day la chac chan thanh cong - duplicate/
+    // that bai da return som o tren) vao bo dem gioi han toc do (redeemRateLimit.js) - khong tinh
+    // cac lan bi tu choi/loi, tranh phat nham 1 tai khoan dang bi loi he thong lien tuc (khong
+    // phai hanh vi gian lan).
+    redeemRateLimit.recordSuccess(user.userId);
 
     await systemLogService.logExecution({
       proName: SYNC_PROC_NAME,

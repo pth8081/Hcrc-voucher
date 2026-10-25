@@ -93,6 +93,10 @@ tài khoản của bạn - mỗi người nên dùng đúng tài khoản riêng 
 1 tài khoản <strong>không thể quét/thu hồi 2 mã voucher khác nhau cùng lúc</strong> (vd đang đăng
 nhập đồng thời ở 2 nơi, hoặc bấm quét liên tục quá nhanh) - đợi vài giây cho lượt quét trước hoàn
 tất rồi quét lại mã mới.</p>
+<p><strong>"Tài khoản của bạn đã thu hồi quá nhiều voucher trong thời gian ngắn, tạm khóa..."</strong>:
+hệ thống giới hạn tốc độ thu hồi của mỗi tài khoản (chống gian lận/script tự động) - nếu thấy
+thông báo này trong lúc thao tác bình thường (vd ngày cao điểm, quầy đông khách), báo quản trị
+viên để xem xét nới lại giới hạn cho phù hợp thực tế.</p>
 
 <h2>4. Các loại báo cáo</h2>
 <p>Tùy theo quyền được cấp, menu có thể hiện 1 hoặc cả 3 loại báo cáo sau - mỗi loại phục vụ

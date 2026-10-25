@@ -1411,6 +1411,18 @@ trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
   nhanh), nen tu choi thang thay vi cho. Dung 1 transaction rieng chi de giu khoa (tu nha khi
   commit/rollback, an toan voi connection pool), hoan toan doc lap voi cac truy van/transaction
   khac ben trong.
+- **Gioi han TOC DO thu hoi theo tai khoan, chong goi API tuan tu nhanh (v3.73)**: khoa o muc
+  tren CHI chan 2 request CHONG LAP THOI GIAN - 1 ke gian/script goi API tuan tu (xong lenh nay
+  goi NGAY lenh tiep theo, khong chong lap) van co the thu hoi rat nhieu ma trong thoi gian ngan
+  ma khong bi chan. `src/utils/redeemRateLimit.js` dem so lan **THU HOI THANH CONG** (khong tinh
+  CHECK) cua tung tai khoan trong 1 cua so thoi gian truot - vuot nguong thi **tam khoa CA quet
+  lan thu hoi** cua tai khoan do (429), ke ca khi goi thang API bang script/Postman (khong qua
+  giao dien). Cau hinh qua `.env` (khong can sua code de chinh nguong):
+  `REDEEM_RATE_LIMIT_ENABLED` (mac dinh `true`), `REDEEM_RATE_LIMIT_MAX` (mac dinh `20` lan),
+  `REDEEM_RATE_LIMIT_WINDOW_MINUTES` (mac dinh `1` phut), `REDEEM_RATE_LIMIT_LOCK_MINUTES` (mac
+  dinh `5` phut). Cung mau hinh bo dem trong bo nho voi `guessGuard.js`/`loginGuard.js` (khong
+  dung chung giua nhieu worker khi `CLUSTER_WORKERS > 1` - gioi han thuc te se cao hon N lan neu
+  chay nhieu worker, chap nhan duoc, cung danh doi da ap dung cho 2 co che kia).
 - **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
   (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
   `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
@@ -2095,7 +2107,14 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.72)**: theo yeu cau xac nhan/tang cuong bao mat - **moi tai khoan CHI co DUNG
+Ban **moi nhat (v3.73)**: bo sung lop bao ve con lai theo yeu cau chong gian lan/hack - **gioi
+han TOC DO thu hoi theo tai khoan** (`src/utils/redeemRateLimit.js`) de chan kieu tan cong "goi
+API tuan tu that nhanh" (khong bi chan boi khoa chong-cung-luc cua v3.72 vi khong co 2 request
+chong lap thoi gian). Mac dinh toi da **20 lan thu hoi thanh cong/1 phut**, vuot thi tam khoa
+**5 phut** - ca 3 tham so chinh duoc qua `.env`
+(`REDEEM_RATE_LIMIT_MAX/WINDOW_MINUTES/LOCK_MINUTES`), khong can sua code. Xem muc 8 (Bao mat).
+
+Ban truoc do (v3.72): theo yeu cau xac nhan/tang cuong bao mat - **moi tai khoan CHI co DUNG
 1 phien dang nhap hoat dong tai 1 thoi diem** (dang nhap noi moi tu dong dang xuat noi cu NGAY,
 dung lai co che `PasswordVersion` da co san - them `SessionVersion`, `sql/036`) VA **CHI xu ly
 DUNG 1 luot quet/thu hoi tai 1 thoi diem** (2 ma voucher KHAC NHAU tu CUNG 1 tai khoan gan nhu
