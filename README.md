@@ -1149,6 +1149,24 @@ pham vi cua ho - KHONG tai su dung chung route `/api/admin/*` (van CHI danh cho 
   het, khong tra ve dong nao - an toan "fail-closed"; khong truyen gi = khong loc, dung cho man
   hinh admin day du).
 
+**Nhieu doi tac song song, cach ly HOAN TOAN voi nhau (khong gan cung Fuji):** toan bo co che o
+muc nay (bao gom ca 4 phan bo sung v3.68-v3.70 o tren) khong co BAT KY dong code nao kiem tra ten
+"Fuji" - moi noi deu chi dua vao `connectionId` (1 Id so hoc cua 1 dong trong `ApiConnections`).
+"Fuji" trong tai lieu nay CHI la vi du minh hoa, khong phai ha tang rieng (dong seed co san o
+`sql/029_seed_fuji_connection.sql` cung chi la 1 ban nhap tien ich, khong bat buoc). Them 1 doi
+tac moi (vd "Posi") **khong can sua code/migration/deploy lai gi** - chi 2 buoc tren giao dien:
+(1) "Ket noi API" tao 1 ket noi moi cho Posi, (2) "Tai khoan" gan "Quan tri doi tac" = Posi cho
+DUNG 1 tai khoan dai dien - tu do tai khoan nay tu tao them nhan vien cho rieng Posi.
+- **Khong doi tac nao thay duoc tai khoan HAY nhat ky he thong cua doi tac khac** - vi
+  `listScopedUsers(connectionId)` (muc "Pham vi XEM..." o tren) va 2 ham loc nhat ky (muc "Xem
+  Nhat ky he thong theo PHAM VI" o duoi) deu loc CHINH XAC theo `connectionId` cua tai khoan dang
+  goi (`req.partnerAdminConnectionId`, doc tu CSDL luc dang nhap/goi API, khong phai gia tri co
+  dinh) - Posi va Fuji la 2 "hop" hoan toan tach biet, khong co duong nao de 1 ben nhin sang pham
+  vi cua ben kia, du ca 2 cung dung chung 1 ung dung.
+- **Chi quan tri day du (HCRC) moi thay duoc GOP CHUNG tat ca** - man hinh "Tai khoan" va "Nhat ky
+  he thong" day du (`/api/admin/*`, `requireAdmin`) khong bi loc gi ca, luon tra ve toan bo tai
+  khoan/nhat ky cua MOI doi tac cung luc, phuc vu doi soat tong.
+
 **Bao mat:** `middleware/requirePartnerAdmin.js` luon doc TRUC TIEP tu CSDL (khong tin JWT da
 "chup"), tu choi ca tai khoan quan tri DAY DU (role=1 - ho dung man hinh "Tai khoan" day du, khong
 dung duong nay) lan tai khoan khong co quyen nay. Da kiem thu day du (mock DB, goi thang route
@@ -2057,7 +2075,13 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.70)**: sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
+Ban **moi nhat (v3.71)**: lam ro trong muc 4j rang toan bo co che "Quan tri doi tac" (ke ca 4
+phan bo sung v3.68-v3.70) **hoan toan khong gan cung Fuji** - dung chung duoc cho bao nhieu doi
+tac cung luc, moi doi tac cach ly tuyet doi voi nhau (khong thay tai khoan/nhat ky he thong cua
+nhau), chi quan tri day du HCRC moi thay gop chung tat ca. Chi sua noi dung tai lieu, khong doi
+code/migration.
+
+Ban truoc do (v3.70): sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
 truoc day chi dua vao "tai khoan HIEN DANG dung he thong nao" de quyet dinh co hien ra hay khong,
 khien 1 tai khoan do CHINH quan tri day du HCRC tao (khong phai Fuji), duoc cap THEM quyen dung
 he thong Fuji, bi **lo ra** nham trong man tu quan ly cua Fuji. Gio dung them 1 dieu kien **BAT
