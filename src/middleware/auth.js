@@ -50,6 +50,18 @@ async function authenticate(req, res, next) {
         .status(401)
         .json({ success: false, message: 'Mat khau tai khoan nay vua duoc doi, vui long dang nhap lai.' });
     }
+    // M17: "1 tai khoan = 1 phien dang nhap dang hoat dong" (sql/036) - token mang sessionVersion
+    // THAP HON gia tri hien tai trong CSDL nghia la DA CO 1 lan dang nhap KHAC (thiet bi/trinh
+    // duyet khac) xay ra SAU token nay, lam no "lac hau" - tu choi ngay, khong doi den khi het
+    // han 8h mac dinh. Cung quy uoc voi passwordVersion ngay tren: payload.sessionVersion ===
+    // undefined (token cap TRUOC khi tinh nang nay ton tai) duoc bo qua kiem tra, giu nguyen
+    // hanh vi cu cho toi khi token do het han tu nhien - tranh dang xuat hang loat ngay luc
+    // trien khai ban vá.
+    if (state.sessionVersion && payload.sessionVersion !== undefined && payload.sessionVersion < state.sessionVersion) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Tai khoan nay vua dang nhap o 1 noi khac, phien nay khong con hieu luc.' });
+    }
     // Luon dung role MOI NHAT tu CSDL cho cac buoc phan quyen phia sau (requireAdmin,
     // requireFeature...), khong tin role "chup" cu trong token - dong thoi vo hieu hoa viec
     // ha quyen 1 admin xuong nhan vien nhung token cu van con duoc coi la admin.

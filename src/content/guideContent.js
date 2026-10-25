@@ -84,6 +84,15 @@ là cơ chế bảo vệ, tự hết sau ít phút, không cần làm gì.</p>
 <p><strong>"Phiên đăng nhập không còn hiệu lực, vui lòng đăng nhập lại"</strong>: phiên làm việc
 đã hết hạn (mặc định sau 8 tiếng không hoạt động) hoặc tài khoản vừa bị quản trị thay đổi trạng
 thái - đăng nhập lại bình thường.</p>
+<p><strong>"Tài khoản này vừa đăng nhập ở 1 nơi khác, phiên này không còn hiệu lực"</strong>:
+<strong>mỗi tài khoản chỉ được đăng nhập ở DUY NHẤT 1 nơi tại 1 thời điểm</strong> - nếu đăng nhập
+cùng 1 tài khoản ở máy/thiết bị khác, phiên đang mở trước đó sẽ tự động bị đăng xuất ngay (không
+đợi hết 8 tiếng). Nếu thấy thông báo này ngoài ý muốn, có thể đồng nghiệp khác đã lỡ dùng chung
+tài khoản của bạn - mỗi người nên dùng đúng tài khoản riêng của mình.</p>
+<p><strong>"Tài khoản của bạn đang quét/thu hồi 1 mã khác..."</strong>:
+1 tài khoản <strong>không thể quét/thu hồi 2 mã voucher khác nhau cùng lúc</strong> (vd đang đăng
+nhập đồng thời ở 2 nơi, hoặc bấm quét liên tục quá nhanh) - đợi vài giây cho lượt quét trước hoàn
+tất rồi quét lại mã mới.</p>
 
 <h2>4. Các loại báo cáo</h2>
 <p>Tùy theo quyền được cấp, menu có thể hiện 1 hoặc cả 3 loại báo cáo sau - mỗi loại phục vụ

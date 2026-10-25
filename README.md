@@ -1391,6 +1391,26 @@ trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
   do dung mat khau/van tay khong con du de vao duoc, nen nguong 5 lan/khoa 15 phut cu de bi loi
   dung nguoc lai thanh **DoS chinh admin** (ai biet username admin chi can go sai 5 lan lien tuc
   la khoa duoc ho, lap lai vo han). Nhan vien khong co 2FA nen van giu nguyen muc nghiem ngat.
+- **1 tai khoan CHI co DUNG 1 phien dang nhap hoat dong tai 1 thoi diem (v3.72)**: dang nhap tu
+  1 thiet bi/trinh duyet moi se **tu dong lam token cu cua CHINH tai khoan do mat hieu luc NGAY**
+  (khong doi den khi het han 8h mac dinh). Dung lai 100% co che da chung minh an toan cua
+  `PasswordVersion` (muc 14) - them `UserPasswordPolicy.SessionVersion` (`sql/036`, so nguyen
+  tang +1 moi lan `authService.js#issueSession()` chay), nhung vao JWT luc cap, `middleware/
+  auth.js` doi chieu lai gia tri HIEN TAI (qua cache TTL 30s co san, `sessionRevalidation.js`) -
+  token mang gia tri CU HON bi tu choi 401 "Tai khoan nay vua dang nhap o 1 noi khac...". Ap
+  dung cho MOI duong cap phien day du (mat khau, van tay/Face ID, sau khi xac minh 2FA) - token
+  TAM cua buoc 2FA (`purpose` khac `'session'`) khong bi anh huong.
+- **1 tai khoan CHI xu ly DUNG 1 luot quet/thu hoi tai 1 thoi diem (v3.72)**: `voucherService.js#withUserScanLock()`
+  boc ca `checkVoucher()` lan `redeemVoucher()` trong 1 khoa `sp_getapplock` theo **userId**
+  (`@LockTimeout=0` - TU CHOI NGAY, khong xep hang cho) - neu CUNG 1 tai khoan co 2 request xu ly
+  2 ma voucher KHAC NHAU gan nhu cung luc (vd dang nhap dong thoi 2 noi, hoac bam quet lien tuc
+  qua nhanh), request thu 2 bi tu choi 429 ngay lap tuc. **Khac ban chat voi khoa chong trung ma**
+  (`sp_getapplock` rieng theo `voucherCode` trong `redeemAndInsertGuarded`, `@LockTimeout=15000` -
+  XEP HANG cho toi 15s, muc dich khac: tranh 2 NGUOI khac nhau trung 1 ma) - khoa nay theo
+  TAI KHOAN, muc dich phat hien 1 tai khoan dang bi dung sai quy trinh (dung chung/quet qua
+  nhanh), nen tu choi thang thay vi cho. Dung 1 transaction rieng chi de giu khoa (tu nha khi
+  commit/rollback, an toan voi connection pool), hoan toan doc lap voi cac truy van/transaction
+  khac ben trong.
 - **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
   (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
   `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
@@ -2075,7 +2095,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.71)**: lam ro trong muc 4j rang toan bo co che "Quan tri doi tac" (ke ca 4
+Ban **moi nhat (v3.72)**: theo yeu cau xac nhan/tang cuong bao mat - **moi tai khoan CHI co DUNG
+1 phien dang nhap hoat dong tai 1 thoi diem** (dang nhap noi moi tu dong dang xuat noi cu NGAY,
+dung lai co che `PasswordVersion` da co san - them `SessionVersion`, `sql/036`) VA **CHI xu ly
+DUNG 1 luot quet/thu hoi tai 1 thoi diem** (2 ma voucher KHAC NHAU tu CUNG 1 tai khoan gan nhu
+cung luc se bi TU CHOI NGAY, khong xep hang cho - `sp_getapplock` theo userId, tach biet hoan
+toan voi khoa chong trung ma theo voucherCode da co san). Khong co migration thay doi du lieu,
+chi them 1 cot moi. Xem muc 8 (Bao mat).
+
+Ban truoc do (v3.71): lam ro trong muc 4j rang toan bo co che "Quan tri doi tac" (ke ca 4
 phan bo sung v3.68-v3.70) **hoan toan khong gan cung Fuji** - dung chung duoc cho bao nhieu doi
 tac cung luc, moi doi tac cach ly tuyet doi voi nhau (khong thay tai khoan/nhat ky he thong cua
 nhau), chi quan tri day du HCRC moi thay gop chung tat ca. Chi sua noi dung tai lieu, khong doi

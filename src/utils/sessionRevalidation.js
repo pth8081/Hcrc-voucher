@@ -24,7 +24,7 @@ async function getFreshUserState(userId) {
     .input('userId', sql.Int, userId)
     .query(`
       SELECT u.status AS role, s.ActiveFrom, s.ActiveUntil, ISNULL(s.IsDeleted, 0) AS isDeleted,
-             p.PasswordVersion AS passwordVersion
+             p.PasswordVersion AS passwordVersion, p.SessionVersion AS sessionVersion
       FROM dbo.Users u
       LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
       LEFT JOIN dbo.UserPasswordPolicy p ON p.UserId = u.UserID
@@ -42,6 +42,12 @@ async function getFreshUserState(userId) {
         // van dung duoc binh thuong du mat khau da bi doi de khoa ke gia mao". Chua co dong
         // UserPasswordPolicy (tai khoan chua tung doi mat khau qua app nay) = version goc (1).
         passwordVersion: row.passwordVersion != null ? row.passwordVersion : 1,
+        // "1 tai khoan = 1 phien dang nhap dang hoat dong" (xem sql/036) - cung co che so
+        // nguyen voi passwordVersion o tren nhung so sanh BANG (khong phai "<"), vi BAT KY lan
+        // dang nhap MOI nao (khong chi doi mat khau) cung tang gia tri nay - token mang gia tri
+        // KHAC gia tri hien tai (ca cu hon LAN moi hon, du moi hon thuc te khong xay ra) deu bi
+        // coi la da "lac hau" boi 1 lan dang nhap khac. Chua co dong = version goc (1).
+        sessionVersion: row.sessionVersion != null ? row.sessionVersion : 1,
       }
     : { exists: false };
 

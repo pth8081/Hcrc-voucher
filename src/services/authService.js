@@ -6,6 +6,8 @@ const twoFactorService = require('./twoFactorService');
 const userScheduleService = require('./userScheduleService');
 const passwordPolicyService = require('./passwordPolicyService');
 const permissionService = require('./permissionService');
+const sessionVersionService = require('./sessionVersionService');
+const sessionRevalidation = require('../utils/sessionRevalidation');
 
 /**
  * Doc JWT_EXPIRES_IN tu .env an toan - TRANH 1 "bay" thuong gap cua jsonwebtoken: bien .env
@@ -173,6 +175,14 @@ async function issueSession(user) {
   // de phat hien mat khau da doi KE TU LUC token nay duoc cap, khong con phu thuoc dong ho may
   // chu nao (xem passwordPolicyService.js#getPasswordVersion va sql/025_add_password_version.sql).
   const passwordVersion = await passwordPolicyService.getPasswordVersion(user.UserID);
+  // M17: "1 tai khoan = 1 phien dang nhap dang hoat dong" (xem sql/036) - TANG bo dem truoc,
+  // nhung GIA TRI MOI vao token: moi lan ham nay chay (= moi lan 1 luot dang nhap/xac minh 2FA
+  // di toi dich, bat ke tu mat khau hay van tay) se tu dong lam MOI token CAP TRUOC DO cho CHINH
+  // tai khoan nay mat hieu luc (middleware/auth.js so sanh lai voi gia tri nay). Xoa cache NGAY
+  // (khong doi TTL 30s cua sessionRevalidation.js het han) de phien cu bi tu choi cang som cang
+  // tot, cung nguyen tac voi passwordPolicyService.js#setNewPassword/adminResetPassword.
+  const sessionVersion = await sessionVersionService.bumpSessionVersion(user.UserID);
+  sessionRevalidation.invalidate(user.UserID);
 
   const token = jwt.sign(
     {
@@ -184,6 +194,7 @@ async function issueSession(user) {
       locationsDetail: user.Locations_Detail,
       role: user.status,
       passwordVersion,
+      sessionVersion,
     },
     process.env.JWT_SECRET,
     { expiresIn: resolveJwtExpiresIn() }
