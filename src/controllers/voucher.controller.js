@@ -54,6 +54,36 @@ async function redeem(req, res, next) {
   }
 }
 
+/**
+ * "Quet nhieu - Thu hoi 1 lan": nhan 1 mang voucherCodes (da quet/kiem tra o man hinh truoc do) -
+ * xem voucherService.js#redeemVoucherBatch ve cach xu ly tuan tu tung ma/co che khi 1 ma that bai
+ * khong lam dung ca lo. `success: true` cua response nay CHI nghia la REQUEST da xu ly xong (du
+ * tung ma ben trong co the thanh cong/that bai khac nhau) - giao dien doc `data[].success` cua
+ * TUNG ma de biet ket qua that su, khong doc o `success` muc ngoai.
+ */
+async function redeemBatch(req, res, next) {
+  try {
+    const { voucherCodes, scanMethod, connectionId } = req.body;
+    if (!Array.isArray(voucherCodes) || !voucherCodes.length) {
+      return res.status(400).json({ success: false, message: 'Thieu danh sach voucherCodes' });
+    }
+    const tooLong = voucherCodes.find((c) => String(c || '').trim().length > MAX_VOUCHER_CODE_LENGTH);
+    if (tooLong) {
+      return res.status(400).json({ success: false, message: `Ma voucher qua dai (toi da ${MAX_VOUCHER_CODE_LENGTH} ky tu)` });
+    }
+    const results = await voucherService.redeemVoucherBatch({
+      voucherCodes,
+      scanMethod: scanMethod || 'MANUAL',
+      connectionId: connectionId ? Number(connectionId) : null,
+      user: req.user,
+      clientIp: req.ip,
+    });
+    res.json({ success: true, data: results });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** Danh sach he thong voucher de chon tren man hinh Quet voucher - xem apiConnectionService.js#
  * listOptions (rut gon, khong lo chi tiet cau hinh/secret cho nhan vien khong phai admin). Loc
  * lai theo DUNG he thong tai khoan nay duoc phep dung (userVoucherSystemService.js) - 1 tai
@@ -71,4 +101,4 @@ async function systems(req, res, next) {
   }
 }
 
-module.exports = { check, redeem, systems };
+module.exports = { check, redeem, redeemBatch, systems };

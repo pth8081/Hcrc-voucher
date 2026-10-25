@@ -324,7 +324,22 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
   redeemRateLimit.assertNotLocked(user.userId);
-  return withUserScanLock(user.userId, async () => {
+  return withUserScanLock(user.userId, () =>
+    redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId })
+  );
+}
+
+/**
+ * Phan "loi" thuc su cua redeemVoucher() - xu ly DUNG 1 ma voucher, KHONG tu khoa
+ * (withUserScanLock)/KHONG tu kiem tra guessGuard/redeemRateLimit o day. Tach rieng de
+ * redeemVoucherBatch() (quet nhieu - thu hoi 1 lan, xem ben duoi) goi lai duoc NHIEU LAN
+ * ben trong CUNG 1 lan giu khoa user-scan (khong the goi lai redeemVoucher() cho tung ma
+ * trong 1 vong lap - withUserScanLock dung 1 transaction/ket noi RIENG moi lan goi (xem ghi
+ * chu cua no), nen goi long nhau se bi chinh no tu choi vi nhin tu goc SQL Server la 2 "session"
+ * khac nhau dang tranh chap cung 1 khoa, du cung 1 tai khoan/1 request logic).
+ */
+async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
+  {
     const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
     );
@@ -528,6 +543,94 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connecti
       redeemedAt: redeemResult.redeemedAt,
       connectionName: precheck.connectionName,
     };
+  }
+}
+
+// Gioi han so ma toi da trong 1 lan "Thu hoi tat ca" (che do Quet nhieu) - chan bo gio han thoi
+// gian giu khoa user-scan (ca lo xu ly tuan tu BEN TRONG 1 lan giu khoa, xem redeemVoucherBatch)
+// va khop voi nguong gioi han toc do mac dinh (REDEEM_RATE_LIMIT_MAX=20/phut, xem redeemRateLimit.js) -
+// 1 lo qua lon se tu dong bi cham giua chung boi chinh co che chong gian lan nay.
+const MAX_BATCH_SIZE = 20;
+
+/**
+ * "Quet nhieu - Thu hoi 1 lan": nhan 1 danh sach ma voucher (da quet/kiem tra truoc do o man
+ * hinh, con UNUSED tai thoi diem quet), xu ly THU HOI THAT tuan tu TUNG MA MOT trong CUNG 1 lan
+ * giu khoa user-scan (xem redeemOneVoucher() o tren) - Core Voucher API khong co san 1 API thu
+ * hoi hang loat nen ban chat van la N lan goi rieng le, chi gop lai o 1 request/1 khoa duy nhat.
+ *
+ * KHONG the "tat ca hoac khong gi ca" (atomic): mot khi 1 ma da goi Core thanh cong THAT SU,
+ * khong the hoan tac (Core khong co API "huy thu hoi") - nen xu ly theo kieu "tiep tuc du co
+ * loi": 1 ma loi (da bi tieu truoc, mat mang...) CHI lam ma do that bai, KHONG dung ca lo, cac ma
+ * con lai van duoc xu ly binh thuong. Tra ve ket qua RIENG cho TUNG ma (voucherCode, success,
+ * status, message...) de giao dien tu tinh lai tong THUC THU (chi tinh ma success/pendingSync).
+ *
+ * Kiem tra lai guessGuard/redeemRateLimit TRUOC MOI ma (khong chi 1 lan dau) - neu 1 trong 2 co
+ * che nay kich hoat GIUA chung lo (vd lo 20 ma dung dung nguong toc do, hoac qua nhieu ma khong
+ * hop le lien tiep trong lo), CAC MA CON LAI dung xu ly ngay (khong goi Core nua), danh dau ro
+ * "SKIPPED" kem ly do - tranh tiep tuc goi Core khi da biet chac se bi tu choi.
+ */
+async function redeemVoucherBatch({ voucherCodes, user, scanMethod, clientIp, connectionId }) {
+  if (!Array.isArray(voucherCodes) || !voucherCodes.length) {
+    const err = new Error('Danh sach ma voucher rong');
+    err.statusCode = 400;
+    err.publicMessage = 'Chua co voucher nao trong danh sach de thu hoi.';
+    throw err;
+  }
+
+  // Loai trung (giu dung ma QUET DAU TIEN, bo cac lan quet trung lap sau do trong cung 1 lo) +
+  // chan toi da MAX_BATCH_SIZE ma - KHONG bao loi khi vuot qua, chi lay dung MAX_BATCH_SIZE ma
+  // DAU TIEN va bo qua phan con lai (giao dien da chan tu truoc o client, day la lop phong ho
+  // them o server, khong can lam gian doan nguoi dung voi 1 loi kho hieu).
+  const seen = new Set();
+  const codes = [];
+  for (const raw of voucherCodes) {
+    const code = String(raw || '').trim();
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    codes.push(code);
+    if (codes.length >= MAX_BATCH_SIZE) break;
+  }
+  if (!codes.length) {
+    const err = new Error('Danh sach ma voucher rong sau khi loc');
+    err.statusCode = 400;
+    err.publicMessage = 'Chua co voucher hop le nao trong danh sach de thu hoi.';
+    throw err;
+  }
+
+  guessGuard.assertNotLocked(user.userId);
+  redeemRateLimit.assertNotLocked(user.userId);
+
+  return withUserScanLock(user.userId, async () => {
+    const results = [];
+    let skipRemaining = null;
+
+    for (const voucherCode of codes) {
+      if (skipRemaining) {
+        results.push({ voucherCode, success: false, status: 'SKIPPED', message: skipRemaining });
+        continue;
+      }
+
+      try {
+        guessGuard.assertNotLocked(user.userId);
+        redeemRateLimit.assertNotLocked(user.userId);
+      } catch (guardErr) {
+        skipRemaining = guardErr.publicMessage || guardErr.message;
+        results.push({ voucherCode, success: false, status: 'SKIPPED', message: skipRemaining });
+        continue;
+      }
+
+      try {
+        const outcome = await redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId });
+        results.push({ voucherCode, ...outcome });
+      } catch (err) {
+        // Boc loi tung ma rieng le (ke ca loi CRITICAL "Core da xac nhan nhung ghi DB that bai" -
+        // da duoc ghi canh bao/log day du BEN TRONG redeemOneVoucher/redeemAndInsertGuarded truoc
+        // khi throw) - KHONG de 1 ma loi lam sap ca response, cac ma con lai van duoc xu ly tiep.
+        results.push({ voucherCode, success: false, status: 'ERROR', message: err.publicMessage || err.message });
+      }
+    }
+
+    return results;
   });
 }
 
@@ -758,4 +861,4 @@ async function logScan({
     `);
 }
 
-module.exports = { checkVoucher, redeemVoucher };
+module.exports = { checkVoucher, redeemVoucher, redeemVoucherBatch, MAX_BATCH_SIZE };
