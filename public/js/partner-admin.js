@@ -33,6 +33,7 @@ const ACTION_LABEL = {
   PARTNER_ADMIN_CREATE_USER: 'Bạn tạo tài khoản mới',
   PARTNER_ADMIN_LOCK_USER: 'Bạn khóa tài khoản',
   PARTNER_ADMIN_UNLOCK_USER: 'Bạn mở khóa tài khoản',
+  PARTNER_ADMIN_REMOVE_OWN_CONNECTION: 'Bạn gỡ hệ thống của mình khỏi tài khoản dùng chung',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -171,11 +172,13 @@ function escapeHtml(str) {
   }[c]));
 }
 
+let ownConnectionName = '';
+
 async function load() {
   try {
     const user = getUser();
-    const connectionName = (user && user.permissions && user.permissions.partnerAdminConnectionName) || '';
-    partnerAdminTitle.textContent = connectionName ? `Quản trị đối tác - Hệ thống ${connectionName}` : 'Quản trị đối tác';
+    ownConnectionName = (user && user.permissions && user.permissions.partnerAdminConnectionName) || '';
+    partnerAdminTitle.textContent = ownConnectionName ? `Quản trị đối tác - Hệ thống ${ownConnectionName}` : 'Quản trị đối tác';
 
     const rows = await apiFetch('/partner-admin/users');
     renderList(rows);
@@ -199,10 +202,12 @@ function renderList(rows) {
       // tai khoan Fuji tao nhung duoc gan them he thong HCRC de dang nhap 1 lan quet duoc ca 2) -
       // VAN hien de minh bach (doi tac biet tai khoan nay ton tai, dang hoat dong the nao o phan
       // cua ho), nhung AN nut Khoa/Mo khoa - server (setScopedUserActive) cung tu choi 403 neu co
-      // gang goi thang API, day chi la an UI cho ro rang, khong phai lop bao ve duy nhat.
+      // gang goi thang API, day chi la an UI cho ro rang, khong phai lop bao ve duy nhat. Thay
+      // vao do hien nut "Go he thong [cua ho]" - CHI xoa dung phan cua doi tac nay, KHONG dong
+      // den he thong khac tai khoan do dang dung (xem removeOwnConnection()).
       const action = u.exclusiveToThisSystem
         ? `<button type="button" class="${actionClass} toggle-active-btn">${actionLabel}</button>`
-        : '<span class="text-muted fs-13">Chỉ quản trị đầy đủ thao tác được</span>';
+        : `<button type="button" class="btn-secondary remove-connection-btn">Gỡ hệ thống ${escapeHtml(ownConnectionName || 'của bạn')}</button>`;
       const sharedBadge = u.exclusiveToThisSystem
         ? ''
         : ' <span class="status-badge status-other">DÙNG CHUNG HỆ THỐNG KHÁC</span>';
@@ -218,6 +223,9 @@ function renderList(rows) {
 
   listBody.querySelectorAll('tr[data-user-id] .toggle-active-btn').forEach((btn) => {
     btn.addEventListener('click', () => toggleActive(btn.closest('tr')));
+  });
+  listBody.querySelectorAll('tr[data-user-id] .remove-connection-btn').forEach((btn) => {
+    btn.addEventListener('click', () => removeOwnConnection(btn.closest('tr')));
   });
 }
 
@@ -239,6 +247,27 @@ async function toggleActive(tr) {
       body: JSON.stringify({ isDeleted, username }),
     });
     showToast(isDeleted ? `Đã khóa tài khoản "${username}"` : `Đã mở khóa tài khoản "${username}"`);
+    load();
+  } catch (err) {
+    showToast(err.message);
+    btn.disabled = false;
+  }
+}
+
+async function removeOwnConnection(tr) {
+  const userId = tr.dataset.userId;
+  const username = tr.dataset.username;
+  const label = ownConnectionName || 'của bạn';
+  if (!confirm(`Gỡ quyền dùng hệ thống "${label}" khỏi tài khoản "${username}"? Tài khoản sẽ không còn hiện trong danh sách của bạn nữa (phần hệ thống khác của tài khoản này không bị ảnh hưởng).`)) return;
+
+  const btn = tr.querySelector('.remove-connection-btn');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/partner-admin/users/${encodeURIComponent(userId)}/remove-connection`, {
+      method: 'PUT',
+      body: JSON.stringify({ username }),
+    });
+    showToast(`Đã gỡ hệ thống "${label}" khỏi tài khoản "${username}"`);
     load();
   } catch (err) {
     showToast(err.message);

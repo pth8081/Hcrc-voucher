@@ -128,6 +128,23 @@ async function setAllowedConnections(userId, connectionIds) {
   }
 }
 
+/** Go DUNG 1 he thong (1 dong) khoi danh sach duoc phep cua 1 tai khoan - KHAC voi
+ * setAllowedConnections() (xoa SACH roi ghi lai toan bo danh sach moi). Dung boi
+ * partnerAdminService.js#removeOwnConnection de 1 doi tac tu "tra lai" DUNG he thong cua chinh
+ * ho ma KHONG dong gi den cac dong he thong KHAC tai khoan do co the dang duoc gan (vd 1 tai
+ * khoan dung chung Fuji+HCRC, Fuji go dong cua ho KHONG lam mat dong cua HCRC). Vo hai neu dong
+ * do khong ton tai san (DELETE khop 0 dong, khong loi). KHONG tu kiem tra "co con lai dong nao
+ * khong" o day - noi goi (partnerAdminService.js) phai tu chan truoc neu day la dong CUOI CUNG,
+ * tranh de lai 0 dong (= KHONG GIOI HAN theo quy uoc o dau file, vo tinh CAP THEM quyen). */
+async function removeConnection(userId, connectionId) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('connectionId', sql.Int, connectionId)
+    .query('DELETE FROM dbo.UserVoucherSystems WHERE UserId = @userId AND ConnectionId = @connectionId');
+}
+
 module.exports = {
   UNTAGGED_CONNECTION_ID,
   UNTAGGED_CONNECTION_NAME,
@@ -136,4 +153,5 @@ module.exports = {
   isConnectionAllowedForUser,
   listUserAccess,
   setAllowedConnections,
+  removeConnection,
 };

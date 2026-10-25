@@ -1093,6 +1093,16 @@ thong Fuji) co the duoc quan tri day du cap THEM quyen dung he thong khac (vd HC
   (doc truc tiep UserVoucherSystems hien tai, khong luu cache) - ngay khi quan tri day du **go bot**
   he thong HCRC khoi tai khoan do (dua ve lai DUNG 1 he thong cua Fuji), Fuji **tu dong co lai**
   toan quyen Khoa/Mo khoa ngay lan goi tiep theo, khong can ai can thiep them.
+- **Fuji tu "go" DUNG he thong cua chinh ho (v3.69)**: nut **"Go he thong [ten]"** thay cho
+  Khoa/Mo khoa tren cac dong dung chung - `PUT /api/partner-admin/users/:userId/remove-connection`
+  goi `userVoucherSystemService.js#removeConnection()` xoa **DUNG 1 dong** (connectionId cua chinh
+  Fuji), **KHONG BAO GIO** dong den dong he thong khac (vd HCRC) tai khoan do dang duoc gan - khac
+  han `setAllowedConnections()` (xoa sach roi ghi lai toan bo). Sau khi go, tai khoan **bien mat**
+  khoi danh sach cua Fuji (khong con thuoc pham vi cua ho) nhung **van dang nhap/dung binh thuong**
+  o he thong con lai. **Chan lai (400)** neu day la he thong DUY NHAT con lai cua tai khoan
+  (`exclusiveToThisSystem=true`) - xoa not se de lai 0 dong trong `UserVoucherSystems`, theo dung
+  quy uoc 0 dong = KHONG GIOI HAN (vo tinh CAP THEM quyen thay vi tuoc quyen) - thong bao huong
+  dan dung nut "Khoa" thay the cho dung truong hop nay.
 
 **Xem Nhat ky he thong theo PHAM VI (v3.67):** man hinh `/partner-admin.html` co them 2 tab
 (giong het giao dien "Nhat ky he thong" cua quan tri day du, muc 15c) nhung LUON loc theo dung
@@ -1175,7 +1185,8 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" — `{ connectionId }` — muc 4j |
 | GET | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
 | POST | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri — muc 4j |
-| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi — `{ isDeleted }` — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi (CHI tai khoan dung DUY NHAT he thong cua ho) — `{ isDeleted }` — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/remove-connection` | (can quyen "Quan tri doi tac") Go DUNG he thong cua chinh ho khoi 1 tai khoan dang dung chung — muc 4j |
 | GET | `/api/partner-admin/audit-log(/export)` | (can quyen "Quan tri doi tac") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j |
 | GET | `/api/partner-admin/scan-log(/export)` | (can quyen "Quan tri doi tac") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
@@ -2018,7 +2029,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.68)**: man hinh "Quan tri doi tac" (muc 4j) ho tro dung **tai khoan dung chung
+Ban **moi nhat (v3.69)**: man hinh "Quan tri doi tac" (muc 4j) them nut **"Go he thong [cua ho]"**
+cho cac tai khoan dang dung chung (thay the Khoa/Mo khoa da bi an tu v3.68) - cho phep doi tac tu
+"tra lai" DUNG he thong cua chinh ho khoi 1 tai khoan dung chung (vd Fuji go phan Fuji khoi 1 tai
+khoan dang dung ca Fuji+HCRC), **khong dong gi den** he thong khac tai khoan do dang duoc gan. Tu
+choi (400) neu day la he thong DUY NHAT con lai, tranh vo tinh de lai 0 dong trong
+`UserVoucherSystems` (= KHONG GIOI HAN theo quy uoc co san, se la cap THEM quyen thay vi tuoc
+quyen) - huong dan dung nut "Khoa" cho dung truong hop do.
+
+Ban truoc do (v3.68): man hinh "Quan tri doi tac" (muc 4j) ho tro dung **tai khoan dung chung
 nhieu he thong** (vd 1 tai khoan Fuji tao duoc quan tri day du cap them quyen dung ca he thong
 HCRC, de 1 lan dang nhap quet duoc ca 2 ben) - truoc day cac tai khoan nhu vay bi **an hoan toan**
 khoi man hinh cua Fuji. Gio van hien (minh bach, kem nhan "DUNG CHUNG HE THONG KHAC") nhung Fuji

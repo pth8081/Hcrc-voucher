@@ -54,6 +54,23 @@ async function setActive(req, res, next) {
   }
 }
 
+async function removeOwnConnection(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { username } = req.body;
+    await partnerAdminService.removeOwnConnection(userId, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_REMOVE_OWN_CONNECTION',
+      targetUsername: username || String(userId),
+      detail: { before: null, after: { removedConnectionId: req.partnerAdminConnectionId, removedConnectionName: req.partnerAdminConnectionName } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** Danh sach username trong PHAM VI cua partner-admin dang goi - chinh ho + moi tai khoan nhan
  * vien ho dang quan ly (xem partnerAdminService.js#listScopedUsers) - dung chung cho ca 2 ham
  * nhat ky quan tri ben duoi, doc TUOI tu CSDL moi lan goi (khong cache) de phan quyen luon dung
@@ -123,4 +140,4 @@ async function scanLogExport(req, res, next) {
   }
 }
 
-module.exports = { list, create, setActive, auditLog, auditLogExport, scanLog, scanLogExport };
+module.exports = { list, create, setActive, removeOwnConnection, auditLog, auditLogExport, scanLog, scanLogExport };

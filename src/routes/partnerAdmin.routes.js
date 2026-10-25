@@ -9,6 +9,7 @@ router.use(authenticate, requirePartnerAdmin);
 router.get('/users', controller.list);
 router.post('/users', controller.create);
 router.put('/users/:userId/active', controller.setActive);
+router.put('/users/:userId/remove-connection', controller.removeOwnConnection);
 
 router.get('/audit-log', controller.auditLog);
 router.get('/audit-log/export', controller.auditLogExport);

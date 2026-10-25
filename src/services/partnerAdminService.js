@@ -99,4 +99,30 @@ async function setScopedUserActive(userId, connectionId, isDeleted, updatedBy) {
   await userScheduleService.setDeleted(userId, isDeleted, updatedBy);
 }
 
-module.exports = { listScopedUsers, assertInScope, createScopedUser, setScopedUserActive };
+/**
+ * Doi tac tu "go" DUNG he thong cua CHINH HO khoi 1 tai khoan dang DUNG CHUNG them he thong khac
+ * (vd Fuji go dong "Fuji" khoi 1 tai khoan dang dung ca Fuji+HCRC) - CHI xoa dung 1 dong
+ * (userVoucherSystemService.js#removeConnection), KHONG BAO GIO dong den dong he thong KHAC (vd
+ * HCRC) tai khoan do dang duoc gan. Sau khi go, tai khoan se KHONG con thuoc pham vi cua doi tac
+ * nay nua (bien mat khoi danh sach cua ho - listScopedUsers() loc theo contains-match), nhung
+ * VAN dang nhap/dung duoc binh thuong o (cac) he thong con lai.
+ *
+ * BAT BUOC tai khoan dang DUNG CHUNG (exclusiveToThisSystem=false) - neu day la he thong DUY
+ * NHAT con lai (exclusiveToThisSystem=true), tu choi (400): xoa not se de lai 0 dong trong
+ * UserVoucherSystems, theo dung quy uoc cua userVoucherSystemService.js thi 0 dong = KHONG GIOI
+ * HAN (dung/xem duoc TOAN BO he thong, ke ca he thong tuong lai) - vo tinh CAP THEM quyen cho tai
+ * khoan do thay vi tuoc quyen nhu y doi tac muon. Huong dan dung nut "Khoa" thay the (dung cho
+ * dung muc dich: tai khoan khong dung duoc nua, khong lam no thanh khong gioi han).
+ */
+async function removeOwnConnection(userId, connectionId) {
+  const row = await assertInScope(userId, connectionId);
+  if (row.exclusiveToThisSystem) {
+    const err = new Error('Day la he thong duy nhat cua tai khoan nay - vui long dung nut "Khoa" thay vi "Go he thong", tranh vo tinh bien tai khoan thanh khong gioi han he thong nao.');
+    err.statusCode = 400;
+    err.publicMessage = err.message;
+    throw err;
+  }
+  await userVoucherSystemService.removeConnection(userId, connectionId);
+}
+
+module.exports = { listScopedUsers, assertInScope, createScopedUser, setScopedUserActive, removeOwnConnection };
