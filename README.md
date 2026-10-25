@@ -1182,6 +1182,33 @@ duoc cap quyen nay).
 **Bat buoc 2FA (v3.61):** tai khoan duoc cap "Quan tri doi tac" **bat buoc** phai bat xac thuc hai
 yeu to (TOTP) tu lan dang nhap tiep theo, tuong tu quan tri day du - xem muc 10.
 
+### 4k. Khoa/mo khoa 1 ket noi (v3.74)
+
+Moi dong trong man hinh "Ket noi API" co them nut **"Khóa"/"Mở khóa"**, canh nut "Sửa"/"Xóa"
+(va "Kích hoạt" voi dong chua active). Khac voi Xóa (xoa han, mat het cau hinh), Khoa la thao
+tac **tam thoi, an toan, co the mo lai bat cu luc nao** - dung khi admin muon ngung su dung 1
+he thong voucher (vd doi tac tam ngung hop tac, Core dang bao tri dai han) ma khong muon mat cau
+hinh da thiet lap san (secret, mapping, path...) de phai khai bao lai tu dau khi can dung lai.
+
+- **Khi Khoa 1 ket noi:** dong tuong ung hien **MO di** (giam do tuong phan) + nhan "ĐÃ KHÓA"
+  ngay canh ten, va ket noi nay **bien mat khoi o chon "Hệ thống voucher"** tren man hinh Quet
+  voucher (`listOptions()`) - nhan vien khong con chon duoc ket noi da khoa de quet/thu hoi.
+  Ket noi dang bi khoa cung **khong the Kich hoat** duoc (phai Mo khoa truoc).
+- **Chan o tang TRUNG TAM, khong chi an tren danh sach:** `coreVoucherService.js#resolveConnection()`
+  - ham DUY NHAT ma ca `checkVoucher()` va `redeemVoucher()` deu goi de lay cau hinh Core API se
+    dung - kiem tra `isLocked` TRUOC khi tra ve cho noi goi, bao loi ro rang ("He thong voucher
+    ... dang bi khoa") va dung lai ngay, **du ket noi do dang la ket noi ACTIVE mac dinh hay duoc
+    chon rieng qua `connectionId`** (vd mot tai khoan da luu san lua chon he thong tu truoc khi bi
+    khoa, hoac goi API truc tiep khong qua man hinh Quet voucher). Vi vay 1 ket noi bi khoa la
+    **vo hieu hoa hoan toan**, khong co duong nao lach qua chi bang cach an no khoi giao dien.
+- **Khi Mo khoa lai:** ket noi tro lai hoat dong binh thuong ngay, xuat hien lai o o chon "Hệ
+  thống voucher", co the Kich hoat lai nhu truoc - khong mat/doi bat ky cau hinh nao da luu.
+- Moi lan Khoa/Mo khoa deu ghi **Nhat ky he thong** (`LOCK_API_CONNECTION`/`UNLOCK_API_CONNECTION`).
+
+Du lieu: `sql/037_add_is_locked_api_connection.sql` (them cot `ApiConnections.IsLocked`, mac dinh
+`0` = khong khoa). API: `POST /api/api-connections/:id/lock`, `POST /api/api-connections/:id/unlock`
+(deu chi admin, nhu cac thao tac khac tren man hinh nay).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1423,6 +1450,12 @@ trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
   dinh `5` phut). Cung mau hinh bo dem trong bo nho voi `guessGuard.js`/`loginGuard.js` (khong
   dung chung giua nhieu worker khi `CLUSTER_WORKERS > 1` - gioi han thuc te se cao hon N lan neu
   chay nhieu worker, chap nhan duoc, cung danh doi da ap dung cho 2 co che kia).
+- **Khoa/mo khoa tung ket noi Core Voucher API (v3.74)**: man hinh "Ket noi API" co nut
+  "Khóa"/"Mở khóa" rieng cho tung ket noi - khoa 1 ket noi se vo hieu hoa hoan toan ket noi do cho
+  ca luong kiem tra/thu hoi (chan TRUNG TAM tai `coreVoucherService.js#resolveConnection()`, ap
+  dung du la ket noi active mac dinh hay duoc chon rieng qua `connectionId`) va an no khoi o chon
+  "Hệ thống voucher" (`apiConnectionService.js#listOptions()`), ma **khong xoa cau hinh da luu**
+  nhu nut Xoa - mo khoa lai la dung duoc ngay, khong can khai bao lai. Xem muc 4k.
 - **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
   (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
   `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
@@ -2107,7 +2140,13 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.73)**: bo sung lop bao ve con lai theo yeu cau chong gian lan/hack - **gioi
+Ban **moi nhat (v3.74)**: them nut **"Khóa"/"Mở khóa"** cho tung ket noi tren man hinh "Ket noi
+API" - khoa la thao tac **tam thoi, an toan**, vo hieu hoa hoan toan 1 he thong voucher (khong
+con chon duoc o man Quet voucher, khong the Kich hoat) ma **khong mat cau hinh da luu**, mo lai
+luc nao cung duoc. Chan o tang trung tam `coreVoucherService.js#resolveConnection()` nen ap dung
+du la ket noi active mac dinh hay duoc chon rieng - xem muc 4k va muc 8 (Bao mat).
+
+Ban truoc do (v3.73): bo sung lop bao ve con lai theo yeu cau chong gian lan/hack - **gioi
 han TOC DO thu hoi theo tai khoan** (`src/utils/redeemRateLimit.js`) de chan kieu tan cong "goi
 API tuan tu that nhanh" (khong bi chan boi khoa chong-cung-luc cua v3.72 vi khong co 2 request
 chong lap thoi gian). Mac dinh toi da **20 lan thu hoi thanh cong/1 phut**, vuot thi tam khoa

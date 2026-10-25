@@ -97,6 +97,9 @@ tất rồi quét lại mã mới.</p>
 hệ thống giới hạn tốc độ thu hồi của mỗi tài khoản (chống gian lận/script tự động) - nếu thấy
 thông báo này trong lúc thao tác bình thường (vd ngày cao điểm, quầy đông khách), báo quản trị
 viên để xem xét nới lại giới hạn cho phù hợp thực tế.</p>
+<p><strong>"Hệ thống voucher ... đang bị khóa"</strong>: quản trị viên đã tạm khóa hệ thống
+voucher bạn vừa chọn (menu "Kết nối API") - không thể quét/thu hồi bằng hệ thống này cho đến khi
+được mở khóa lại. Chọn hệ thống voucher khác (nếu có) hoặc báo quản trị viên.</p>
 
 <h2>4. Các loại báo cáo</h2>
 <p>Tùy theo quyền được cấp, menu có thể hiện 1 hoặc cả 3 loại báo cáo sau - mỗi loại phục vụ
@@ -223,6 +226,12 @@ buộc phải có ít nhất 1 kết nối đang "Kích hoạt"</strong> thì m�
     2 như Fuji bên cạnh hệ thống hiện tại) - chỉ 1 kết nối được đánh dấu "Kích hoạt" làm mặc
     định, nhưng nhân viên vẫn chọn được hệ thống khác ngay trên màn Quét voucher nếu tài khoản họ
     được phép dùng từ 2 hệ thống trở lên (xem mục "Hệ thống voucher được dùng" ở mục 1).</li>
+  <li><strong>Khóa/Mở khóa 1 kết nối</strong>: nút "Khóa" tạm vô hiệu hóa hoàn toàn 1 kết nối
+    (dòng hiện mờ đi + nhãn "ĐÃ KHÓA") mà <strong>không xóa cấu hình đã lưu</strong> - khi đã
+    khóa, kết nối đó biến mất khỏi ô chọn "Hệ thống voucher" trên màn Quét voucher và không thể
+    "Kích hoạt". Dùng khi cần tạm ngừng 1 hệ thống (đối tác tạm ngừng hợp tác, Core đang bảo trì
+    dài hạn...) mà muốn giữ lại cấu hình để dùng lại sau, thay vì phải xóa rồi khai báo lại từ
+    đầu. Bấm "Mở khóa" để dùng lại bình thường ngay, không mất gì.</li>
 </ul>
 <p class="hint">Ví dụ điền form cụ thể cho 1 kiểu Core API xác thực bằng API Key riêng (header
 <code>X-API-Key</code>) được trình bày chi tiết trong tài liệu kỹ thuật repo (README.md mục

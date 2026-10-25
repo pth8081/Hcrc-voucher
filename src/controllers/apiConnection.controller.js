@@ -99,6 +99,28 @@ async function activate(req, res, next) {
   }
 }
 
+/**
+ * Khoa/mo khoa 1 ket noi (nut "Khoa"/"Mo khoa" tren man hinh "Ket noi API") - xem ghi chu chi
+ * tiet tai apiConnectionService.js#setLocked va coreVoucherService.js#resolveConnection (diem
+ * chan thuc su khi dung ket noi, khong chi an di tren danh sach).
+ */
+async function setLocked(req, res, next, locked) {
+  try {
+    const before = await apiConnectionService.getById(req.params.id);
+    if (!before) return res.status(404).json({ success: false, message: 'Khong tim thay ket noi' });
+    await apiConnectionService.setLocked(req.params.id, locked);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: locked ? 'LOCK_API_CONNECTION' : 'UNLOCK_API_CONNECTION',
+      targetUsername: before.name,
+      detail: { before: { id: before.id, isLocked: before.isLocked }, after: { id: before.id, isLocked: locked } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function remove(req, res, next) {
   try {
     // L6: lay trang thai TRUOC KHI xoa (ten/baseUrl) de ghi vao audit log - sau khi xoa se
@@ -251,4 +273,4 @@ async function testRedeem(req, res, next) {
   }
 }
 
-module.exports = { list, getById, getDefaults, create, update, activate, remove, testCheck, testRedeem };
+module.exports = { list, getById, getDefaults, create, update, activate, setLocked, remove, testCheck, testRedeem };

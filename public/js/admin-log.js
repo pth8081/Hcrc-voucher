@@ -29,6 +29,8 @@ const ACTION_LABEL = {
   UPDATE_API_CONNECTION: 'Sửa kết nối API',
   ACTIVATE_API_CONNECTION: 'Kích hoạt kết nối API',
   DELETE_API_CONNECTION: 'Xóa kết nối API',
+  LOCK_API_CONNECTION: 'Khóa kết nối API',
+  UNLOCK_API_CONNECTION: 'Mở khóa kết nối API',
   UPDATE_USER_VOUCHER_SYSTEMS: 'Đổi hệ thống voucher được dùng',
   UPDATE_PARTNER_ADMIN: 'Đổi quyền quản trị đối tác',
   PARTNER_ADMIN_CREATE_USER: 'Đối tác tạo tài khoản mới',

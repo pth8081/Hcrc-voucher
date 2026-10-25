@@ -175,6 +175,7 @@ function toMaskedDto(row) {
     id: row.Id,
     name: row.Name,
     isActive: !!row.IsActive,
+    isLocked: !!row.IsLocked,
     baseUrl: row.BaseUrl,
     authType: row.AuthType,
     hasAuthToken: !!row.AuthTokenEncrypted,
@@ -246,14 +247,20 @@ async function getByIdDecrypted(id) {
  * xuat hien (va co the bam nham) truoc khi admin dien xong cau hinh that - KHONG lien quan gi
  * den IsActive (1 ket noi KHONG active van phai hien ra o day neu da san sang, vi IsActive chi
  * quyet dinh lua chon MAC DINH, khong phai co hien ra hay khong - xem README muc 4e).
+ *
+ * Cung loai bo ket noi dang bi KHOA (IsLocked = 1, man hinh "Ket noi API") - admin khoa 1 ket
+ * noi nghia la tam vo hieu hoa hoan toan, nhan vien khong duoc thay/chon no o day nua.
  */
 async function listOptions() {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT Id, Name, IsActive FROM dbo.ApiConnections
-    WHERE AuthType = 'NONE'
-       OR (AuthType IN ('BEARER', 'API_KEY_HEADER') AND AuthTokenEncrypted IS NOT NULL)
-       OR (AuthType = 'BASIC' AND BasicPasswordEncrypted IS NOT NULL)
+    WHERE IsLocked = 0
+      AND (
+        AuthType = 'NONE'
+        OR (AuthType IN ('BEARER', 'API_KEY_HEADER') AND AuthTokenEncrypted IS NOT NULL)
+        OR (AuthType = 'BASIC' AND BasicPasswordEncrypted IS NOT NULL)
+      )
     ORDER BY IsActive DESC, Name
   `);
   return result.recordset.map((r) => ({ id: r.Id, name: r.Name, isActive: !!r.IsActive }));
@@ -401,6 +408,29 @@ async function activate(id) {
   await transaction.begin();
   let rolledBack = false;
   try {
+    // Khong cho kich hoat 1 ket noi dang bi KHOA - tranh truong hop admin vo tinh dat lam ket
+    // noi mac dinh 1 he thong minh vua chu dong vo hieu hoa (phai mo khoa truoc).
+    const target = await transaction
+      .request()
+      .input('id', sql.Int, id)
+      .query('SELECT IsLocked FROM dbo.ApiConnections WITH (UPDLOCK, HOLDLOCK) WHERE Id = @id');
+    if (!target.recordset.length) {
+      rolledBack = true;
+      await transaction.rollback();
+      const err = new Error('Khong tim thay ket noi de kich hoat');
+      err.statusCode = 404;
+      err.publicMessage = 'Khong tim thay ket noi nay (co the da bi xoa), vui long tai lai trang.';
+      throw err;
+    }
+    if (target.recordset[0].IsLocked) {
+      rolledBack = true;
+      await transaction.rollback();
+      const err = new Error('Ket noi dang bi khoa');
+      err.statusCode = 400;
+      err.publicMessage = 'Ket noi nay dang bi khoa - vui long mo khoa truoc khi kich hoat.';
+      throw err;
+    }
+
     await transaction.request().query('UPDATE dbo.ApiConnections SET IsActive = 0');
     const result = await transaction
       .request()
@@ -422,6 +452,28 @@ async function activate(id) {
     await transaction.commit();
   } catch (err) {
     if (!rolledBack) await transaction.rollback();
+    throw err;
+  }
+}
+
+/**
+ * Khoa/mo khoa 1 ket noi (nut "Khoa"/"Mo khoa" tren man hinh "Ket noi API") - khoa nghia la
+ * vo hieu hoa HOAN TOAN ket noi nay cho ca luong kiem tra/thu hoi voucher (coreVoucherService.js
+ * #resolveConnection chan luc dung) VA an no khoi o chon "He thong voucher" (listOptions() o
+ * tren), bat ke dang la ket noi active hay khong - khac remove() (xoa han, khong hoan tac duoc),
+ * khoa la thao tac AN TOAN/TAM THOI, co the mo lai bat cu luc nao, khong mat du lieu cau hinh.
+ */
+async function setLocked(id, locked) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, id)
+    .input('isLocked', sql.Bit, locked ? 1 : 0)
+    .query('UPDATE dbo.ApiConnections SET IsLocked = @isLocked WHERE Id = @id');
+  if (result.rowsAffected[0] === 0) {
+    const err = new Error('Khong tim thay ket noi');
+    err.statusCode = 404;
+    err.publicMessage = 'Khong tim thay ket noi nay (co the da bi xoa), vui long tai lai trang.';
     throw err;
   }
 }
@@ -530,6 +582,7 @@ module.exports = {
   update,
   activate,
   remove,
+  setLocked,
   resolveDraftConfig,
   logTest,
 };

@@ -57,9 +57,9 @@ async function loadList() {
     wrap.innerHTML = list
       .map(
         (c) => `
-        <div class="conn-row">
+        <div class="conn-row${c.isLocked ? ' conn-row-locked' : ''}">
           <div>
-            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}
+            <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}${c.isLocked ? '<span class="badge-locked">ĐÃ KHÓA</span>' : ''}
             <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
             ${
               c.excludedCodePrefixes && c.excludedCodePrefixes.length
@@ -69,7 +69,12 @@ async function loadList() {
           </div>
           <div class="flex gap-8">
             <button class="btn-secondary" data-edit="${c.id}">Sửa</button>
-            ${!c.isActive ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
+            ${!c.isActive && !c.isLocked ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
+            ${
+              c.isLocked
+                ? `<button class="btn-secondary" data-unlock="${c.id}">Mở khóa</button>`
+                : `<button class="btn-secondary" data-lock="${c.id}">Khóa</button>`
+            }
             <button class="btn-danger" data-remove="${c.id}">Xóa</button>
           </div>
         </div>`
@@ -81,6 +86,12 @@ async function loadList() {
     );
     wrap.querySelectorAll('[data-activate]').forEach((btn) =>
       btn.addEventListener('click', () => activateConnection(Number(btn.dataset.activate)))
+    );
+    wrap.querySelectorAll('[data-lock]').forEach((btn) =>
+      btn.addEventListener('click', () => setLockedConnection(Number(btn.dataset.lock), true))
+    );
+    wrap.querySelectorAll('[data-unlock]').forEach((btn) =>
+      btn.addEventListener('click', () => setLockedConnection(Number(btn.dataset.unlock), false))
     );
     wrap.querySelectorAll('[data-remove]').forEach((btn) =>
       btn.addEventListener('click', () => removeConnection(Number(btn.dataset.remove)))
@@ -94,6 +105,17 @@ async function activateConnection(id) {
   try {
     await apiFetch(`/api-connections/${id}/activate`, { method: 'POST' });
     showToast('Đã kích hoạt kết nối');
+    await loadList();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function setLockedConnection(id, locked) {
+  if (locked && !confirm('Khóa kết nối này? Kết nối sẽ không dùng được cho đến khi mở khóa lại.')) return;
+  try {
+    await apiFetch(`/api-connections/${id}/${locked ? 'lock' : 'unlock'}`, { method: 'POST' });
+    showToast(locked ? 'Đã khóa kết nối' : 'Đã mở khóa kết nối');
     await loadList();
   } catch (err) {
     showToast(err.message);
