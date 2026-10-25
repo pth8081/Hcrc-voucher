@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/css/fonts.css" />
 <link rel="stylesheet" href="/css/style.css" />
 <link rel="stylesheet" href="/css/users.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#ee7d1a" />
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -26,31 +27,85 @@
     <div id="partnerAdminCard">
       <div class="card">
         <h2 id="partnerAdminTitle">Quản trị đối tác</h2>
-        <p class="hint mb-10">
-          Bạn chỉ xem/quản lý được <strong>tài khoản nhân viên CHỈ dùng đúng hệ thống của bạn</strong>
-          - không thấy tài khoản quản trị HCRC hay tài khoản thuộc đối tác khác. "Khóa" tạm ngừng
-          đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay.
-        </p>
-        <form id="createForm">
-          <label>Tên đăng nhập *</label>
-          <input id="newUsername" required />
-          <label>Mật khẩu *</label>
-          <input id="newPassword" type="password" required placeholder="Ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt" />
-          <label>Họ tên *</label>
-          <input id="newFullName" required />
-          <button class="btn-primary btn-block mt-10" type="submit" id="createBtn">Tạo tài khoản</button>
-        </form>
-      </div>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="users">Quản lý tài khoản</button>
+          <button type="button" class="tab-btn" data-tab="audit">Nhật ký quản trị</button>
+          <button type="button" class="tab-btn" data-tab="scan">Hoạt động quét/thu hồi</button>
+        </div>
 
-      <div class="card">
-        <h2>Danh sách tài khoản</h2>
-        <div class="table-wrap table-responsive">
+        <div id="tabUsers" class="tab-panel">
+          <p class="hint mb-10">
+            Bạn chỉ xem/quản lý được <strong>tài khoản nhân viên CHỈ dùng đúng hệ thống của bạn</strong>
+            - không thấy tài khoản quản trị HCRC hay tài khoản thuộc đối tác khác. "Khóa" tạm ngừng
+            đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay.
+          </p>
+          <form id="createForm">
+            <label>Tên đăng nhập *</label>
+            <input id="newUsername" required />
+            <label>Mật khẩu *</label>
+            <input id="newPassword" type="password" required placeholder="Ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt" />
+            <label>Họ tên *</label>
+            <input id="newFullName" required />
+            <button class="btn-primary btn-block mt-10" type="submit" id="createBtn">Tạo tài khoản</button>
+          </form>
+
+          <h3 class="mt-20">Danh sách tài khoản</h3>
+          <div class="table-wrap table-responsive">
+            <table>
+              <thead>
+                <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái</th><th>Hành động</th></tr>
+              </thead>
+              <tbody id="listBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tabAudit" class="tab-panel hidden">
+          <p class="hint">Ghi lại các thao tác quản trị liên quan ĐÚNG phạm vi của bạn: do chính bạn thực hiện, hoặc tác động đến tài khoản nhân viên bạn đang quản lý (kể cả khi HCRC thao tác hộ). Để trống cả 2 ô ngày để xem toàn bộ lịch sử gần nhất.</p>
+          <div class="summary-filters">
+            <div class="field">
+              <label>Từ ngày (tùy chọn)</label>
+              <input id="auditFromDate" type="date" />
+            </div>
+            <div class="field">
+              <label>Đến ngày (tùy chọn)</label>
+              <input id="auditToDate" type="date" />
+            </div>
+            <button id="loadAuditBtn" class="btn-primary">Xem</button>
+            <button id="exportAuditBtn" class="btn-secondary">Xuất Excel</button>
+          </div>
+          <div class="table-wrap table-responsive">
           <table>
             <thead>
-              <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái</th><th>Hành động</th></tr>
+              <tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr>
             </thead>
-            <tbody id="listBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
+            <tbody id="auditBody"><tr><td colspan="5" class="text-muted">Đang tải...</td></tr></tbody>
           </table>
+          </div>
+        </div>
+
+        <div id="tabScan" class="tab-panel hidden">
+          <p class="hint">Ghi lại MỌI lần quét/kiểm tra voucher thuộc ĐÚNG hệ thống của bạn (cả thành công lẫn thất bại). Để trống cả 2 ô ngày để xem toàn bộ lịch sử gần nhất.</p>
+          <div class="summary-filters">
+            <div class="field">
+              <label>Từ ngày (tùy chọn)</label>
+              <input id="scanFromDate" type="date" />
+            </div>
+            <div class="field">
+              <label>Đến ngày (tùy chọn)</label>
+              <input id="scanToDate" type="date" />
+            </div>
+            <button id="loadScanBtn" class="btn-primary">Xem</button>
+            <button id="exportScanBtn" class="btn-secondary">Xuất Excel</button>
+          </div>
+          <div class="table-wrap table-responsive">
+          <table>
+            <thead>
+              <tr><th>Thời gian</th><th>Người quét</th><th>Địa điểm</th><th>Mã voucher</th><th>Cách quét</th><th>Hành động</th><th>Kết quả</th></tr>
+            </thead>
+            <tbody id="scanBody"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
+          </table>
+          </div>
         </div>
       </div>
     </div>

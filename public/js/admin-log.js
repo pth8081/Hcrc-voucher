@@ -34,6 +34,7 @@ const ACTION_LABEL = {
   PARTNER_ADMIN_CREATE_USER: 'Đối tác tạo tài khoản mới',
   PARTNER_ADMIN_LOCK_USER: 'Đối tác khóa tài khoản',
   PARTNER_ADMIN_UNLOCK_USER: 'Đối tác mở khóa tài khoản',
+  PARTNER_ADMIN_REMOVE_OWN_CONNECTION: 'Đối tác gỡ hệ thống của mình khỏi tài khoản dùng chung',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {

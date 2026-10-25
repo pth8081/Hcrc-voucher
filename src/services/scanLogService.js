@@ -9,8 +9,14 @@ const MAX_EXPORT_ROWS = 50000;
  * Doc lai VoucherScanLogs (ghi MOI lan quet/kiem tra/thu hoi, ca thanh cong lan that bai -
  * xem sql/002) de phuc vu man hinh "Nhat ky he thong" cho admin. Chi doc, khong ghi (ghi da
  * co san trong voucherService.js).
+ *
+ * `connectionName` (tuy chon): loc CHI con cac dong co ConnectionName TRUNG KHOP - dung boi
+ * partnerAdmin.controller.js de "Quan tri doi tac" (vd Fuji) CHI xem duoc hoat dong quet/thu hoi
+ * cua DUNG he thong ho duoc gan (req.partnerAdminConnectionName, xem requirePartnerAdmin.js), KHONG
+ * duoc xem cheo sang he thong khac. Man hinh admin day du (adminLog.controller.js) KHONG truyen
+ * tham so nay nen khong bi loc gi them, giu dung hanh vi cu.
  */
-async function list({ fromDate, toDate, limit }) {
+async function list({ fromDate, toDate, limit, connectionName }) {
   const pool = await getPool();
   // Dot ra soat sau phat hien: truoc day chi gioi han CAN TREN (Math.min) - 1 gia tri am (vd
   // ?limit=-1) van la "truthy" nen vuot qua "|| 300", roi lam SELECT TOP (@limit) bao loi SQL
@@ -26,6 +32,10 @@ async function list({ fromDate, toDate, limit }) {
   if (toDate) {
     request.input('toDate', sql.Date, toDate);
     filter += ' AND CAST(CreatedDate AS DATE) <= @toDate';
+  }
+  if (connectionName) {
+    request.input('connectionName', sql.NVarChar(100), connectionName);
+    filter += ' AND ConnectionName = @connectionName';
   }
 
   const result = await request.query(`

@@ -1061,17 +1061,93 @@ hien co - admin tu dieu chinh rieng neu can.
 **Tai khoan duoc cap** dang nhap se thay 1 muc menu rieng **"Quan tri doi tac"** (khong thay
 menu "Quan tri" day du cua HCRC), vao man hinh rut gon `/partner-admin.html` chi gom dung 3
 thao tac:
-- **Xem danh sach**: CHI hien tai khoan nhan vien (role=0) ma he thong voucher duoc dung la
-  **DUNG VA CHI DUY NHAT** he thong cua ho (so khop chinh xac - "whitelist exact match", xem
-  `partnerAdminService.js#listScopedUsers`). Tai khoan quan tri, tai khoan dung chung nhieu he
-  thong, hoac tai khoan khong gioi han deu **khong bao gio** hien ra, du doan dung userId.
+- **Xem danh sach**: hien tai khoan nhan vien (role=0) co **DUNG trong danh sach he thong** he
+  thong cua ho (tu v3.68 - truoc do bat buoc **CHI DUY NHAT**, xem muc "Tai khoan dung chung" bo
+  sung ben duoi). Tai khoan quan tri (role=1) hoac tai khoan khong gioi han he thong nao (dung
+  duoc toan bo, ke ca he thong tuong lai) van **khong bao gio** hien ra, du doan dung userId.
 - **Tao tai khoan moi**: tu dong gan **DUY NHAT** he thong cua ho cho tai khoan moi tao, bo qua
   hoan toan moi gia tri role/he thong khac trong request (chan leo thang quyen qua goi API truc
   tiep, xem kiem thu o duoi).
 - **Khoa/Mo khoa**: tai su dung co che xoa mem/khoi phuc co san (`UserAccountSchedule.IsDeleted`),
   KHONG dong den UserVoucherSystems cua tai khoan do. Bat buoc kiem tra lai `assertInScope()`
   TRUOC moi thao tac tren 1 userId cu the - tu choi (403) neu userId ngoai pham vi; tu choi (400)
-  neu co gang tu khoa chinh tai khoan dang dang nhap.
+  neu co gang tu khoa chinh tai khoan dang dang nhap. **Khong co xoa that (hard delete)** o bat ky
+  man hinh nao trong app (ke ca man hinh "Tai khoan" cua quan tri day du) - "Xoa" tren giao dien
+  luon la xoa mem (`IsDeleted=1`, chi an khoi danh sach + chan dang nhap), du lieu quet/VOUCHER_SYNC
+  nam o bang hoan toan rieng, khong bao gio bi dong toi - an toan cho du lieu doi soat/bao cao.
+
+**Tai khoan dung chung nhieu he thong (v3.68):** 1 tai khoan do Fuji tao (ban dau CHI dung he
+thong Fuji) co the duoc quan tri day du cap THEM quyen dung he thong khac (vd HCRC, qua man hinh
+"Tai khoan" > "He thong voucher duoc dung") - vi du de 1 nhan vien dang nhap MOT LAN quet duoc ca
+2 he thong, khong can 2 tai khoan rieng. Khi do:
+- Tai khoan **VAN hien** trong danh sach cua Fuji (khong con bi an di hoan toan nhu ban dau) -
+  minh bach, Fuji biet tai khoan nay ton tai va dang hoat dong the nao o phan cua ho (bao gom ca
+  "Hoat dong quet/thu hoi" va "Nhat ky quan tri" lien quan - 2 tab nay van loc dung du lieu cua ho,
+  xem muc duoi), kem nhan **"DUNG CHUNG HE THONG KHAC"**.
+- Nhung **KHONG Khoa/Mo khoa duoc nua** - nut bi an o giao dien, VA server (`setScopedUserActive`)
+  tu choi 403 neu co gang goi thang API. Ly do: "Khoa" la khoa **TOAN BO dang nhap** (khong co khai
+  niem "khoa rieng phan cua Fuji"), neu de Fuji tu khoa 1 tai khoan dung chung se vo tinh (hoac co
+  y) chan luon ca dang nhap phia he thong kia - chi quan tri day du (nguoi co day du boi canh ca 2
+  phia) moi duoc phep khoa/mo khoa tai khoan dang dung chung.
+- Co `exclusiveToThisSystem` (tra ve trong `listScopedUsers()`) duoc **tinh LAI TUOI moi lan goi**
+  (doc truc tiep UserVoucherSystems hien tai, khong luu cache) - ngay khi quan tri day du **go bot**
+  he thong HCRC khoi tai khoan do (dua ve lai DUNG 1 he thong cua Fuji), Fuji **tu dong co lai**
+  toan quyen Khoa/Mo khoa ngay lan goi tiep theo, khong can ai can thiep them.
+- **Fuji tu "go" DUNG he thong cua chinh ho (v3.69)**: nut **"Go he thong [ten]"** thay cho
+  Khoa/Mo khoa tren cac dong dung chung - `PUT /api/partner-admin/users/:userId/remove-connection`
+  goi `userVoucherSystemService.js#removeConnection()` xoa **DUNG 1 dong** (connectionId cua chinh
+  Fuji), **KHONG BAO GIO** dong den dong he thong khac (vd HCRC) tai khoan do dang duoc gan - khac
+  han `setAllowedConnections()` (xoa sach roi ghi lai toan bo). Sau khi go, tai khoan **bien mat**
+  khoi danh sach cua Fuji (khong con thuoc pham vi cua ho) nhung **van dang nhap/dung binh thuong**
+  o he thong con lai. **Chan lai (400)** neu day la he thong DUY NHAT con lai cua tai khoan
+  (`exclusiveToThisSystem=true`) - xoa not se de lai 0 dong trong `UserVoucherSystems`, theo dung
+  quy uoc 0 dong = KHONG GIOI HAN (vo tinh CAP THEM quyen thay vi tuoc quyen) - thong bao huong
+  dan dung nut "Khoa" thay the cho dung truong hop nay.
+
+**Pham vi XEM dua tren "AI TAO RA tai khoan", khong chi "DANG dung he thong nao" (v3.70):** v3.68
+chi dua vao UserVoucherSystems HIEN TAI (contains-match) de quyet dinh 1 tai khoan co hien trong
+man "Quan ly tai khoan"/"Nhat ky quan tri" cua doi tac hay khong - phat sinh 1 ke ho: 1 tai khoan
+do CHINH quan tri day du HCRC tao qua man hinh "Tai khoan" (khong phai Fuji tao), sau do duoc cap
+THEM quyen dung he thong Fuji (de phuc vu quet ca 2 he thong) se **lo ra** trong man tu quan ly
+cua Fuji - trong khi Fuji khong he tao ra no, khong nen tu quan ly duoc. Doi lai:
+- `sql/035_add_created_by_partner_connection.sql`: them cot `VoucherAppPermissions.CreatedByPartnerConnectionId`
+  - ghi **DUY NHAT 1 LAN**, **KHONG BAO GIO doi lai sau do** (khac han UserVoucherSystems co the
+  doi qua lai bat ky luc nao) - NULL = tai khoan do CHINH quan tri day du tao truc tiep; co gia tri
+  = Id cua `ApiConnections` cua doi tac da tao ra tai khoan nay qua man tu phuc vu. Backfill 1 lan
+  duy nhat luc nang cap (boc trong `IF NOT EXISTS (...WHERE CreatedByPartnerConnectionId IS NOT NULL)`
+  - dam bao KHONG chay lai o cac lan `npm run migrate` sau, tranh "nhan nham" tai khoan quan tri
+  day du tao moi sau nay): coi tai khoan nhan vien nao HIEN DANG dung DUNG 1 he thong cu the tai
+  thoi diem nang cap la "thuoc ve" he thong do, giu nguyen hanh vi hien thi da co TRUOC ban nay.
+- `partnerAdminService.js#listScopedUsers()`: them dieu kien **BAT BUOC CA 2** - (1)
+  `CreatedByPartnerConnectionId` = dung connectionId cua doi tac dang goi (permissionService.js#listCreatedByPartnerConnection,
+  co dinh vinh vien), VA (2) UserVoucherSystems HIEN TAI co chua connectionId do (doc tuoi, co the
+  doi). `createScopedUser()` ghi co nay DUY NHAT 1 lan ngay sau khi tao tai khoan xong
+  (`permissionService.js#setCreatedByPartnerConnection`).
+- **Khong anh huong** tab "Hoat dong quet/thu hoi" (scan log) - tab do VAN loc thuan theo
+  `ConnectionName` tren tung giao dich (khong phu thuoc "ai tao ra tai khoan"), nen Fuji **van
+  thay dung** cac luot quet he thong Fuji cua 1 tai khoan du do HCRC tao ra, chi khong tu quan ly
+  duoc chinh tai khoan do (khong thay o tab "Quan ly tai khoan"/"Nhat ky quan tri").
+- He qua: 1 tai khoan DO CHINH Fuji tao, du bi go het/mat quyen dung he thong Fuji (vd qua
+  `removeOwnConnection()`), se **tu dong xuat hien lai NGAY** trong danh sach cua Fuji ngay khi
+  quan tri day du gan lai dung he thong do - vi dieu kien (1) la CO DINH VINH VIEN, khong can tao
+  lai tai khoan.
+
+**Xem Nhat ky he thong theo PHAM VI (v3.67):** man hinh `/partner-admin.html` co them 2 tab
+(giong het giao dien "Nhat ky he thong" cua quan tri day du, muc 15c) nhung LUON loc theo dung
+pham vi cua ho - KHONG tai su dung chung route `/api/admin/*` (van CHI danh cho quan tri day du,
+`requireAdmin`), ma la 4 route rieng `/api/partner-admin/audit-log(/export)` va
+`/api/partner-admin/scan-log(/export)`:
+- **Hoat dong quet/thu hoi**: loc `VoucherScanLogs.ConnectionName = <ten he thong cua ho>` (so
+  khop chinh xac, giong cach loc "He thong" o cac man hinh bao cao) - `scanLogService.js#list()`
+  nhan them tham so `connectionName` TUY CHON (khong truyen = khong loc gi them, dung cho man
+  hinh admin day du, giu nguyen hanh vi cu).
+- **Nhat ky quan tri**: loc `AdminAuditLog.ActorUsername` HOAC `TargetUsername` TRUNG 1 trong
+  danh sach = chinh ho + toan bo tai khoan nhan vien dang trong pham vi cua ho
+  (`partnerAdminService.js#listScopedUsers()`, doc TUOI tu CSDL moi lan goi) - vi du thay duoc ca
+  dong do CHINH quan tri HCRC thao tac (vd go 2FA) nhung tac dong len 1 tai khoan nhan vien cua
+  ho. `auditLogService.js#list()` nhan them tham so `usernames` TUY CHON (mang RONG `[]` = CHAN
+  het, khong tra ve dong nao - an toan "fail-closed"; khong truyen gi = khong loc, dung cho man
+  hinh admin day du).
 
 **Bao mat:** `middleware/requirePartnerAdmin.js` luon doc TRUC TIEP tu CSDL (khong tin JWT da
 "chup"), tu choi ca tai khoan quan tri DAY DU (role=1 - ho dung man hinh "Tai khoan" day du, khong
@@ -1137,7 +1213,10 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" — `{ connectionId }` — muc 4j |
 | GET | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
 | POST | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri — muc 4j |
-| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi — `{ isDeleted }` — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi (CHI tai khoan dung DUY NHAT he thong cua ho) — `{ isDeleted }` — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/remove-connection` | (can quyen "Quan tri doi tac") Go DUNG he thong cua chinh ho khoi 1 tai khoan dang dung chung — muc 4j |
+| GET | `/api/partner-admin/audit-log(/export)` | (can quyen "Quan tri doi tac") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j |
+| GET | `/api/partner-admin/scan-log(/export)` | (can quyen "Quan tri doi tac") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -1978,7 +2057,38 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.66)**: cap nhat 2 trang "Huong dan" trong app (muc "Huong dan he thong" cho
+Ban **moi nhat (v3.70)**: sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
+truoc day chi dua vao "tai khoan HIEN DANG dung he thong nao" de quyet dinh co hien ra hay khong,
+khien 1 tai khoan do CHINH quan tri day du HCRC tao (khong phai Fuji), duoc cap THEM quyen dung
+he thong Fuji, bi **lo ra** nham trong man tu quan ly cua Fuji. Gio dung them 1 dieu kien **BAT
+BUOC CA 2**: tai khoan phai **CHINH Fuji tao ra** (`VoucherAppPermissions.CreatedByPartnerConnectionId`,
+co dinh vinh vien tu luc tao, sql/035) **VA** hien dang dung he thong Fuji (nhu cu). Tab "Hoat
+dong quet/thu hoi" khong doi - van thay dung moi luot quet he thong Fuji du tai khoan do ai tao.
+
+Ban truoc do (v3.69): man hinh "Quan tri doi tac" (muc 4j) them nut **"Go he thong [cua ho]"**
+cho cac tai khoan dang dung chung (thay the Khoa/Mo khoa da bi an tu v3.68) - cho phep doi tac tu
+"tra lai" DUNG he thong cua chinh ho khoi 1 tai khoan dung chung (vd Fuji go phan Fuji khoi 1 tai
+khoan dang dung ca Fuji+HCRC), **khong dong gi den** he thong khac tai khoan do dang duoc gan. Tu
+choi (400) neu day la he thong DUY NHAT con lai, tranh vo tinh de lai 0 dong trong
+`UserVoucherSystems` (= KHONG GIOI HAN theo quy uoc co san, se la cap THEM quyen thay vi tuoc
+quyen) - huong dan dung nut "Khoa" cho dung truong hop do.
+
+Ban truoc do (v3.68): man hinh "Quan tri doi tac" (muc 4j) ho tro dung **tai khoan dung chung
+nhieu he thong** (vd 1 tai khoan Fuji tao duoc quan tri day du cap them quyen dung ca he thong
+HCRC, de 1 lan dang nhap quet duoc ca 2 ben) - truoc day cac tai khoan nhu vay bi **an hoan toan**
+khoi man hinh cua Fuji. Gio van hien (minh bach, kem nhan "DUNG CHUNG HE THONG KHAC") nhung Fuji
+**khong con Khoa/Mo khoa duoc nua** (chi quan tri day du lam duoc, vi "Khoa" la khoa toan bo dang
+nhap, anh huong ca 2 phia) - tu dong tra lai toan quyen cho Fuji ngay khi quan tri day du go bot
+quyen he thong khac khoi tai khoan do.
+
+Ban truoc do (v3.67): man hinh "Quan tri doi tac" (vd Fuji, muc 4j) co them 2 tab moi **"Nhat
+ky quan tri"** va **"Hoat dong quet/thu hoi"** - truoc day doi tac hoan toan khong xem duoc Nhat
+ky he thong (man hinh do chi danh cho quan tri day du). Ca 2 tab LUON loc dung pham vi cua ho
+(dung he thong voucher cua ho / cac tai khoan nhan vien ho dang quan ly), dung 4 route rieng
+(`/api/partner-admin/audit-log`, `/api/partner-admin/scan-log`, ca 2 co them `/export`), KHONG
+dong gi den route `/api/admin/*` hien co (van chi danh cho quan tri day du).
+
+Ban truoc do (v3.66): cap nhat 2 trang "Huong dan" trong app (muc "Huong dan he thong" cho
 quan tri, "Huong dan nghiep vu" cho nhan vien) de co them huong dan su dung tinh nang gui bao cao
 qua email (v3.64-v3.65) - truoc do 2 trang nay chua nhac gi den tinh nang email.
 
