@@ -1149,6 +1149,24 @@ pham vi cua ho - KHONG tai su dung chung route `/api/admin/*` (van CHI danh cho 
   het, khong tra ve dong nao - an toan "fail-closed"; khong truyen gi = khong loc, dung cho man
   hinh admin day du).
 
+**Nhieu doi tac song song, cach ly HOAN TOAN voi nhau (khong gan cung Fuji):** toan bo co che o
+muc nay (bao gom ca 4 phan bo sung v3.68-v3.70 o tren) khong co BAT KY dong code nao kiem tra ten
+"Fuji" - moi noi deu chi dua vao `connectionId` (1 Id so hoc cua 1 dong trong `ApiConnections`).
+"Fuji" trong tai lieu nay CHI la vi du minh hoa, khong phai ha tang rieng (dong seed co san o
+`sql/029_seed_fuji_connection.sql` cung chi la 1 ban nhap tien ich, khong bat buoc). Them 1 doi
+tac moi (vd "Posi") **khong can sua code/migration/deploy lai gi** - chi 2 buoc tren giao dien:
+(1) "Ket noi API" tao 1 ket noi moi cho Posi, (2) "Tai khoan" gan "Quan tri doi tac" = Posi cho
+DUNG 1 tai khoan dai dien - tu do tai khoan nay tu tao them nhan vien cho rieng Posi.
+- **Khong doi tac nao thay duoc tai khoan HAY nhat ky he thong cua doi tac khac** - vi
+  `listScopedUsers(connectionId)` (muc "Pham vi XEM..." o tren) va 2 ham loc nhat ky (muc "Xem
+  Nhat ky he thong theo PHAM VI" o duoi) deu loc CHINH XAC theo `connectionId` cua tai khoan dang
+  goi (`req.partnerAdminConnectionId`, doc tu CSDL luc dang nhap/goi API, khong phai gia tri co
+  dinh) - Posi va Fuji la 2 "hop" hoan toan tach biet, khong co duong nao de 1 ben nhin sang pham
+  vi cua ben kia, du ca 2 cung dung chung 1 ung dung.
+- **Chi quan tri day du (HCRC) moi thay duoc GOP CHUNG tat ca** - man hinh "Tai khoan" va "Nhat ky
+  he thong" day du (`/api/admin/*`, `requireAdmin`) khong bi loc gi ca, luon tra ve toan bo tai
+  khoan/nhat ky cua MOI doi tac cung luc, phuc vu doi soat tong.
+
 **Bao mat:** `middleware/requirePartnerAdmin.js` luon doc TRUC TIEP tu CSDL (khong tin JWT da
 "chup"), tu choi ca tai khoan quan tri DAY DU (role=1 - ho dung man hinh "Tai khoan" day du, khong
 dung duong nay) lan tai khoan khong co quyen nay. Da kiem thu day du (mock DB, goi thang route
@@ -1373,6 +1391,38 @@ trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
   do dung mat khau/van tay khong con du de vao duoc, nen nguong 5 lan/khoa 15 phut cu de bi loi
   dung nguoc lai thanh **DoS chinh admin** (ai biet username admin chi can go sai 5 lan lien tuc
   la khoa duoc ho, lap lai vo han). Nhan vien khong co 2FA nen van giu nguyen muc nghiem ngat.
+- **1 tai khoan CHI co DUNG 1 phien dang nhap hoat dong tai 1 thoi diem (v3.72)**: dang nhap tu
+  1 thiet bi/trinh duyet moi se **tu dong lam token cu cua CHINH tai khoan do mat hieu luc NGAY**
+  (khong doi den khi het han 8h mac dinh). Dung lai 100% co che da chung minh an toan cua
+  `PasswordVersion` (muc 14) - them `UserPasswordPolicy.SessionVersion` (`sql/036`, so nguyen
+  tang +1 moi lan `authService.js#issueSession()` chay), nhung vao JWT luc cap, `middleware/
+  auth.js` doi chieu lai gia tri HIEN TAI (qua cache TTL 30s co san, `sessionRevalidation.js`) -
+  token mang gia tri CU HON bi tu choi 401 "Tai khoan nay vua dang nhap o 1 noi khac...". Ap
+  dung cho MOI duong cap phien day du (mat khau, van tay/Face ID, sau khi xac minh 2FA) - token
+  TAM cua buoc 2FA (`purpose` khac `'session'`) khong bi anh huong.
+- **1 tai khoan CHI xu ly DUNG 1 luot quet/thu hoi tai 1 thoi diem (v3.72)**: `voucherService.js#withUserScanLock()`
+  boc ca `checkVoucher()` lan `redeemVoucher()` trong 1 khoa `sp_getapplock` theo **userId**
+  (`@LockTimeout=0` - TU CHOI NGAY, khong xep hang cho) - neu CUNG 1 tai khoan co 2 request xu ly
+  2 ma voucher KHAC NHAU gan nhu cung luc (vd dang nhap dong thoi 2 noi, hoac bam quet lien tuc
+  qua nhanh), request thu 2 bi tu choi 429 ngay lap tuc. **Khac ban chat voi khoa chong trung ma**
+  (`sp_getapplock` rieng theo `voucherCode` trong `redeemAndInsertGuarded`, `@LockTimeout=15000` -
+  XEP HANG cho toi 15s, muc dich khac: tranh 2 NGUOI khac nhau trung 1 ma) - khoa nay theo
+  TAI KHOAN, muc dich phat hien 1 tai khoan dang bi dung sai quy trinh (dung chung/quet qua
+  nhanh), nen tu choi thang thay vi cho. Dung 1 transaction rieng chi de giu khoa (tu nha khi
+  commit/rollback, an toan voi connection pool), hoan toan doc lap voi cac truy van/transaction
+  khac ben trong.
+- **Gioi han TOC DO thu hoi theo tai khoan, chong goi API tuan tu nhanh (v3.73)**: khoa o muc
+  tren CHI chan 2 request CHONG LAP THOI GIAN - 1 ke gian/script goi API tuan tu (xong lenh nay
+  goi NGAY lenh tiep theo, khong chong lap) van co the thu hoi rat nhieu ma trong thoi gian ngan
+  ma khong bi chan. `src/utils/redeemRateLimit.js` dem so lan **THU HOI THANH CONG** (khong tinh
+  CHECK) cua tung tai khoan trong 1 cua so thoi gian truot - vuot nguong thi **tam khoa CA quet
+  lan thu hoi** cua tai khoan do (429), ke ca khi goi thang API bang script/Postman (khong qua
+  giao dien). Cau hinh qua `.env` (khong can sua code de chinh nguong):
+  `REDEEM_RATE_LIMIT_ENABLED` (mac dinh `true`), `REDEEM_RATE_LIMIT_MAX` (mac dinh `20` lan),
+  `REDEEM_RATE_LIMIT_WINDOW_MINUTES` (mac dinh `1` phut), `REDEEM_RATE_LIMIT_LOCK_MINUTES` (mac
+  dinh `5` phut). Cung mau hinh bo dem trong bo nho voi `guessGuard.js`/`loginGuard.js` (khong
+  dung chung giua nhieu worker khi `CLUSTER_WORKERS > 1` - gioi han thuc te se cao hon N lan neu
+  chay nhieu worker, chap nhan duoc, cung danh doi da ap dung cho 2 co che kia).
 - **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
   (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
   `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
@@ -2057,7 +2107,28 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.70)**: sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
+Ban **moi nhat (v3.73)**: bo sung lop bao ve con lai theo yeu cau chong gian lan/hack - **gioi
+han TOC DO thu hoi theo tai khoan** (`src/utils/redeemRateLimit.js`) de chan kieu tan cong "goi
+API tuan tu that nhanh" (khong bi chan boi khoa chong-cung-luc cua v3.72 vi khong co 2 request
+chong lap thoi gian). Mac dinh toi da **20 lan thu hoi thanh cong/1 phut**, vuot thi tam khoa
+**5 phut** - ca 3 tham so chinh duoc qua `.env`
+(`REDEEM_RATE_LIMIT_MAX/WINDOW_MINUTES/LOCK_MINUTES`), khong can sua code. Xem muc 8 (Bao mat).
+
+Ban truoc do (v3.72): theo yeu cau xac nhan/tang cuong bao mat - **moi tai khoan CHI co DUNG
+1 phien dang nhap hoat dong tai 1 thoi diem** (dang nhap noi moi tu dong dang xuat noi cu NGAY,
+dung lai co che `PasswordVersion` da co san - them `SessionVersion`, `sql/036`) VA **CHI xu ly
+DUNG 1 luot quet/thu hoi tai 1 thoi diem** (2 ma voucher KHAC NHAU tu CUNG 1 tai khoan gan nhu
+cung luc se bi TU CHOI NGAY, khong xep hang cho - `sp_getapplock` theo userId, tach biet hoan
+toan voi khoa chong trung ma theo voucherCode da co san). Khong co migration thay doi du lieu,
+chi them 1 cot moi. Xem muc 8 (Bao mat).
+
+Ban truoc do (v3.71): lam ro trong muc 4j rang toan bo co che "Quan tri doi tac" (ke ca 4
+phan bo sung v3.68-v3.70) **hoan toan khong gan cung Fuji** - dung chung duoc cho bao nhieu doi
+tac cung luc, moi doi tac cach ly tuyet doi voi nhau (khong thay tai khoan/nhat ky he thong cua
+nhau), chi quan tri day du HCRC moi thay gop chung tat ca. Chi sua noi dung tai lieu, khong doi
+code/migration.
+
+Ban truoc do (v3.70): sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
 truoc day chi dua vao "tai khoan HIEN DANG dung he thong nao" de quyet dinh co hien ra hay khong,
 khien 1 tai khoan do CHINH quan tri day du HCRC tao (khong phai Fuji), duoc cap THEM quyen dung
 he thong Fuji, bi **lo ra** nham trong man tu quan ly cua Fuji. Gio dung them 1 dieu kien **BAT

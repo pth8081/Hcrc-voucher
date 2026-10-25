@@ -6,6 +6,7 @@ const userVoucherSystemService = require('./userVoucherSystemService');
 const apiConnectionService = require('./apiConnectionService');
 const { generateTransNum } = require('../utils/transNum');
 const guessGuard = require('../utils/guessGuard');
+const redeemRateLimit = require('../utils/redeemRateLimit');
 const { SYNC_PROC_NAME } = require('../utils/syncConstants');
 
 const { VOUCHER_STATUS } = coreVoucherService;
@@ -88,6 +89,59 @@ async function withDiagnostic(stepLabel, fn) {
   }
 }
 
+/**
+ * M18: khoa THEO TAI KHOAN (userId) - dam bao 1 tai khoan CHI co DUNG 1 luot quet/thu hoi dang
+ * xu ly tai 1 thoi diem; request thu 2 cho CUNG tai khoan nay (vd dang nhap dong thoi tren 2
+ * thiet bi/tab, quet 2 ma KHAC NHAU gan nhu cung luc) bi TU CHOI NGAY (@LockTimeout=0, khong xep
+ * hang cho) thay vi xu ly song song.
+ *
+ * KHAC voi khoa theo ma voucher (sp_getapplock rieng trong redeemAndInsertGuarded, @LockTimeout
+ * =15000 - XEP HANG cho toi 15s, muc dich tranh 2 NGUOI khac nhau trung 1 ma): khoa nay muc dich
+ * khac han - phat hien 1 TAI KHOAN dang bi dung sai quy trinh (nhieu noi dung chung 1 tai khoan
+ * quet dong thoi), nen tu choi THANG thay vi cho.
+ *
+ * Dung 1 transaction RIENG CHI de giu khoa (@LockOwner='Transaction' tu dong nha khi commit/
+ * rollback, AN TOAN voi connection pool - khac han @LockOwner='Session' se "ro ri" khoa sang
+ * request khac lo dung lai connection vua tra ve pool) - HOAN TOAN doc lap voi cac
+ * truy van/transaction KHAC ben trong `fn()` (vd transaction rieng cua redeemAndInsertGuarded),
+ * chi bao ngoai ve THOI GIAN chay, khong lien quan gi ve du lieu.
+ */
+async function withUserScanLock(userId, fn) {
+  const pool = await getPool();
+  const lockTx = new sql.Transaction(pool);
+  await lockTx.begin();
+
+  const lockResult = await lockTx
+    .request()
+    .input('resource', sql.NVarChar(255), `user-scan:${userId}`)
+    .query(`
+      DECLARE @lockResult INT;
+      EXEC @lockResult = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive',
+        @LockOwner = 'Transaction', @LockTimeout = 0;
+      SELECT @lockResult AS lockResult;
+    `);
+
+  if ((lockResult.recordset[0] || {}).lockResult < 0) {
+    await lockTx.rollback();
+    const err = new Error(`Tai khoan userId=${userId} dang co 1 luot quet/thu hoi khac chua xu ly xong`);
+    err.statusCode = 429;
+    err.publicMessage =
+      'Tai khoan cua ban dang quet/thu hoi 1 ma khac (co the dang dang nhap dong thoi o thiet bi khac) - vui long doi hoan tat truoc khi quet ma tiep theo.';
+    throw err;
+  }
+
+  try {
+    return await fn();
+  } finally {
+    try {
+      await lockTx.commit();
+    } catch (releaseErr) {
+      // eslint-disable-next-line no-console
+      console.error(`[withUserScanLock] Giai phong khoa that bai cho userId=${userId}: ${releaseErr.message}`);
+    }
+  }
+}
+
 // Mui gio Viet Nam (+7, khong co gio mua he) - dung de tinh "hom nay" doc lap voi mui gio thuc
 // te cua may chu dang chay Node (co the la UTC tuy ha tang trien khai).
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -139,110 +193,112 @@ function isExpiredByDate(expiryDateStr) {
  */
 async function checkVoucher({ voucherCode, user, scanMethod, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
-  const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
-    resolveAllowedConnectionId(user.userId, requestedConnectionId)
-  );
+  return withUserScanLock(user.userId, async () => {
+    const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
+      resolveAllowedConnectionId(user.userId, requestedConnectionId)
+    );
 
-  const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
-  if (excluded) {
-    guessGuard.recordResult(user.userId, false);
+    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    if (excluded) {
+      guessGuard.recordResult(user.userId, false);
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'CHECK',
+        resultStatus: 'EXCLUDED',
+        message: `Ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        connectionName: excluded.connectionName,
+      });
+      return {
+        canRedeem: false,
+        status: 'EXCLUDED',
+        message: 'Ma voucher nay khong hop le cho he thong dang chon.',
+      };
+    }
+
+    const localRedeemed = await withDiagnostic('tra cuu da thu hoi cuc bo (VOUCHER_SYNC)', () => findLocalRedemption(voucherCode));
+    if (localRedeemed) {
+      guessGuard.recordResult(user.userId, true);
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'CHECK',
+        resultStatus: VOUCHER_STATUS.USED,
+        message: `Da tieu truoc do tai CSDL noi bo (TRANS_NUM ${localRedeemed.TRANS_NUM}), khong can goi Core`,
+      });
+      return {
+        canRedeem: false,
+        status: VOUCHER_STATUS.USED,
+        message: 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.',
+      };
+    }
+
+    const result = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
+    guessGuard.recordResult(user.userId, result.status === VOUCHER_STATUS.UNUSED || result.status === VOUCHER_STATUS.USED);
+
     await logScan({
       user,
       voucherCode,
       scanMethod,
       action: 'CHECK',
-      resultStatus: 'EXCLUDED',
-      message: `Ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
-      connectionName: excluded.connectionName,
-    });
-    return {
-      canRedeem: false,
-      status: 'EXCLUDED',
-      message: 'Ma voucher nay khong hop le cho he thong dang chon.',
-    };
-  }
-
-  const localRedeemed = await withDiagnostic('tra cuu da thu hoi cuc bo (VOUCHER_SYNC)', () => findLocalRedemption(voucherCode));
-  if (localRedeemed) {
-    guessGuard.recordResult(user.userId, true);
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'CHECK',
-      resultStatus: VOUCHER_STATUS.USED,
-      message: `Da tieu truoc do tai CSDL noi bo (TRANS_NUM ${localRedeemed.TRANS_NUM}), khong can goi Core`,
-    });
-    return {
-      canRedeem: false,
-      status: VOUCHER_STATUS.USED,
-      message: 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.',
-    };
-  }
-
-  const result = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
-  guessGuard.recordResult(user.userId, result.status === VOUCHER_STATUS.UNUSED || result.status === VOUCHER_STATUS.USED);
-
-  await logScan({
-    user,
-    voucherCode,
-    scanMethod,
-    action: 'CHECK',
-    resultStatus: result.status,
-    valueAmt: result.valueAmt,
-    expiryDate: result.expiryDate,
-    issueDate: result.issueDate,
-    httpStatus: result.httpStatus,
-    message: result.message,
-    connectionName: result.connectionName,
-  });
-
-  if (result.status === VOUCHER_STATUS.USED) {
-    return {
-      canRedeem: false,
-      status: result.status,
-      message: 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.',
-    };
-  }
-
-  if (result.status !== VOUCHER_STATUS.UNUSED) {
-    return {
-      canRedeem: false,
-      status: result.status,
-      message: result.message || 'Voucher khong hop le hoac khong ton tai.',
-    };
-  }
-
-  // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han (xem isExpiredByDate) -
-  // Core (D.Smart) khong tu chan truong hop nay, app phai tu chan them.
-  if (isExpiredByDate(result.expiryDate)) {
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'CHECK',
-      resultStatus: VOUCHER_STATUS.EXPIRED,
+      resultStatus: result.status,
       valueAmt: result.valueAmt,
       expiryDate: result.expiryDate,
       issueDate: result.issueDate,
-      message: `Core bao UNUSED nhung da qua han su dung (expiryDate=${result.expiryDate}) - app tu chan theo kiem tra doc lap, khong goi tiep thu hoi`,
+      httpStatus: result.httpStatus,
+      message: result.message,
       connectionName: result.connectionName,
     });
-    return {
-      canRedeem: false,
-      status: VOUCHER_STATUS.EXPIRED,
-      message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
-    };
-  }
 
-  return {
-    canRedeem: true,
-    status: result.status,
-    voucherSerial: result.voucherSerial,
-    valueAmt: result.valueAmt,
-    issueDate: result.issueDate,
-    expiryDate: result.expiryDate,
-  };
+    if (result.status === VOUCHER_STATUS.USED) {
+      return {
+        canRedeem: false,
+        status: result.status,
+        message: 'Voucher nay da duoc su dung. Vui long quet ma voucher khac.',
+      };
+    }
+
+    if (result.status !== VOUCHER_STATUS.UNUSED) {
+      return {
+        canRedeem: false,
+        status: result.status,
+        message: result.message || 'Voucher khong hop le hoac khong ton tai.',
+      };
+    }
+
+    // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han (xem isExpiredByDate) -
+    // Core (D.Smart) khong tu chan truong hop nay, app phai tu chan them.
+    if (isExpiredByDate(result.expiryDate)) {
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'CHECK',
+        resultStatus: VOUCHER_STATUS.EXPIRED,
+        valueAmt: result.valueAmt,
+        expiryDate: result.expiryDate,
+        issueDate: result.issueDate,
+        message: `Core bao UNUSED nhung da qua han su dung (expiryDate=${result.expiryDate}) - app tu chan theo kiem tra doc lap, khong goi tiep thu hoi`,
+        connectionName: result.connectionName,
+      });
+      return {
+        canRedeem: false,
+        status: VOUCHER_STATUS.EXPIRED,
+        message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
+      };
+    }
+
+    return {
+      canRedeem: true,
+      status: result.status,
+      voucherSerial: result.voucherSerial,
+      valueAmt: result.valueAmt,
+      issueDate: result.issueDate,
+      expiryDate: result.expiryDate,
+    };
+  });
 }
 
 /**
@@ -267,203 +323,212 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
  */
 async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
   guessGuard.assertNotLocked(user.userId);
-  const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
-    resolveAllowedConnectionId(user.userId, requestedConnectionId)
-  );
+  redeemRateLimit.assertNotLocked(user.userId);
+  return withUserScanLock(user.userId, async () => {
+    const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
+      resolveAllowedConnectionId(user.userId, requestedConnectionId)
+    );
 
-  const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
-  if (excluded) {
-    guessGuard.recordResult(user.userId, false);
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'REDEEM',
-      resultStatus: 'EXCLUDED',
-      clientIp,
-      message: `Tu choi thu hoi: ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
-      connectionName: excluded.connectionName,
-    });
-    return {
-      success: false,
-      status: 'EXCLUDED',
-      message: 'Ma voucher nay khong hop le cho he thong dang chon.',
-    };
-  }
-
-  // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
-  // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),
-  // nen loi ket noi o day van chan giao dich nhu cu, KHONG dua vao hang doi.
-  const precheck = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
-  guessGuard.recordResult(user.userId, precheck.status === VOUCHER_STATUS.UNUSED || precheck.status === VOUCHER_STATUS.USED);
-
-  if (precheck.status !== VOUCHER_STATUS.UNUSED) {
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'REDEEM',
-      resultStatus: precheck.status,
-      clientIp,
-      message: 'Tu choi thu hoi: voucher khong con o trang thai UNUSED khi xac nhan',
-      connectionName: precheck.connectionName,
-    });
-    return {
-      success: false,
-      status: precheck.status,
-      // C3: uu tien ly do THAT tu Core (vd thong bao 429 "dang gioi han, cho X giay") thay vi
-      // luon ghi co dinh "da doi trang thai" - sai lech neu ly do that khac (gioi han goi, Core
-      // tra ve loi khac...), dung lai thong bao cu chi khi Core khong cho biet ly do gi ca.
-      message: precheck.message || 'Voucher da doi trang thai, vui long quet lai truoc khi thu hoi.',
-    };
-  }
-
-  // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han - xem ghi chu chi tiet
-  // o checkVoucher()/isExpiredByDate(). Chan o day la lop phong ho THEM (ngoai buoc da chan o
-  // checkVoucher()), phong truong hop goi thang API thu hoi ma bo qua buoc kiem tra tren giao dien.
-  if (isExpiredByDate(precheck.expiryDate)) {
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'REDEEM',
-      resultStatus: VOUCHER_STATUS.EXPIRED,
-      clientIp,
-      valueAmt: precheck.valueAmt,
-      expiryDate: precheck.expiryDate,
-      message: `Tu choi thu hoi: Core bao UNUSED nhung da qua han su dung (expiryDate=${precheck.expiryDate}) - app tu chan theo kiem tra doc lap`,
-      connectionName: precheck.connectionName,
-    });
-    return {
-      success: false,
-      status: VOUCHER_STATUS.EXPIRED,
-      message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
-    };
-  }
-
-  const transNum = generateTransNum();
-
-  let outcome;
-  try {
-    outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId });
-  } catch (err) {
-    // C1: neu Core DA XAC NHAN thu hoi thanh cong (khong phai do Core loi ket noi - truong hop
-    // do da duoc gan pendingSync=true va van ghi DB binh thuong) nhung buoc ghi VOUCHER_SYNC
-    // van that bai vi ly do khac (het gio cho khoa, tran so valueAmt, mat ket noi DB giua
-    // chung...), day la 1 giao dich CO THAT nhung co nguy co mat dau vet hoan toan - PHAI ghi
-    // canh bao muc CRITICAL de quan tri doi soat thu cong, KHONG duoc de loi troi qua am tham.
-    if (err.coreConfirmedSuccess) {
-      // Ca 2 lenh ghi canh bao ben duoi deu dung CUNG 1 pool SQL vua that bai o buoc INSERT phia
-      // tren - neu nguyen nhan la mat ket noi DB (khong phai loi rieng cua 1 cau lenh), CA 2 lan
-      // ghi log nay co the that bai THEO CUNG 1 ly do, khien canh bao CRITICAL bi mat hoan toan
-      // (chinh tinh huong "khong duoc am tham nuot loi" ma tinh nang nay sinh ra de tranh - da bi
-      // 1 dot ra soat sau phat hien). Bao boc rieng, co console.error lam kenh du phong cuoi
-      // cung (luon co trong log tien trinh du DB co con song hay khong).
-      try {
-        await systemLogService.logExecution({
-          proName: SYNC_PROC_NAME,
-          pKey: transNum,
-          uniqueIdGroup: voucherCode,
-          status: 'FAILED_CRITICAL',
-          message: `Core da xac nhan thu hoi thanh cong (transRef=${err.coreTransRef || 'khong co'}) nhung ghi VOUCHER_SYNC that bai: ${err.message}. CAN DOI SOAT THU CONG NGAY - khong duoc quet lai ma nay qua app.`,
-          syncRecord: 0,
-        });
-        await logScan({
-          user,
-          voucherCode,
-          scanMethod,
-          action: 'REDEEM',
-          resultStatus: 'ERROR_UNRECORDED',
-          clientIp,
-          message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
-          connectionName: precheck.connectionName,
-        });
-      } catch (alertErr) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `[CRITICAL][KHONG GHI DUOC CANH BAO VAO DB] Core da xac nhan thu hoi THANH CONG cho voucher=${voucherCode}, transNum=${transNum}, transRef=${err.coreTransRef || 'khong co'}, user=${user && user.username}, nhung ca buoc ghi VOUCHER_SYNC LAN buoc ghi canh bao vao DB deu that bai. Loi ghi VOUCHER_SYNC goc: ${err.message}. Loi ghi canh bao: ${alertErr.message}. CAN DOI SOAT THU CONG NGAY.`
-        );
-      }
-      const critErr = new Error('Core da xac nhan thu hoi thanh cong nhung he thong ghi nhan cuc bo bi loi.');
-      critErr.statusCode = 500;
-      critErr.publicMessage = 'Core da xac nhan thu hoi THANH CONG nhung he thong ghi nhan cuc bo bi loi. KHONG quet lai ma nay - vui long bao quan tri vien NGAY de doi soat thu cong.';
-      throw critErr;
+    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    if (excluded) {
+      guessGuard.recordResult(user.userId, false);
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: 'EXCLUDED',
+        clientIp,
+        message: `Tu choi thu hoi: ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        connectionName: excluded.connectionName,
+      });
+      return {
+        success: false,
+        status: 'EXCLUDED',
+        message: 'Ma voucher nay khong hop le cho he thong dang chon.',
+      };
     }
-    throw err;
-  }
 
-  if (outcome.duplicate) {
+    // Kiem tra lai ngay truoc khi tieu de tranh doi tac bam xac nhan sau khi da co nguoi khac tieu truoc.
+    // Buoc nay BAT BUOC phai goi duoc Core (khong co no thi khong biet voucher con hop le hay khong),
+    // nen loi ket noi o day van chan giao dich nhu cu, KHONG dua vao hang doi.
+    const precheck = await coreVoucherService.checkVoucher(voucherCode, { connectionId });
+    guessGuard.recordResult(user.userId, precheck.status === VOUCHER_STATUS.UNUSED || precheck.status === VOUCHER_STATUS.USED);
+
+    if (precheck.status !== VOUCHER_STATUS.UNUSED) {
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: precheck.status,
+        clientIp,
+        message: 'Tu choi thu hoi: voucher khong con o trang thai UNUSED khi xac nhan',
+        connectionName: precheck.connectionName,
+      });
+      return {
+        success: false,
+        status: precheck.status,
+        // C3: uu tien ly do THAT tu Core (vd thong bao 429 "dang gioi han, cho X giay") thay vi
+        // luon ghi co dinh "da doi trang thai" - sai lech neu ly do that khac (gioi han goi, Core
+        // tra ve loi khac...), dung lai thong bao cu chi khi Core khong cho biet ly do gi ca.
+        message: precheck.message || 'Voucher da doi trang thai, vui long quet lai truoc khi thu hoi.',
+      };
+    }
+
+    // Core bao UNUSED nhung kiem tra DOC LAP tai app phat hien da qua han - xem ghi chu chi tiet
+    // o checkVoucher()/isExpiredByDate(). Chan o day la lop phong ho THEM (ngoai buoc da chan o
+    // checkVoucher()), phong truong hop goi thang API thu hoi ma bo qua buoc kiem tra tren giao dien.
+    if (isExpiredByDate(precheck.expiryDate)) {
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: VOUCHER_STATUS.EXPIRED,
+        clientIp,
+        valueAmt: precheck.valueAmt,
+        expiryDate: precheck.expiryDate,
+        message: `Tu choi thu hoi: Core bao UNUSED nhung da qua han su dung (expiryDate=${precheck.expiryDate}) - app tu chan theo kiem tra doc lap`,
+        connectionName: precheck.connectionName,
+      });
+      return {
+        success: false,
+        status: VOUCHER_STATUS.EXPIRED,
+        message: 'Voucher nay da het han su dung. Vui long quet ma voucher khac.',
+      };
+    }
+
+    const transNum = generateTransNum();
+
+    let outcome;
+    try {
+      outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId });
+    } catch (err) {
+      // C1: neu Core DA XAC NHAN thu hoi thanh cong (khong phai do Core loi ket noi - truong hop
+      // do da duoc gan pendingSync=true va van ghi DB binh thuong) nhung buoc ghi VOUCHER_SYNC
+      // van that bai vi ly do khac (het gio cho khoa, tran so valueAmt, mat ket noi DB giua
+      // chung...), day la 1 giao dich CO THAT nhung co nguy co mat dau vet hoan toan - PHAI ghi
+      // canh bao muc CRITICAL de quan tri doi soat thu cong, KHONG duoc de loi troi qua am tham.
+      if (err.coreConfirmedSuccess) {
+        // Ca 2 lenh ghi canh bao ben duoi deu dung CUNG 1 pool SQL vua that bai o buoc INSERT phia
+        // tren - neu nguyen nhan la mat ket noi DB (khong phai loi rieng cua 1 cau lenh), CA 2 lan
+        // ghi log nay co the that bai THEO CUNG 1 ly do, khien canh bao CRITICAL bi mat hoan toan
+        // (chinh tinh huong "khong duoc am tham nuot loi" ma tinh nang nay sinh ra de tranh - da bi
+        // 1 dot ra soat sau phat hien). Bao boc rieng, co console.error lam kenh du phong cuoi
+        // cung (luon co trong log tien trinh du DB co con song hay khong).
+        try {
+          await systemLogService.logExecution({
+            proName: SYNC_PROC_NAME,
+            pKey: transNum,
+            uniqueIdGroup: voucherCode,
+            status: 'FAILED_CRITICAL',
+            message: `Core da xac nhan thu hoi thanh cong (transRef=${err.coreTransRef || 'khong co'}) nhung ghi VOUCHER_SYNC that bai: ${err.message}. CAN DOI SOAT THU CONG NGAY - khong duoc quet lai ma nay qua app.`,
+            syncRecord: 0,
+          });
+          await logScan({
+            user,
+            voucherCode,
+            scanMethod,
+            action: 'REDEEM',
+            resultStatus: 'ERROR_UNRECORDED',
+            clientIp,
+            message: `Core da xac nhan thu hoi nhung ghi VOUCHER_SYNC loi: ${err.message}`,
+            connectionName: precheck.connectionName,
+          });
+        } catch (alertErr) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[CRITICAL][KHONG GHI DUOC CANH BAO VAO DB] Core da xac nhan thu hoi THANH CONG cho voucher=${voucherCode}, transNum=${transNum}, transRef=${err.coreTransRef || 'khong co'}, user=${user && user.username}, nhung ca buoc ghi VOUCHER_SYNC LAN buoc ghi canh bao vao DB deu that bai. Loi ghi VOUCHER_SYNC goc: ${err.message}. Loi ghi canh bao: ${alertErr.message}. CAN DOI SOAT THU CONG NGAY.`
+          );
+        }
+        const critErr = new Error('Core da xac nhan thu hoi thanh cong nhung he thong ghi nhan cuc bo bi loi.');
+        critErr.statusCode = 500;
+        critErr.publicMessage = 'Core da xac nhan thu hoi THANH CONG nhung he thong ghi nhan cuc bo bi loi. KHONG quet lai ma nay - vui long bao quan tri vien NGAY de doi soat thu cong.';
+        throw critErr;
+      }
+      throw err;
+    }
+
+    if (outcome.duplicate) {
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: VOUCHER_STATUS.USED,
+        clientIp,
+        message: 'Tu choi thu hoi: da co ban ghi VOUCHER_SYNC khac ghi nhan dung luc (chan trung theo ma voucher)',
+        connectionName: precheck.connectionName,
+      });
+      return {
+        success: false,
+        status: VOUCHER_STATUS.USED,
+        message: 'Voucher nay vua duoc thu hoi (co the tu thiet bi/quay khac). Vui long quet ma khac.',
+      };
+    }
+
+    if (!outcome.pendingSync && !outcome.redeemResult.success) {
+      await logScan({
+        user,
+        voucherCode,
+        scanMethod,
+        action: 'REDEEM',
+        resultStatus: outcome.redeemResult.status || 'ERROR',
+        clientIp,
+        message: outcome.redeemResult.message,
+        connectionName: precheck.connectionName,
+      });
+      return {
+        success: false,
+        status: outcome.redeemResult.status,
+        message: outcome.redeemResult.message || 'Thu hoi voucher that bai, vui long quet ma khac.',
+      };
+    }
+
+    const { pendingSync, redeemResult, syncErrorMessage } = outcome;
+
+    // M19: CHI dem lan THU HOI THAT SU THANH CONG (toi day la chac chan thanh cong - duplicate/
+    // that bai da return som o tren) vao bo dem gioi han toc do (redeemRateLimit.js) - khong tinh
+    // cac lan bi tu choi/loi, tranh phat nham 1 tai khoan dang bi loi he thong lien tuc (khong
+    // phai hanh vi gian lan).
+    redeemRateLimit.recordSuccess(user.userId);
+
+    await systemLogService.logExecution({
+      proName: SYNC_PROC_NAME,
+      pKey: transNum,
+      uniqueIdGroup: voucherCode,
+      status: pendingSync ? 'PENDING' : 'SUCCESS',
+      message: pendingSync
+        ? `Khong ket noi duoc Core API luc thu hoi, da dua vao hang doi dong bo: ${syncErrorMessage}`
+        : 'Da bao Core API thu hoi thanh cong (dong bo ngay)',
+      syncRecord: pendingSync ? 0 : 1,
+    });
+
     await logScan({
       user,
       voucherCode,
       scanMethod,
       action: 'REDEEM',
-      resultStatus: VOUCHER_STATUS.USED,
+      resultStatus: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
+      valueAmt: precheck.valueAmt,
       clientIp,
-      message: 'Tu choi thu hoi: da co ban ghi VOUCHER_SYNC khac ghi nhan dung luc (chan trung theo ma voucher)',
+      message: pendingSync
+        ? 'Da thu hoi tai cho, dang cho dong bo lai voi he thong trung tam'
+        : redeemResult.message,
       connectionName: precheck.connectionName,
     });
-    return {
-      success: false,
-      status: VOUCHER_STATUS.USED,
-      message: 'Voucher nay vua duoc thu hoi (co the tu thiet bi/quay khac). Vui long quet ma khac.',
-    };
-  }
 
-  if (!outcome.pendingSync && !outcome.redeemResult.success) {
-    await logScan({
-      user,
-      voucherCode,
-      scanMethod,
-      action: 'REDEEM',
-      resultStatus: outcome.redeemResult.status || 'ERROR',
-      clientIp,
-      message: outcome.redeemResult.message,
+    return {
+      success: true,
+      status: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
+      pendingSync,
+      transNum,
+      valueAmt: precheck.valueAmt,
+      redeemedAt: redeemResult.redeemedAt,
       connectionName: precheck.connectionName,
-    });
-    return {
-      success: false,
-      status: outcome.redeemResult.status,
-      message: outcome.redeemResult.message || 'Thu hoi voucher that bai, vui long quet ma khac.',
     };
-  }
-
-  const { pendingSync, redeemResult, syncErrorMessage } = outcome;
-
-  await systemLogService.logExecution({
-    proName: SYNC_PROC_NAME,
-    pKey: transNum,
-    uniqueIdGroup: voucherCode,
-    status: pendingSync ? 'PENDING' : 'SUCCESS',
-    message: pendingSync
-      ? `Khong ket noi duoc Core API luc thu hoi, da dua vao hang doi dong bo: ${syncErrorMessage}`
-      : 'Da bao Core API thu hoi thanh cong (dong bo ngay)',
-    syncRecord: pendingSync ? 0 : 1,
   });
-
-  await logScan({
-    user,
-    voucherCode,
-    scanMethod,
-    action: 'REDEEM',
-    resultStatus: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
-    valueAmt: precheck.valueAmt,
-    clientIp,
-    message: pendingSync
-      ? 'Da thu hoi tai cho, dang cho dong bo lai voi he thong trung tam'
-      : redeemResult.message,
-    connectionName: precheck.connectionName,
-  });
-
-  return {
-    success: true,
-    status: pendingSync ? 'REDEEMED_PENDING_SYNC' : 'REDEEMED',
-    pendingSync,
-    transNum,
-    valueAmt: precheck.valueAmt,
-    redeemedAt: redeemResult.redeemedAt,
-    connectionName: precheck.connectionName,
-  };
 }
 
 /** Tim ban ghi da thu hoi (neu co) cua 1 ma voucher trong VOUCHER_SYNC - dung index co san
