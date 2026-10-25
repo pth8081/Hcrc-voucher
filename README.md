@@ -690,7 +690,7 @@ Man hinh cho phep khai bao truc quan, khong can biet lap trinh:
    plaintext cho trinh duyet sau khi luu (chi hien "da luu, de trong de giu nguyen") - **de
    trong O DO khi Sua (vd chi doi Ten/Base URL) se GIU NGUYEN secret cu, khong can go lai**
    (loi that da tung xay ra: de trong bi hieu nham thanh "xoa secret", khien ket noi bien mat
-   khoi o chon he thong tren man Quet voucher - da sua, xem muc 18 Changelog).
+   khoi o chon he thong tren man Quet voucher - da sua, xem muc 19 Changelog).
 2. **Endpoint kiem tra (Check)**: chon method GET/POST, khai bao ma voucher nam o dau
    (path `{code}` / query string / body JSON), va **anh xa duong dan field** trong response
    JSON tra ve (vi du `status`, `valueAmt`, `issueDate`...) sang cac truong chuan cua app.
@@ -1459,6 +1459,13 @@ trang) - **tu ban nay, file font da duoc tai san va luu TRONG app**
   ap dung du la ket noi active mac dinh hay duoc chon rieng qua `connectionId`) va an no khoi
   o chon "Hệ thống voucher" (`apiConnectionService.js#listOptions()`), ma **khong xoa cau hinh
   da luu** nhu nut Xoa - gat ve Bat lai la dung duoc ngay, khong can khai bao lai. Xem muc 4k.
+- **"Quét nhiều" (thu hoi hang loat) van nam TRONG CUNG co che khoa/gioi han chong gian lan
+  (v3.75)**: `redeemVoucherBatch()` goi `withUserScanLock()` **1 LAN DUY NHAT** cho ca lo (khong
+  phai tung ma rieng), nen van la "1 tai khoan chi xu ly 1 luot tai 1 thoi diem" (v3.72) - khong
+  the lach co che nay bang cach gui nhieu ma trong 1 lan. `guessGuard`/`redeemRateLimit` duoc
+  kiem tra lai TRUOC MOI ma trong lo (khong chi 1 lan dau) - neu kich hoat GIUA chung lo (vd lo
+  vua dung nguong 20 lan/phut cua `redeemRateLimit`), cac ma con lai dung xu ly ngay, danh dau
+  "SKIPPED" kem ly do, khong tiep tuc goi Core khi da biet se bi tu choi. Xem muc 18.
 - **Ma xac thuc hinh anh (CAPTCHA) o form dang nhap mat khau**: 4 ky tu, sinh moi lan tai trang
   (`GET /api/auth/captcha`) va sau moi lan dang nhap that bai, bat buoc kem theo khi goi
   `POST /api/auth/login` — chan script go tay hang loat truoc ca khi cham toi buoc kiem tra
@@ -2133,7 +2140,73 @@ Du lieu: `sql/034_create_email_report_schedules.sql` (bang `EmailReportSchedules
 Excel** (dung lai dung engine xuat Excel cua 3 bao cao, khong them thu vien moi) - chua ho tro
 PDF.
 
-## 18. Lich su phien ban (Changelog)
+## 18. Quet nhieu voucher - Thu hoi 1 lan (v3.75)
+
+Man hinh "Quet voucher" co them **cong tac che do quet** o dau trang: **"Quet tung cai"** (mac
+dinh, hanh vi cu nguyen ven - quet 1 ma, xac nhan thu hoi NGAY, moi duoc quet ma tiep theo) hoac
+**"Quet nhieu"** (moi, v3.75) - quet nhieu ma lien tiep vao 1 danh sach tam, xem lai/bot ma, roi
+moi bam **"Thu hoi tat ca"** 1 lan de thu hoi toan bo danh sach cung luc. Phuc vu dung truong
+hop 1 khach co nhieu voucher muon thanh toan gop, khong can xac nhan tung cai mot.
+
+### Cach hoat dong
+
+- O che do "Quet nhieu", **moi lan quet CHI chay buoc KIEM TRA** (hoi Core xem con dung duoc
+  khong + lay menh gia), **CHUA goi thu hoi gi ca** - ma hop le (con UNUSED) duoc **tu dong them**
+  vao danh sach tam, san sang quet ngay ma tiep theo (khong can thao tac gi them). Ma khong hop le
+  (da dung/het han/loai tru...) bi tu choi ngay bang thong bao, KHONG them vao danh sach.
+- Danh sach tam **chi ton tai tren man hinh** (chua chi dinh gi ca CSDL/Core) - co the **bam ✕
+  bo bot** bat ky voucher nao trong danh sach (vd khach doi y khong lay nua) ma khong anh huong
+  gi, hoac bam **"Xoa het"** de lam lai tu dau. Danh sach toi da **20 voucher/lan**.
+- Bam **"Thu hoi tat ca"** se hoi xac nhan 1 lan (hien ro tong so voucher + tong menh gia), sau
+  do backend xu ly **tuan tu TUNG MA MOT** (Core Voucher API khong co san API thu hoi hang loat) -
+  nhung gop lai trong **1 lan goi API duy nhat tu giao dien**, van nam trong CUNG 1 co che khoa
+  "1 tai khoan chi xu ly 1 luot tai 1 thoi diem" (v3.72, xem muc 8) ap dung cho CA LAN thu hoi
+  hang loat (khong chi tung ma rieng le).
+- **KHONG the "tat ca hoac khong gi ca"**: 1 khi 1 ma da goi Core thanh cong THAT SU thi KHONG
+  the hoan tac (Core khong co API "huy thu hoi"), nen 1 ma loi **CHI lam ma do that bai**, cac
+  ma con lai trong danh sach van duoc xu ly binh thuong, KHONG dung ca lot. Vi du 2 tinh huong
+  thuong gap:
+  - **1 voucher da bi nguoi khac thu hoi truoc** (vd 2 quay cung xu ly 1 khach, hoac khach dua
+    nham ma da dung roi) trong luc dang cho bam "Thu hoi tat ca": ma do se bao **"Thất bại"** kem
+    ly do ro rang, cac ma khac van thu hoi binh thuong.
+  - **Mat ket noi mang giua luc dang thu hoi 1 ma trong lo**: ma do van duoc tinh la **da thu
+    hoi tai cho** (giong het co che hang doi dong bo da co tu truoc - muc 4c), danh dau "CHỜ ĐỒNG
+    BỘ", van tinh vao tong tien, he thong se tu dong gui lai sau.
+- Sau khi xong, man hinh hien **ket qua rieng cho TUNG ma** (thanh cong/cho dong bo/that bai kem
+  ly do) VA **"Tổng THỰC THU"** tinh dung theo so voucher THAT SU thu hoi duoc (khong tinh ma
+  that bai) - KHONG dung tong tam tinh luc quet ban dau (co the da thay doi do cac tinh huong o
+  tren). Moi voucher thu hoi thanh cong van duoc ghi 1 dong rieng vao "Các giao dịch thu hồi gần
+  đây" va bang `VOUCHER_SYNC` y het nhu quet tung cai - **khong gop/cong don thanh 1 giao dich**,
+  chi gop o buoc XAC NHAN tren giao dien.
+
+### Huong dan su dung (co hinh anh)
+
+1. Tren man hinh Quet voucher, bam **"Quét nhiều"** trong "Chế độ quét" o dau trang.
+
+   <img src="/images/guide-business/07-quet-nhieu-mo-che-do.png" alt="Chuyen sang che do Quet nhieu" width="520" />
+
+2. Quet lan luot tung voucher (may quet hoac camera) - moi ma quet xong tu dong hien vao danh
+   sach "Danh sách đã quét (chưa thu hồi)" ben duoi, kem mệnh giá + tong tam tinh. Bam ✕ tren 1
+   dong neu muon bo voucher do ra khoi danh sach.
+
+   <img src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sach voucher da quet, chua thu hoi" width="520" />
+
+3. Quet xong, bam **"Thu hồi tất cả"** - xac nhan lai 1 lan (hien tong so voucher + tong tien).
+
+   <img src="/images/guide-business/09-quet-nhieu-xac-nhan.png" alt="Hop xac nhan thu hoi tat ca" width="400" />
+
+4. Xem ket qua: moi voucher co trang thai rieng, va dong **"Tổng THỰC THU"** cuoi cung la so tien
+   THAT SU da thu hoi duoc (vi du duoi day: 5 voucher quet, 1 that bai do da bi tieu truoc, 1
+   dang cho dong bo do mat mang giua chung - tong thuc thu la 4/5 voucher).
+
+   <img src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Ket qua thu hoi hang loat - thanh cong/cho dong bo/that bai" width="520" />
+
+Du lieu/API: `src/services/voucherService.js#redeemVoucherBatch` (xu ly tuan tu, gioi han
+`MAX_BATCH_SIZE=20`), `POST /api/vouchers/redeem-batch` (`src/routes/voucher.routes.js`,
+`src/controllers/voucher.controller.js`). Khong co migration CSDL moi (dung lai nguyen ven bang
+`VOUCHER_SYNC`/`VoucherScanLogs` hien co, ghi 1 dong/voucher y het quet tung cai).
+
+## 19. Lich su phien ban (Changelog)
 
 So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
 dang chay dung version nao sau khi cap nhat code" o muc 3e), khong phai tang tuy y — moi dong
@@ -2143,7 +2216,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.74)**: them 1 cong tac **Bật/Tắt** cho tung ket noi tren man hinh "Ket noi
+Ban **moi nhat (v3.75)**: them che do **"Quét nhiều"** tren man hinh Quet voucher (canh che do
+"Quét từng cái" cu) - quet nhieu voucher lien tiep vao 1 danh sach tam (toi da 20), xem lai/bot
+ma, roi bam **"Thu hồi tất cả"** 1 lan de thu hoi toan bo cung luc, thay vi phai xac nhan tung
+ma rieng le. Xu ly tuan tu tung ma o backend (Core khong co API thu hoi hang loat), 1 ma loi
+(da bi tieu truoc/mat mang giua chung) **chi lam ma do that bai**, khong anh huong cac ma con
+lai - ket qua hien rieng tung ma + **"Tổng THỰC THU"** tinh dung theo so thuc su thu hoi duoc.
+Khong co migration CSDL moi. Xem muc 18.
+
+Ban truoc do (v3.74): them 1 cong tac **Bật/Tắt** cho tung ket noi tren man hinh "Ket noi
 API" - gat Tat la thao tac **tam thoi, an toan**, vo hieu hoa hoan toan 1 he thong voucher
 (khong con chon duoc o man Quet voucher, khong the Kich hoat) ma **khong mat cau hinh da
 luu**, gat Bat lai luc nao cung duoc. Chan o tang trung tam `coreVoucherService.js#resolveConnection()`

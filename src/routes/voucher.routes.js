@@ -8,5 +8,6 @@ router.use(authenticate);
 router.get('/systems', requireFeature('canRedeemVoucher'), controller.systems);
 router.post('/check', requireFeature('canRedeemVoucher'), controller.check);
 router.post('/redeem', requireFeature('canRedeemVoucher'), controller.redeem);
+router.post('/redeem-batch', requireFeature('canRedeemVoucher'), controller.redeemBatch);
 
 module.exports = router;

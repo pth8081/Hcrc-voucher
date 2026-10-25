@@ -70,7 +70,52 @@ bắt buộc, không thể bỏ qua.</p>
   <li>Ô nhập sẽ <strong>tự động quay lại</strong> để sẵn sàng quét mã tiếp theo.</li>
 </ol>
 
-<h2>3. Các tình huống thường gặp</h2>
+<h2>3. Quét nhiều voucher - Thu hồi 1 lần</h2>
+<p>Dùng khi 1 khách có <strong>nhiều voucher muốn thu hồi cùng lúc</strong> (thay vì phải xác
+nhận "Có, thu hồi" từng cái một) - quét nhiều mã vào 1 danh sách tạm, xem lại/bớt bớt, rồi bấm
+<strong>1 nút duy nhất</strong> để thu hồi toàn bộ.</p>
+<ol>
+  <li>Bấm <strong>"Quét nhiều"</strong> trong ô "Chế độ quét" ở đầu trang (mặc định đang là
+    "Quét từng cái").
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/07-quet-nhieu-mo-che-do.png" alt="Chuyển chế độ quét sang Quét nhiều, màn hình sẵn sàng quét nhiều voucher" />
+      <p class="cap">Chuyển sang chế độ "Quét nhiều"</p>
+    </div>
+  </li>
+  <li>Quét lần lượt từng voucher như bình thường - <strong>mỗi mã quét xong tự động thêm vào
+    danh sách</strong> bên dưới (kèm mệnh giá + tổng tạm tính), <strong>chưa thu hồi ngay</strong>,
+    sẵn sàng quét mã tiếp theo luôn. Mã không hợp lệ (đã dùng/hết hạn...) sẽ báo lỗi và
+    <strong>không</strong> được thêm vào danh sách. Muốn bớt 1 voucher khỏi danh sách (khách đổi
+    ý không lấy nữa) thì bấm nút <strong>✕</strong> cạnh mã đó; bấm "Xóa hết" để làm lại từ đầu.
+    Danh sách tối đa 20 voucher.
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sách các voucher đã quét, chưa thu hồi, kèm tổng tạm tính và nút Thu hồi tất cả" />
+      <p class="cap">Danh sách voucher đang chờ thu hồi</p>
+    </div>
+  </li>
+  <li>Quét xong hết, bấm <strong>"Thu hồi tất cả"</strong> - hộp thoại hỏi lại hiện rõ
+    <strong>tổng số voucher + tổng mệnh giá</strong>, bấm "Có, thu hồi" để xác nhận.
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/09-quet-nhieu-xac-nhan.png" alt="Hộp thoại xác nhận thu hồi tất cả voucher trong danh sách, kèm tổng số voucher và tổng mệnh giá" />
+      <p class="cap">Xác nhận thu hồi cả danh sách</p>
+    </div>
+  </li>
+  <li>Xem kết quả: mỗi voucher có trạng thái riêng (<strong>"Đã thu hồi"</strong> màu xanh,
+    <strong>"Đã thu hồi (chờ đồng bộ)"</strong> màu vàng, hoặc <strong>"Thất bại"</strong> màu đỏ
+    kèm lý do cụ thể) - dòng <strong>"Tổng THỰC THU"</strong> ở cuối là số tiền THẬT SỰ đã thu hồi
+    được (không tính các voucher thất bại).
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Kết quả thu hồi hàng loạt: từng voucher kèm trạng thái riêng và tổng thực thu cuối cùng" />
+      <p class="cap">Kết quả sau khi thu hồi cả danh sách</p>
+    </div>
+  </li>
+</ol>
+<p class="hint"><strong>Lưu ý quan trọng</strong>: 1 voucher trong danh sách bị lỗi (ví dụ vừa bị
+quầy khác thu hồi trước, hoặc mất mạng đúng lúc xử lý mã đó) <strong>CHỈ làm mã đó thất bại</strong>,
+KHÔNG ảnh hưởng các voucher khác trong cùng đợt - vì vậy "Tổng THỰC THU" hiển thị sau cùng mới là
+số tiền chính xác cần thu của khách, không phải tổng lúc mới quét xong.</p>
+
+<h2>4. Các tình huống thường gặp</h2>
 <p><strong>"Voucher này đã được sử dụng"</strong>: mã voucher đã bị tiêu trước đó (có thể do
 chính mình quét nhầm lại, hoặc quầy/thiết bị khác đã tiêu trước). Không thể thu hồi lại - báo
 khách hàng kiểm tra lại voucher.</p>
@@ -101,7 +146,7 @@ viên để xem xét nới lại giới hạn cho phù hợp thực tế.</p>
 voucher bạn vừa chọn (menu "Kết nối API") - không thể quét/thu hồi bằng hệ thống này cho đến khi
 được mở khóa lại. Chọn hệ thống voucher khác (nếu có) hoặc báo quản trị viên.</p>
 
-<h2>4. Các loại báo cáo</h2>
+<h2>5. Các loại báo cáo</h2>
 <p>Tùy theo quyền được cấp, menu có thể hiện 1 hoặc cả 3 loại báo cáo sau - mỗi loại phục vụ
 mục đích khác nhau:</p>
 <table>
@@ -131,8 +176,8 @@ mục đích khác nhau:</p>
 <p class="hint">Cột "Đồng bộ" trong bảng giao dịch gần đây cho biết 1 giao dịch đã được hệ thống
 trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CHỜ ĐỒNG BỘ) - xem lại mục 2 ở trên.</p>
 
-<h2>5. Nhận báo cáo qua email tự động</h2>
-<p>Nếu tài khoản của bạn xem được ít nhất 1 trong 3 loại báo cáo ở mục 4, bạn có thể tự tạo 1
+<h2>6. Nhận báo cáo qua email tự động</h2>
+<p>Nếu tài khoản của bạn xem được ít nhất 1 trong 3 loại báo cáo ở mục 5, bạn có thể tự tạo 1
 <strong>lịch gửi báo cáo qua email</strong> (menu "Lịch gửi email báo cáo") thay vì phải vào xem
 rồi tự xuất Excel mỗi lần: chọn loại báo cáo, khoảng ngày (có cả lựa chọn tự chọn Từ ngày-Đến
 ngày), hệ thống voucher muốn gửi (bắt buộc tick ít nhất 1), email người nhận, và tần suất gửi
@@ -140,11 +185,11 @@ ngày), hệ thống voucher muốn gửi (bắt buộc tick ít nhất 1), emai
 luôn đúng phạm vi bạn đang được phép xem tại thời điểm gửi, không rộng hơn những gì bạn tự xem
 được trên màn hình báo cáo.</p>
 
-<h2>6. Bảo mật/tài khoản cá nhân</h2>
+<h2>7. Bảo mật/tài khoản cá nhân</h2>
 <p>Vào mục "Bảo mật" trên topbar để: đăng ký vân tay/Face ID cho thiết bị đang dùng, xem/đổi
 thiết bị xác thực hai yếu tố (nếu là quản trị).</p>
 
-<h2>7. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
+<h2>8. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
 <p>Cài ra màn hình chính giúp mở ứng dụng nhanh như 1 app bình thường (bấm vào icon là vào thẳng
 màn hình quét, không hiện thanh địa chỉ trình duyệt) - nên làm trên điện thoại dùng quét voucher
 hàng ngày.</p>
@@ -472,7 +517,7 @@ cột "Nhóm quyền xem báo cáo").</p>
 </ul>
 
 <h2>7. Gửi báo cáo qua email (SMTP + lịch gửi tự động)</h2>
-<p>Cho phép gửi file Excel của 3 loại báo cáo (mục 4 ở Hướng dẫn nghiệp vụ) qua email theo lịch
+<p>Cho phép gửi file Excel của 3 loại báo cáo (mục 5 ở Hướng dẫn nghiệp vụ) qua email theo lịch
 định kỳ ngày/tuần/tháng, thay vì phải vào xem rồi tự xuất Excel mỗi lần.</p>
 
 <h3>7a. Thiết lập email (menu Quản trị -&gt; Thiết lập email) - chỉ quản trị đầy đủ</h3>
