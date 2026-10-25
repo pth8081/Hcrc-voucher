@@ -1,6 +1,7 @@
 const userAdminService = require('./userAdminService');
 const userScheduleService = require('./userScheduleService');
 const userVoucherSystemService = require('./userVoucherSystemService');
+const permissionService = require('./permissionService');
 
 function forbidden(message) {
   const err = new Error(message);
@@ -12,13 +13,25 @@ function forbidden(message) {
 /**
  * Hau thuan man hinh "Quan tri doi tac" (public/partner-admin.html) - ban RUT GON cua man hinh
  * "Tai khoan" danh cho 1 tai khoan duoc gan quyen quan tri GIOI HAN theo DUNG 1 he thong voucher
- * (xem requirePartnerAdmin.js). Pham vi XEM gom cac tai khoan NHAN VIEN (role=0) co DUNG trong
- * danh sach he thong duoc dung CHUA connectionId nay (khong bat buoc CHI DUY NHAT nua, tu v3.68) -
- * loai tru hoan toan:
- *  - Tai khoan quan tri (role=1), du co the cung duoc gan he thong nay trong UserVoucherSystems.
- *  - Tai khoan khong gioi han he thong nao (null/rong trong UserVoucherSystems) - day la dang
- *    "khong thuoc pham vi ai ca" (dung duoc TOAN BO he thong, ke ca he thong tuong lai), khac han
- *    ve ban chat voi "dung chung 1 vai he thong cu the ke ca he thong cua minh".
+ * (xem requirePartnerAdmin.js). Pham vi XEM BAT BUOC thoa CA 2 dieu kien (tu v3.70):
+ *  1. Tai khoan nhan vien (role=0) nay BAN DAU do CHINH doi tac nay tao ra, qua man hinh tu phuc
+ *     vu nay (`CreatedByPartnerConnectionId` - co dinh VINH VIEN tu luc tao, xem sql/035) - KHONG
+ *     PHAI "dang dung he thong cua ho" la du. Vi du 1 tai khoan do quan tri day du HCRC tao truc
+ *     tiep qua man hinh "Tai khoan", sau do duoc cap THEM quyen dung he thong Fuji (de 1 nhan vien
+ *     dang nhap 1 lan quet duoc ca 2 he thong) - tai khoan nay KHONG xuat hien trong danh sach
+ *     cua Fuji (khong phai ho tao ra, khong nen tu quan ly duoc no), du HIEN TAI co dung he thong
+ *     Fuji that. Tab "Hoat dong quet/thu hoi" (muc xem Nhat ky he thong) KHONG ap dung dieu kien
+ *     nay - van loc thuan theo ConnectionName tren tung giao dich, nen Fuji van thay dung cac luot
+ *     quet he thong Fuji cua tai khoan do, chi khong tu quan ly duoc chinh tai khoan.
+ *  2. HIEN TAI van con dung he thong cua ho (UserVoucherSystems chua connectionId nay) - doc TUOI
+ *     moi lan goi, KHONG dua vao dieu kien (1) la du: 1 tai khoan DO CHINH doi tac tao ra nhung
+ *     sau do bi quan tri day du go het he thong cua ho (vd Fuji tu go qua removeOwnConnection(),
+ *     hoac quan tri day du go thay) se KHONG con hien ra nua - cho den khi duoc gan lai dung he
+ *     thong do (vi dieu kien (1) KHONG BAO GIO doi, tai khoan se TU DONG xuat hien tro lai ngay,
+ *     khong can tao lai).
+ * Loai tru hoan toan: tai khoan quan tri (role=1); tai khoan khong gioi han he thong nao (null/
+ * rong trong UserVoucherSystems, "khong thuoc pham vi ai ca", dung duoc TOAN BO he thong ke ca
+ * he thong tuong lai).
  *
  * Moi dong tra ve co them co `exclusiveToThisSystem`:
  *  - true  = tai khoan CHI dung DUY NHAT he thong cua doi tac nay (dung nhu truoc day) - doi tac
@@ -34,13 +47,15 @@ function forbidden(message) {
  *            co lai toan quyen khoa/mo khoa ma khong can ai can thiep gi them.
  */
 async function listScopedUsers(connectionId) {
-  const [withSchedule, voucherSystemsByUserId] = await Promise.all([
+  const [withSchedule, voucherSystemsByUserId, createdByPartnerByUserId] = await Promise.all([
     userScheduleService.listAllWithSchedule(true), // true = gom ca tai khoan da xoa mem, de doi tac tu khoi phuc lai duoc chinh tai khoan ho da tao
     userVoucherSystemService.listUserAccess(),
+    permissionService.listCreatedByPartnerConnection(),
   ]);
 
   return withSchedule
     .filter((u) => Number(u.role) === 0)
+    .filter((u) => createdByPartnerByUserId.get(u.userId) === connectionId)
     .map((u) => {
       const systemIds = (voucherSystemsByUserId.get(u.userId) || []).map((s) => s.connectionId);
       return { u, systemIds };
@@ -72,10 +87,14 @@ async function assertInScope(userId, connectionId) {
 
 /** Tao 1 tai khoan nhan vien MOI, LUON gan CUNG DUY NHAT he thong voucher cua partner-admin dang
  * tao (bo qua hoan toan moi gia tri role/he thong nguoi goi co the gui len) - dam bao tai khoan
- * moi tao LUON nam trong dung pham vi, hien ngay trong danh sach cua chinh partner-admin do. */
+ * moi tao LUON nam trong dung pham vi, hien ngay trong danh sach cua chinh partner-admin do. Ghi
+ * nho CreatedByPartnerConnectionId = connectionId DUY NHAT 1 LAN o day (xem sql/035) - gia tri
+ * nay se KHONG BAO GIO doi sau do du UserVoucherSystems cua tai khoan co thay doi the nao, la can
+ * cu de listScopedUsers() xac dinh tai khoan nay co "thuoc ve" doi tac nay hay khong. */
 async function createScopedUser({ username, password, fullName }, connectionId, createdBy) {
   const created = await userAdminService.createUser({ username, password, fullName, role: 0 }, createdBy);
   await userVoucherSystemService.setAllowedConnections(created.userId, [connectionId]);
+  await permissionService.setCreatedByPartnerConnection(created.userId, connectionId);
   return created;
 }
 

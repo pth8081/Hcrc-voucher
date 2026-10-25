@@ -1104,6 +1104,34 @@ thong Fuji) co the duoc quan tri day du cap THEM quyen dung he thong khac (vd HC
   quy uoc 0 dong = KHONG GIOI HAN (vo tinh CAP THEM quyen thay vi tuoc quyen) - thong bao huong
   dan dung nut "Khoa" thay the cho dung truong hop nay.
 
+**Pham vi XEM dua tren "AI TAO RA tai khoan", khong chi "DANG dung he thong nao" (v3.70):** v3.68
+chi dua vao UserVoucherSystems HIEN TAI (contains-match) de quyet dinh 1 tai khoan co hien trong
+man "Quan ly tai khoan"/"Nhat ky quan tri" cua doi tac hay khong - phat sinh 1 ke ho: 1 tai khoan
+do CHINH quan tri day du HCRC tao qua man hinh "Tai khoan" (khong phai Fuji tao), sau do duoc cap
+THEM quyen dung he thong Fuji (de phuc vu quet ca 2 he thong) se **lo ra** trong man tu quan ly
+cua Fuji - trong khi Fuji khong he tao ra no, khong nen tu quan ly duoc. Doi lai:
+- `sql/035_add_created_by_partner_connection.sql`: them cot `VoucherAppPermissions.CreatedByPartnerConnectionId`
+  - ghi **DUY NHAT 1 LAN**, **KHONG BAO GIO doi lai sau do** (khac han UserVoucherSystems co the
+  doi qua lai bat ky luc nao) - NULL = tai khoan do CHINH quan tri day du tao truc tiep; co gia tri
+  = Id cua `ApiConnections` cua doi tac da tao ra tai khoan nay qua man tu phuc vu. Backfill 1 lan
+  duy nhat luc nang cap (boc trong `IF NOT EXISTS (...WHERE CreatedByPartnerConnectionId IS NOT NULL)`
+  - dam bao KHONG chay lai o cac lan `npm run migrate` sau, tranh "nhan nham" tai khoan quan tri
+  day du tao moi sau nay): coi tai khoan nhan vien nao HIEN DANG dung DUNG 1 he thong cu the tai
+  thoi diem nang cap la "thuoc ve" he thong do, giu nguyen hanh vi hien thi da co TRUOC ban nay.
+- `partnerAdminService.js#listScopedUsers()`: them dieu kien **BAT BUOC CA 2** - (1)
+  `CreatedByPartnerConnectionId` = dung connectionId cua doi tac dang goi (permissionService.js#listCreatedByPartnerConnection,
+  co dinh vinh vien), VA (2) UserVoucherSystems HIEN TAI co chua connectionId do (doc tuoi, co the
+  doi). `createScopedUser()` ghi co nay DUY NHAT 1 lan ngay sau khi tao tai khoan xong
+  (`permissionService.js#setCreatedByPartnerConnection`).
+- **Khong anh huong** tab "Hoat dong quet/thu hoi" (scan log) - tab do VAN loc thuan theo
+  `ConnectionName` tren tung giao dich (khong phu thuoc "ai tao ra tai khoan"), nen Fuji **van
+  thay dung** cac luot quet he thong Fuji cua 1 tai khoan du do HCRC tao ra, chi khong tu quan ly
+  duoc chinh tai khoan do (khong thay o tab "Quan ly tai khoan"/"Nhat ky quan tri").
+- He qua: 1 tai khoan DO CHINH Fuji tao, du bi go het/mat quyen dung he thong Fuji (vd qua
+  `removeOwnConnection()`), se **tu dong xuat hien lai NGAY** trong danh sach cua Fuji ngay khi
+  quan tri day du gan lai dung he thong do - vi dieu kien (1) la CO DINH VINH VIEN, khong can tao
+  lai tai khoan.
+
 **Xem Nhat ky he thong theo PHAM VI (v3.67):** man hinh `/partner-admin.html` co them 2 tab
 (giong het giao dien "Nhat ky he thong" cua quan tri day du, muc 15c) nhung LUON loc theo dung
 pham vi cua ho - KHONG tai su dung chung route `/api/admin/*` (van CHI danh cho quan tri day du,
@@ -2029,7 +2057,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.69)**: man hinh "Quan tri doi tac" (muc 4j) them nut **"Go he thong [cua ho]"**
+Ban **moi nhat (v3.70)**: sua 1 ke ho logic cua v3.68 - man hinh "Quan tri doi tac" (muc 4j)
+truoc day chi dua vao "tai khoan HIEN DANG dung he thong nao" de quyet dinh co hien ra hay khong,
+khien 1 tai khoan do CHINH quan tri day du HCRC tao (khong phai Fuji), duoc cap THEM quyen dung
+he thong Fuji, bi **lo ra** nham trong man tu quan ly cua Fuji. Gio dung them 1 dieu kien **BAT
+BUOC CA 2**: tai khoan phai **CHINH Fuji tao ra** (`VoucherAppPermissions.CreatedByPartnerConnectionId`,
+co dinh vinh vien tu luc tao, sql/035) **VA** hien dang dung he thong Fuji (nhu cu). Tab "Hoat
+dong quet/thu hoi" khong doi - van thay dung moi luot quet he thong Fuji du tai khoan do ai tao.
+
+Ban truoc do (v3.69): man hinh "Quan tri doi tac" (muc 4j) them nut **"Go he thong [cua ho]"**
 cho cac tai khoan dang dung chung (thay the Khoa/Mo khoa da bi an tu v3.68) - cho phep doi tac tu
 "tra lai" DUNG he thong cua chinh ho khoi 1 tai khoan dung chung (vd Fuji go phan Fuji khoi 1 tai
 khoan dang dung ca Fuji+HCRC), **khong dong gi den** he thong khac tai khoan do dang duoc gan. Tu

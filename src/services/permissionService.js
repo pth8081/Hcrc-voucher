@@ -136,6 +136,36 @@ async function createDefaultPermissions(userId, createdBy) {
   await setPermissions(userId, DEFAULT_PERMISSIONS, createdBy);
 }
 
+/**
+ * Ghi nho DUNG 1 LAN (xem sql/035) rang tai khoan nay BAN DAU do 1 "Quan tri doi tac" tu tao ra
+ * qua man hinh tu phuc vu - goi DUY NHAT 1 lan, ngay sau khi tao tai khoan xong
+ * (partnerAdminService.js#createScopedUser), KHONG BAO GIO goi lai o bat ky noi nao khac (gia
+ * tri nay phai co dinh vinh vien theo thoi gian, khac han UserVoucherSystems co the doi qua lai).
+ */
+async function setCreatedByPartnerConnection(userId, connectionId) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('connectionId', sql.Int, connectionId)
+    .query('UPDATE dbo.VoucherAppPermissions SET CreatedByPartnerConnectionId = @connectionId WHERE UserId = @userId');
+}
+
+/** Map<userId, connectionId> - CHI gom cac tai khoan co CreatedByPartnerConnectionId (xem
+ * sql/035) - dung boi partnerAdminService.js#listScopedUsers() de loc dung tai khoan DO CHINH
+ * doi tac nay tao ra, KHONG PHAI moi tai khoan dang dung he thong cua ho (vd 1 tai khoan do quan
+ * tri day du HCRC tao, duoc cap them he thong Fuji sau nay, se KHONG xuat hien trong map nay -
+ * dung y, vi HCRC moi la nguoi tao ra no). */
+async function listCreatedByPartnerConnection() {
+  const pool = await getPool();
+  const result = await pool.request().query(
+    'SELECT UserId, CreatedByPartnerConnectionId FROM dbo.VoucherAppPermissions WHERE CreatedByPartnerConnectionId IS NOT NULL'
+  );
+  const map = new Map();
+  for (const row of result.recordset) map.set(row.UserId, row.CreatedByPartnerConnectionId);
+  return map;
+}
+
 module.exports = {
   DEFAULT_PERMISSIONS,
   ADMIN_PERMISSIONS,
@@ -144,4 +174,6 @@ module.exports = {
   setPermissions,
   setPartnerAdminConnection,
   createDefaultPermissions,
+  setCreatedByPartnerConnection,
+  listCreatedByPartnerConnection,
 };
