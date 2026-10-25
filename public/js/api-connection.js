@@ -67,14 +67,14 @@ async function loadList() {
                 : ''
             }
           </div>
-          <div class="flex gap-8">
+          <div class="flex gap-8 items-center">
+            <label class="conn-toggle" title="${c.isLocked ? 'Đang tắt - bấm để bật lại (cho phép dùng)' : 'Đang bật - bấm để tắt (vô hiệu hóa)'}">
+              <input type="checkbox" data-toggle="${c.id}" ${c.isLocked ? '' : 'checked'} />
+              <span class="conn-toggle-track"></span>
+              <span class="conn-toggle-text">${c.isLocked ? 'Tắt' : 'Bật'}</span>
+            </label>
             <button class="btn-secondary" data-edit="${c.id}">Sửa</button>
             ${!c.isActive && !c.isLocked ? `<button class="btn-secondary" data-activate="${c.id}">Kích hoạt</button>` : ''}
-            ${
-              c.isLocked
-                ? `<button class="btn-secondary" data-unlock="${c.id}">Mở khóa</button>`
-                : `<button class="btn-secondary" data-lock="${c.id}">Khóa</button>`
-            }
             <button class="btn-danger" data-remove="${c.id}">Xóa</button>
           </div>
         </div>`
@@ -87,11 +87,8 @@ async function loadList() {
     wrap.querySelectorAll('[data-activate]').forEach((btn) =>
       btn.addEventListener('click', () => activateConnection(Number(btn.dataset.activate)))
     );
-    wrap.querySelectorAll('[data-lock]').forEach((btn) =>
-      btn.addEventListener('click', () => setLockedConnection(Number(btn.dataset.lock), true))
-    );
-    wrap.querySelectorAll('[data-unlock]').forEach((btn) =>
-      btn.addEventListener('click', () => setLockedConnection(Number(btn.dataset.unlock), false))
+    wrap.querySelectorAll('[data-toggle]').forEach((input) =>
+      input.addEventListener('change', (e) => setLockedConnection(Number(input.dataset.toggle), !e.target.checked))
     );
     wrap.querySelectorAll('[data-remove]').forEach((btn) =>
       btn.addEventListener('click', () => removeConnection(Number(btn.dataset.remove)))
@@ -112,13 +109,21 @@ async function activateConnection(id) {
 }
 
 async function setLockedConnection(id, locked) {
-  if (locked && !confirm('Khóa kết nối này? Kết nối sẽ không dùng được cho đến khi mở khóa lại.')) return;
+  // Bam vao cong tac se lam trinh duyet tu doi trang thai checkbox NGAY LAP TUC (truoc khi ham
+  // nay chay) - neu nguoi dung bam Huy o hop xac nhan, hoac goi API that bai, phai ve lai danh
+  // sach tu du lieu THAT tren server (loadList()) de cong tac tro ve dung trang thai cu, khong
+  // de lai giao dien sai lech voi du lieu da luu.
+  if (locked && !confirm('Tắt kết nối này? Kết nối sẽ không dùng được cho đến khi bật lại.')) {
+    await loadList();
+    return;
+  }
   try {
     await apiFetch(`/api-connections/${id}/${locked ? 'lock' : 'unlock'}`, { method: 'POST' });
-    showToast(locked ? 'Đã khóa kết nối' : 'Đã mở khóa kết nối');
+    showToast(locked ? 'Đã tắt kết nối' : 'Đã bật kết nối');
     await loadList();
   } catch (err) {
     showToast(err.message);
+    await loadList();
   }
 }
 

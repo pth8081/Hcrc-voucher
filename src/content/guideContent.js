@@ -226,12 +226,12 @@ buộc phải có ít nhất 1 kết nối đang "Kích hoạt"</strong> thì m�
     2 như Fuji bên cạnh hệ thống hiện tại) - chỉ 1 kết nối được đánh dấu "Kích hoạt" làm mặc
     định, nhưng nhân viên vẫn chọn được hệ thống khác ngay trên màn Quét voucher nếu tài khoản họ
     được phép dùng từ 2 hệ thống trở lên (xem mục "Hệ thống voucher được dùng" ở mục 1).</li>
-  <li><strong>Khóa/Mở khóa 1 kết nối</strong>: nút "Khóa" tạm vô hiệu hóa hoàn toàn 1 kết nối
-    (dòng hiện mờ đi + nhãn "ĐÃ KHÓA") mà <strong>không xóa cấu hình đã lưu</strong> - khi đã
-    khóa, kết nối đó biến mất khỏi ô chọn "Hệ thống voucher" trên màn Quét voucher và không thể
-    "Kích hoạt". Dùng khi cần tạm ngừng 1 hệ thống (đối tác tạm ngừng hợp tác, Core đang bảo trì
-    dài hạn...) mà muốn giữ lại cấu hình để dùng lại sau, thay vì phải xóa rồi khai báo lại từ
-    đầu. Bấm "Mở khóa" để dùng lại bình thường ngay, không mất gì.</li>
+  <li><strong>Công tắc Bật/Tắt 1 kết nối</strong>: gạt sang <strong>Tắt</strong> sẽ tạm vô hiệu
+    hóa hoàn toàn kết nối đó (dòng hiện mờ đi + nhãn "ĐÃ KHÓA") mà <strong>không xóa cấu hình đã
+    lưu</strong> - kết nối bị tắt sẽ biến mất khỏi ô chọn "Hệ thống voucher" trên màn Quét voucher
+    và không thể "Kích hoạt". Dùng khi cần tạm ngừng 1 hệ thống (đối tác tạm ngừng hợp tác, Core
+    đang bảo trì dài hạn...) mà muốn giữ lại cấu hình để dùng lại sau, thay vì phải xóa rồi khai
+    báo lại từ đầu. Gạt lại sang <strong>Bật</strong> để dùng lại bình thường ngay, không mất gì.</li>
 </ul>
 <p class="hint">Ví dụ điền form cụ thể cho 1 kiểu Core API xác thực bằng API Key riêng (header
 <code>X-API-Key</code>) được trình bày chi tiết trong tài liệu kỹ thuật repo (README.md mục
