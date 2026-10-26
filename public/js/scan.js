@@ -6,10 +6,6 @@ const cameraBtn = document.getElementById('cameraBtn');
 const qrReaderEl = document.getElementById('qr-reader');
 const scanHero = document.getElementById('scanHero');
 const scanInputGroup = document.getElementById('scanInputGroup');
-const resultCard = document.getElementById('resultCard');
-const statusBadge = document.getElementById('statusBadge');
-const resultInfo = document.getElementById('resultInfo');
-const resultActions = document.getElementById('resultActions');
 const recentBody = document.getElementById('recentBody');
 const manualBlockedHint = document.getElementById('manualBlockedHint');
 const systemSwitchCard = document.getElementById('systemSwitchCard');
@@ -18,26 +14,20 @@ const systemActiveBanner = document.getElementById('systemActiveBanner');
 const systemActiveBannerText = document.getElementById('systemActiveBannerText');
 const confirmRedeemOverlay = document.getElementById('confirmRedeemOverlay');
 const confirmRedeemTitle = document.getElementById('confirmRedeemTitle');
-const confirmRedeemSub = document.getElementById('confirmRedeemSub');
-const confirmRedeemSubBatch = document.getElementById('confirmRedeemSubBatch');
-const confirmRedeemCode = document.getElementById('confirmRedeemCode');
-const confirmRedeemAmount = document.getElementById('confirmRedeemAmount');
-const confirmRedeemSystem = document.getElementById('confirmRedeemSystem');
-const confirmBatchCount = document.getElementById('confirmBatchCount');
-const confirmBatchAmount = document.getElementById('confirmBatchAmount');
-const confirmBatchSystem = document.getElementById('confirmBatchSystem');
+const confirmCount = document.getElementById('confirmCount');
+const confirmAmount = document.getElementById('confirmAmount');
+const confirmSystem = document.getElementById('confirmSystem');
 const confirmRedeemYesBtn = document.getElementById('confirmRedeemYesBtn');
 const confirmRedeemNoBtn = document.getElementById('confirmRedeemNoBtn');
 
-// Che do quet (v3.75 - "Quet nhieu, thu hoi 1 lan"): SINGLE (mac dinh, hanh vi cu nguyen ven -
-// quet 1 ma, xac nhan thu hoi ngay) hoac BATCH (quet nhieu ma lien tiep vao 1 danh sach tam,
-// CHUA goi thu hoi gi ca - chi bam "Thu hoi tat ca" cuoi cung moi thuc su goi API thu hoi, xem
-// README muc 19). 2 che do dung CHUNG 1 o quet/camera, chi khac nhau o cach xu ly SAU buoc kiem
-// tra (CHECK) - xem runCheck() ben duoi.
-const scanModeSwitch = document.getElementById('scanModeSwitch');
-const scanModeHint = document.getElementById('scanModeHint');
-const scanHeroTitle = document.getElementById('scanHeroTitle');
-const scanHeroHint = document.getElementById('scanHeroHint');
+// Tu v3.78: bo het cong tac "Quet tung cai/Quet nhieu" (v3.75) - CHI CON 1 luong quet DUY NHAT,
+// moi ma quet xong luon tu dong them vao 1 danh sach tam (giong het hanh vi "Quet nhieu" cu,
+// xem README muc 18/19), CHUA goi thu hoi gi ca cho toi khi bam "Xac nhan thu hoi". Quet dung
+// 1 ma van hoat dong binh thuong - danh sach chi co 1 dong, nut xac nhan hien ro so tien DUNG
+// 1 ma do (khong con noi "tat ca X voucher" nghe gong khi X=1). Ly do bo cong tac: nguoi dung
+// phan anh de nham/quen chuyen che do truoc khi quet - gop lai con 1 luong giam han 1 buoc lua
+// chon ma khong doi gi ve logic/bao mat backend (sp_getapplock/rate-limit/guessGuard deu dung
+// CHUNG code redeemVoucherBatch() cho moi do dai danh sach, ke ca danh sach 1 phan tu).
 const batchListCard = document.getElementById('batchListCard');
 const batchList = document.getElementById('batchList');
 const batchTotal = document.getElementById('batchTotal');
@@ -50,9 +40,7 @@ const batchGrandTotal = document.getElementById('batchGrandTotal');
 const batchContinueBtn = document.getElementById('batchContinueBtn');
 
 const MAX_BATCH_SIZE = 20; // khop voi gioi han server (voucherService.js#MAX_BATCH_SIZE)
-let scanMode = 'SINGLE';
 let batchItems = []; // { voucherCode, valueAmt, voucherSerial }
-let pendingConfirmIsBatch = false;
 
 // Chi chap nhan du lieu quet (may quet HID hoac camera), khong cho phep go tay/dan/keo-tha.
 // May quet HID gia lap ban phim that nen khong the chan bang thuoc tinh readonly - thay vao do
@@ -78,46 +66,14 @@ let selectedConnectionName = null;
 focusInput();
 loadSystemOptions();
 
-scanModeSwitch.querySelectorAll('[data-mode]').forEach((btn) => {
-  btn.addEventListener('click', () => setScanMode(btn.dataset.mode));
-});
 batchClearBtn.addEventListener('click', clearBatchList);
-batchRedeemAllBtn.addEventListener('click', openBatchRedeemConfirm);
+batchRedeemAllBtn.addEventListener('click', openRedeemConfirm);
 batchContinueBtn.addEventListener('click', () => {
   batchItems = [];
   renderBatchList();
   batchResultCard.classList.add('hidden');
   focusInput();
 });
-
-/** Doi che do quet (SINGLE/BATCH) - luon don ve trang thai "san sang quet" sach se, khong giu
- * lai ket qua/danh sach dang do cua che do truoc do (tranh nham lan 2 luong voi nhau). */
-function setScanMode(mode) {
-  if (mode === scanMode) return;
-  scanMode = mode;
-
-  scanModeSwitch.querySelectorAll('[data-mode]').forEach((btn) => {
-    btn.classList.toggle('selected-default', btn.dataset.mode === mode);
-  });
-
-  resultCard.classList.add('hidden');
-  batchListCard.classList.add('hidden');
-  batchResultCard.classList.add('hidden');
-  batchItems = [];
-
-  if (mode === 'BATCH') {
-    scanModeHint.textContent = 'Quét nhiều mã liên tiếp vào 1 danh sách, xem lại/bớt mã rồi mới bấm "Thu hồi tất cả" 1 lần.';
-    scanHeroTitle.textContent = 'Sẵn sàng quét (nhiều voucher)';
-    scanHeroHint.innerHTML = 'Quét <strong>từng mã một</strong> - mỗi mã quét xong sẽ tự thêm vào danh sách bên dưới, <strong>chưa thu hồi ngay</strong>. Quét xong hết thì xem lại danh sách rồi mới bấm "Thu hồi tất cả".';
-    batchListCard.classList.remove('hidden');
-    renderBatchList();
-  } else {
-    scanModeHint.textContent = 'Quét 1 mã, xác nhận thu hồi ngay rồi mới được quét mã tiếp theo.';
-    scanHeroTitle.textContent = 'Sẵn sàng quét voucher';
-    scanHeroHint.innerHTML = 'Chỉ chấp nhận mã được <strong>quét</strong> bằng máy quét mã vạch/QR hoặc camera — không cho phép gõ tay để tránh nhập sai hoặc gian lận.';
-  }
-  focusInput();
-}
 
 async function loadSystemOptions() {
   try {
@@ -239,12 +195,8 @@ async function runCheck(voucherCode) {
       method: 'POST',
       body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod, connectionId: selectedConnectionId }),
     });
-    if (scanMode === 'BATCH') {
-      addToBatchList(voucherCode, data);
-      focusInput();
-    } else {
-      renderResult(voucherCode, data);
-    }
+    addToBatchList(voucherCode, data);
+    focusInput();
   } catch (err) {
     showToast(err.message);
     focusInput();
@@ -254,152 +206,16 @@ async function runCheck(voucherCode) {
   }
 }
 
-function renderResult(voucherCode, data) {
-  resultCard.classList.remove('hidden');
-  resultActions.innerHTML = '';
-
-  if (data.status === 'UNUSED' && data.canRedeem) {
-    statusBadge.innerHTML = '<span class="status-badge status-unused">CHƯA SỬ DỤNG</span>';
-    resultInfo.innerHTML = `
-      <div class="info-row"><span class="k">Mã voucher</span><span class="v">${escapeHtml(voucherCode)}</span></div>
-      <div class="info-row"><span class="k">Số serial</span><span class="v">${escapeHtml(data.voucherSerial || '-')}</span></div>
-      <div class="info-row"><span class="k">Mệnh giá</span><span class="v">${fmtMoney(data.valueAmt)}</span></div>
-      <div class="info-row"><span class="k">Ngày cấp</span><span class="v">${escapeHtml(fmtDate(data.issueDate))}</span></div>
-      <div class="info-row"><span class="k">Hạn sử dụng</span><span class="v">${escapeHtml(fmtDate(data.expiryDate))}</span></div>
-    `;
-    const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'btn-success';
-    confirmBtn.textContent = 'Xác nhận thu hồi';
-    confirmBtn.addEventListener('click', () => openRedeemConfirm(voucherCode, data));
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'btn-secondary';
-    cancelBtn.textContent = 'Hủy / Quét mã khác';
-    cancelBtn.addEventListener('click', resetResult);
-
-    resultActions.appendChild(confirmBtn);
-    resultActions.appendChild(cancelBtn);
-  } else if (data.status === 'USED') {
-    statusBadge.innerHTML = '<span class="status-badge status-used">ĐÃ SỬ DỤNG</span>';
-    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher này đã được sử dụng. Vui lòng quét mã voucher khác.')}</p>`;
-    addContinueButton();
-  } else {
-    statusBadge.innerHTML = '<span class="status-badge status-other">KHÔNG HỢP LỆ</span>';
-    resultInfo.innerHTML = `<p>${escapeHtml(data.message || 'Voucher không tồn tại hoặc không hợp lệ.')}</p>`;
-    addContinueButton();
-  }
-}
-
-function addContinueButton() {
-  const btn = document.createElement('button');
-  btn.className = 'btn-secondary';
-  btn.textContent = 'Quét mã khác';
-  btn.addEventListener('click', resetResult);
-  resultActions.appendChild(btn);
-}
-
-// Them 1 buoc xac nhan nua truoc khi goi API thu hoi that su, tranh bam nham/cham nham ngay
-// sau khi kiem tra xong (nhat la tren dien thoai, man hinh cam ung) - theo yeu cau nguoi dung.
-// Khong thay doi gi logic goi API/ghi du lieu, chi chen them 1 buoc hoi lai o phia giao dien.
-let pendingRedeemVoucherCode = null;
-
-function openRedeemConfirm(voucherCode, data) {
-  pendingRedeemVoucherCode = voucherCode;
-  pendingConfirmIsBatch = false;
-  confirmRedeemTitle.textContent = 'Bạn có muốn thu hồi voucher này không?';
-  confirmRedeemSub.classList.remove('hidden');
-  confirmRedeemSubBatch.classList.add('hidden');
-  confirmRedeemCode.textContent = voucherCode;
-  confirmRedeemAmount.textContent = fmtMoney(data.valueAmt);
-  confirmRedeemSystem.textContent = selectedConnectionName || 'mặc định';
-  confirmRedeemOverlay.classList.remove('hidden');
-  resultActions.querySelectorAll('button').forEach((b) => (b.disabled = true));
-}
-
-function closeRedeemConfirm() {
-  confirmRedeemOverlay.classList.add('hidden');
-  pendingRedeemVoucherCode = null;
-  if (!pendingConfirmIsBatch) {
-    resultActions.querySelectorAll('button').forEach((b) => (b.disabled = false));
-  }
-  pendingConfirmIsBatch = false;
-}
-
-confirmRedeemYesBtn.addEventListener('click', () => {
-  const isBatch = pendingConfirmIsBatch;
-  const voucherCode = pendingRedeemVoucherCode;
-  closeRedeemConfirm();
-  if (isBatch) {
-    confirmBatchRedeem();
-  } else if (voucherCode) {
-    confirmRedeem(voucherCode);
-  }
-});
-
-confirmRedeemNoBtn.addEventListener('click', () => {
-  // "Khong" -> thoat ve man hinh scan san sang - he thong (BRGmart/Fuji) DANG CHON van giu
-  // nguyen, khong reset lai (selectedConnectionId/Name khong bi dong cham o day). Che do BATCH:
-  // chi dong hop thoai, GIU NGUYEN danh sach dang cho (nguoi dung co the quet them/bo bot roi
-  // bam lai "Thu hoi tat ca" sau).
-  const isBatch = pendingConfirmIsBatch;
-  closeRedeemConfirm();
-  if (!isBatch) resetResult();
-});
-
-async function confirmRedeem(voucherCode) {
-  try {
-    const buttons = resultActions.querySelectorAll('button');
-    buttons.forEach((b) => (b.disabled = true));
-
-    const data = await apiFetch('/vouchers/redeem', {
-      method: 'POST',
-      body: JSON.stringify({ voucherCode, scanMethod: lastScanMethod, connectionId: selectedConnectionId }),
-    });
-
-    if (data.success) {
-      const msg = data.pendingSync
-        ? `Đã thu hồi: ${voucherCode} (đang chờ đồng bộ với hệ thống trung tâm)`
-        : `Thu hồi thành công: ${voucherCode}`;
-      showToast(msg);
-      addRecentRow({
-        time: new Date(),
-        voucherCode,
-        connectionName: data.connectionName || selectedConnectionName,
-        valueAmt: data.valueAmt,
-        transNum: data.transNum,
-        pendingSync: data.pendingSync,
-      });
-      resetResult();
-    } else {
-      showToast(data.message || 'Thu hồi thất bại');
-      resetResult();
-    }
-  } catch (err) {
-    showToast(err.message);
-    resetResult();
-  }
-}
-
-function resetResult() {
-  resultCard.classList.add('hidden');
-  statusBadge.innerHTML = '';
-  resultInfo.innerHTML = '';
-  resultActions.innerHTML = '';
-  focusInput();
-}
-
-// ===== Che do "Quet nhieu" (v3.75) =====
-
-/** Sau buoc CHECK (chua thu hoi gi) khi dang o che do BATCH: hop le thi them vao danh sach tam,
- * khong hop le (da dung/het han/loai tru...) thi bao loi va KHONG them - nguoi dung quet tiep
- * ngay, khong can thao tac gi them cho ma loi do. */
+/** Sau buoc CHECK (chua thu hoi gi): hop le thi them vao danh sach tam, khong hop le (da
+ * dung/het han/loai tru...) thi bao loi va KHONG them - nguoi dung quet tiep ngay, khong can
+ * thao tac gi them cho ma loi do. */
 function addToBatchList(voucherCode, data) {
   if (batchItems.some((it) => it.voucherCode === voucherCode)) {
     showToast(`Mã ${voucherCode} đã có trong danh sách, không thêm trùng.`);
     return;
   }
   if (batchItems.length >= MAX_BATCH_SIZE) {
-    showToast(`Danh sách đã đủ tối đa ${MAX_BATCH_SIZE} voucher - vui lòng bấm "Thu hồi tất cả" trước khi quét thêm.`);
+    showToast(`Danh sách đã đủ tối đa ${MAX_BATCH_SIZE} voucher - vui lòng xác nhận thu hồi trước khi quét thêm.`);
     return;
   }
   if (!(data.status === 'UNUSED' && data.canRedeem)) {
@@ -407,6 +223,7 @@ function addToBatchList(voucherCode, data) {
     return;
   }
   batchItems.push({ voucherCode, valueAmt: data.valueAmt, voucherSerial: data.voucherSerial });
+  batchListCard.classList.remove('hidden');
   renderBatchList();
   showToast(`Đã thêm ${voucherCode} vào danh sách (${batchItems.length} voucher)`);
 }
@@ -414,6 +231,7 @@ function addToBatchList(voucherCode, data) {
 function removeBatchItem(voucherCode) {
   batchItems = batchItems.filter((it) => it.voucherCode !== voucherCode);
   renderBatchList();
+  if (!batchItems.length) batchListCard.classList.add('hidden');
 }
 
 function clearBatchList() {
@@ -421,6 +239,7 @@ function clearBatchList() {
   if (!confirm('Xóa toàn bộ danh sách đang chờ thu hồi?')) return;
   batchItems = [];
   renderBatchList();
+  batchListCard.classList.add('hidden');
   focusInput();
 }
 
@@ -428,7 +247,7 @@ function renderBatchList() {
   if (!batchItems.length) {
     batchList.innerHTML = '<p class="text-muted">Chưa quét voucher nào. Quét mã để thêm vào danh sách.</p>';
     batchTotal.classList.add('hidden');
-    batchRedeemAllBtn.textContent = 'Thu hồi tất cả';
+    batchRedeemAllBtn.textContent = 'Xác nhận thu hồi';
     batchRedeemAllBtn.disabled = true;
     return;
   }
@@ -453,26 +272,45 @@ function renderBatchList() {
   );
 
   const total = batchItems.reduce((s, it) => s + (it.valueAmt || 0), 0);
+  const n = batchItems.length;
   batchTotal.classList.remove('hidden');
-  batchTotal.innerHTML = `<span>Tổng tạm tính (${batchItems.length} voucher)</span><span>${fmtMoney(total)}</span>`;
-  batchRedeemAllBtn.textContent = `Thu hồi tất cả (${batchItems.length}) — ${fmtMoney(total)}`;
+  batchTotal.innerHTML = `<span>Tổng tạm tính (${n} voucher)</span><span>${fmtMoney(total)}</span>`;
+  // Chi 1 ma thi khong can noi "(1)" - "Xac nhan thu hoi - [tien]" la du ro rang; tu 2 ma tro len
+  // moi them so luong de nhan vien biet dang xac nhan gop bao nhieu ma 1 luc.
+  batchRedeemAllBtn.textContent = n === 1
+    ? `Xác nhận thu hồi — ${fmtMoney(total)}`
+    : `Xác nhận thu hồi (${n}) — ${fmtMoney(total)}`;
   batchRedeemAllBtn.disabled = false;
 }
 
-function openBatchRedeemConfirm() {
+/** Them 1 buoc xac nhan nua truoc khi goi API thu hoi that su, tranh bam nham/cham nham ngay sau
+ * khi quet xong (nhat la tren dien thoai, man hinh cam ung) - theo yeu cau nguoi dung. Dung
+ * CHUNG 1 hop thoai cho ca 1 hay nhieu voucher, chi doi chu cho tu nhien hon khi dung 1 ma. */
+function openRedeemConfirm() {
   if (!batchItems.length) return;
-  pendingConfirmIsBatch = true;
+  const n = batchItems.length;
   const total = batchItems.reduce((s, it) => s + (it.valueAmt || 0), 0);
-  confirmRedeemTitle.textContent = `Bạn có muốn thu hồi tất cả ${batchItems.length} voucher này không?`;
-  confirmRedeemSub.classList.add('hidden');
-  confirmRedeemSubBatch.classList.remove('hidden');
-  confirmBatchCount.textContent = batchItems.length;
-  confirmBatchAmount.textContent = fmtMoney(total);
-  confirmBatchSystem.textContent = selectedConnectionName || 'mặc định';
+  confirmRedeemTitle.textContent = n === 1
+    ? 'Bạn có muốn thu hồi voucher này không?'
+    : `Bạn có muốn thu hồi tất cả ${n} voucher này không?`;
+  confirmCount.textContent = n;
+  confirmAmount.textContent = fmtMoney(total);
+  confirmSystem.textContent = selectedConnectionName || 'mặc định';
   confirmRedeemOverlay.classList.remove('hidden');
 }
 
-async function confirmBatchRedeem() {
+confirmRedeemYesBtn.addEventListener('click', () => {
+  confirmRedeemOverlay.classList.add('hidden');
+  confirmRedeem();
+});
+
+confirmRedeemNoBtn.addEventListener('click', () => {
+  // "Khong" -> chi dong hop thoai, GIU NGUYEN danh sach dang cho (nguoi dung co the quet them/bo
+  // bot roi bam lai "Xac nhan thu hoi" sau) - he thong (BRGmart/Fuji) DANG CHON cung giu nguyen.
+  confirmRedeemOverlay.classList.add('hidden');
+});
+
+async function confirmRedeem() {
   const codes = batchItems.map((it) => it.voucherCode);
   batchRedeemAllBtn.disabled = true;
   batchClearBtn.disabled = true;
