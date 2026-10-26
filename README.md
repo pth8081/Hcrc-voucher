@@ -731,7 +731,11 @@ sau de doi chieu/kiem tra lai, khong can go tay tung o:
 > vao dong co san nay, dien **Base URL that** va **Gia tri API Key that**, roi "Test kiem tra" +
 > "Luu & Kich hoat". Dong nay mac dinh **chua kich hoat** (`IsActive=0`) va Base URL la gia tri
 > placeholder ro rang (`https://DIEN-DIA-CHI-THAT-VAO-DAY.example`) de khong vo tinh kich hoat
-> nham khi chua dien du thong tin that.
+> nham khi chua dien du thong tin that. **Tu v3.77**: neu khong can dong mau nay nua (vd da tu tao
+> rieng 1 ket noi khac thay the), admin **xoa han duoc** tren giao dien - KHONG tu dong tao lai o
+> cac lan `npm run migrate` sau (sua loi that: truoc v3.77, dieu kien seed chi kiem tra "co dong
+> ten nay chua", xoa roi migrate lai se vo tinh tao lai dung dong do, gay nham lan voi cau hinh
+> admin da tu quan ly).
 
 | Truong | Gia tri |
 |---|---|
@@ -909,6 +913,9 @@ migrate) — SAO CHEP Base URL/duong dan/mapping tu ket noi dang active hien tai
 xac nhan: ca 2 he thong chung 1 cong API gateway), nhung **chua co Gia tri API Key** (dong nay
 KHONG the goi duoc Core cho toi khi dien that). Chi can vao "Ket noi API", bam "Sua" dong "Fuji",
 dien dung API Key do doi tac cung cap roi bam Luu la xong — khong can bam "+ Tao ket noi moi".
+**Tu v3.77**: xoa han dong "Fuji" nay tren giao dien (vd da tu tao rieng 1-2 ket noi khac, dat ten
+khac) se **KHONG bi tu dong tao lai** o cac lan cap nhat code sau - xem ghi chu chi tiet o muc tren
+(dong "HCRC Voucher API Server") va o muc 19 (Changelog).
 
 **An toan cho setup hien tai (chi 1 he thong) ngay ca khi dong "Fuji" nay da ton tai**: o chon
 "He thong voucher" tren man Quet voucher va o loc "He thong" tren 3 man bao cao (muc 13a) CHI
@@ -2288,7 +2295,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.76)**: mo rong man hinh "Quan tri doi tac" (muc 4j) - cho phep doi tac
+Ban **moi nhat (v3.77)**: sua loi that o production - 2 migration seed du lieu mau
+(`sql/023_seed_api_server_connection.sql` dong "HCRC Voucher API Server",
+`sql/029_seed_fuji_connection.sql` dong "Fuji") dung dieu kien "co dong ten nay chua" de quyet
+dinh co seed hay khong - vi `scripts/migrate.js` chay lai TOAN BO noi dung file .sql o MOI lan
+`npm run migrate`, admin **xoa han** 1 trong 2 dong mau nay (vd da tu tao rieng ket noi thay the)
+se bi **tu dong tao lai** o lan cap nhat code ke tiep, gay nham lan voi cau hinh admin da tu quan
+ly. Them dieu kien kiem tra `dbo.SchemaMigrations` (bang theo doi migration da ap dung, co san tu
+sql/032) - tu nay xoa dong mau roi se **khong bao gio tu dong tao lai nua**, du chay migrate bao
+nhieu lan. Khong anh huong du lieu dang co (chi doi dieu kien seed, khong dong gi den cac dong da
+ton tai). Xem muc 4e/4j.
+
+Ban truoc do (v3.76): mo rong man hinh "Quan tri doi tac" (muc 4j) - cho phep doi tac
 **tu sua** ho ten/mat khau/6 quyen tinh nang cua nhan vien minh, **tu doi diem tieu** (chi voi
 tai khoan doc quyen 1 he thong cua ho), va **tu tao cong ty/diem tieu rieng** o tab moi "Cong ty
 & Diem tieu" - tat ca deu gioi han dung trong pham vi do chinh ho tao ra, khong cham duoc du lieu

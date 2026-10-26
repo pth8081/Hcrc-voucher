@@ -21,8 +21,18 @@
 -- chua co ket noi active nao de sao chep (vd cai dat moi tinh, chua tung
 -- cau hinh ket noi nao) thi cung khong lam gi - dung nut "+ Tao ket noi
 -- moi" thu cong trong truong hop do.
+--
+-- Dot ra soat sau phat hien (cung loi nhu sql/023, xem ghi chu chi tiet o do): dieu kien
+-- "IF NOT EXISTS ... WHERE Name = N'Fuji'" chi kiem tra TAI THOI DIEM chay, khong phai "migration
+-- nay da tung chay chua" - vi scripts/migrate.js chay lai TOAN BO noi dung file nay o MOI lan
+-- `npm run migrate`. Neu admin XOA han dong "Fuji" (vd da tu tao/doi ten ket noi rieng, khong
+-- can dong mau nua), lan cap nhat code ke tiep se vo tinh TAO LAI dung dong nay, gay nham lan
+-- voi cau hinh admin da tu quan ly. Them dieu kien kiem tra dbo.SchemaMigrations (sql/032) de
+-- dam bao CHI seed DUNG 1 LAN DAU TIEN - xoa roi se khong bao gio tu dong tao lai nua.
 -- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM dbo.ApiConnections WHERE Name = N'Fuji')
+IF (OBJECT_ID('dbo.SchemaMigrations') IS NULL
+    OR NOT EXISTS (SELECT 1 FROM dbo.SchemaMigrations WHERE Filename = N'029_seed_fuji_connection.sql'))
+   AND NOT EXISTS (SELECT 1 FROM dbo.ApiConnections WHERE Name = N'Fuji')
 BEGIN
     INSERT INTO dbo.ApiConnections
         (Name, IsActive, BaseUrl, AuthType, AuthTokenEncrypted, ApiKeyHeaderName,
