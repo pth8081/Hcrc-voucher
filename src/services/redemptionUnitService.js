@@ -19,6 +19,30 @@ async function list() {
   return result.recordset;
 }
 
+/** Danh sach Don vi thu hoi (diem tieu) do DUNG 1 doi tac tao - ke THUA "chu so huu" qua CompanyId
+ * (xem companyService.js#listByConnection, sql/038) thay vi can cot rieng tren chinh bang nay -
+ * dung cho man hinh "Quan tri doi tac" (xem partnerAdminService.js), KHAC voi list() o tren
+ * (quan tri day du, thay TOAN BO ke ca diem tieu HCRC/doi tac khac tao). */
+async function listByConnection(connectionId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('connectionId', sql.Int, connectionId)
+    .query(`
+      SELECT
+        ru.Id, ru.LocationDetailId, ru.PartnerCode, ru.PartnerName, ru.CompanyId, ru.Status,
+        c.CompanyName,
+        LTRIM(RTRIM(d.LocationCode)) AS LocationCode,
+        LTRIM(RTRIM(d.LocationName)) AS LocationName
+      FROM dbo.RedemptionUnits ru
+      INNER JOIN dbo.Locations_Detail d ON d.id = ru.LocationDetailId
+      INNER JOIN dbo.RedemptionCompanies c ON c.Id = ru.CompanyId
+      WHERE c.CreatedByPartnerConnectionId = @connectionId
+      ORDER BY c.CompanyName, ru.PartnerName
+    `);
+  return result.recordset;
+}
+
 /** Tra ve LocationCode (Locations_Detail.LocationCode, da trim) cua 1 Don vi thu hoi - dung de
  * gan tai khoan truc tiep vao dung diem tieu (xem userAdminService.js), tranh phai go tay ma. */
 async function getLocationCodeById(id) {
@@ -282,4 +306,4 @@ async function remove(id) {
   await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.RedemptionUnits WHERE Id = @id');
 }
 
-module.exports = { list, create, update, remove, getLocationCodeById, getById };
+module.exports = { list, listByConnection, create, update, remove, getLocationCodeById, getById };

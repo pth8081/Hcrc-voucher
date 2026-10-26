@@ -71,6 +71,108 @@ async function removeOwnConnection(req, res, next) {
   }
 }
 
+async function updateUserProfile(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { fullName, password, username } = req.body;
+    await partnerAdminService.updateScopedUserProfile(userId, req.partnerAdminConnectionId, { fullName, password });
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_PROFILE',
+      targetUsername: username || String(userId),
+      // L6: KHONG ghi mat khau vao audit log, chi ghi co doi hay khong - giong user.controller.js#updateProfile.
+      detail: { before: null, after: { fullName: fullName != null ? String(fullName).trim() : undefined, passwordReset: !!password } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateUserPermissions(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { username } = req.body;
+    const safePerms = await partnerAdminService.updateScopedUserPermissions(userId, req.partnerAdminConnectionId, req.body, req.user.username);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_PERMISSIONS',
+      targetUsername: username || String(userId),
+      detail: { before: null, after: safePerms },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateUserLocation(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { redemptionUnitId, username } = req.body;
+    await partnerAdminService.updateScopedUserLocation(userId, req.partnerAdminConnectionId, redemptionUnitId ? Number(redemptionUnitId) : null);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_LOCATION',
+      targetUsername: username || String(userId),
+      detail: { before: null, after: { redemptionUnitId: redemptionUnitId || null } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listCompanies(req, res, next) {
+  try {
+    const data = await partnerAdminService.listOwnCompanies(req.partnerAdminConnectionId);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createCompany(req, res, next) {
+  try {
+    const { companyCode, companyName } = req.body;
+    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName }, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_CREATE_COMPANY',
+      targetUsername: companyName,
+      detail: { before: null, after: { id, companyCode } },
+    });
+    res.status(201).json({ success: true, data: { id } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listUnits(req, res, next) {
+  try {
+    const data = await partnerAdminService.listOwnUnits(req.partnerAdminConnectionId);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createUnit(req, res, next) {
+  try {
+    const { locationName, companyId } = req.body;
+    const created = await partnerAdminService.createOwnUnit({ locationName, companyId }, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_CREATE_UNIT',
+      targetUsername: locationName,
+      detail: { before: null, after: created },
+    });
+    res.status(201).json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** Danh sach username trong PHAM VI cua partner-admin dang goi - chinh ho + moi tai khoan nhan
  * vien ho dang quan ly (xem partnerAdminService.js#listScopedUsers) - dung chung cho ca 2 ham
  * nhat ky quan tri ben duoi, doc TUOI tu CSDL moi lan goi (khong cache) de phan quyen luon dung
@@ -140,4 +242,20 @@ async function scanLogExport(req, res, next) {
   }
 }
 
-module.exports = { list, create, setActive, removeOwnConnection, auditLog, auditLogExport, scanLog, scanLogExport };
+module.exports = {
+  list,
+  create,
+  setActive,
+  removeOwnConnection,
+  updateUserProfile,
+  updateUserPermissions,
+  updateUserLocation,
+  listCompanies,
+  createCompany,
+  listUnits,
+  createUnit,
+  auditLog,
+  auditLogExport,
+  scanLog,
+  scanLogExport,
+};

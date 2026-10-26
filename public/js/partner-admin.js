@@ -4,9 +4,14 @@ renderTopbar('partner-admin');
 const notAllowedNotice = document.getElementById('notAllowedNotice');
 const partnerAdminCard = document.getElementById('partnerAdminCard');
 const partnerAdminTitle = document.getElementById('partnerAdminTitle');
-const listBody = document.getElementById('listBody');
+const accList = document.getElementById('accList');
 const createForm = document.getElementById('createForm');
 const createBtn = document.getElementById('createBtn');
+
+const orgList = document.getElementById('orgList');
+const newLocationCompany = document.getElementById('newLocationCompany');
+const createCompanyBtn = document.getElementById('createCompanyBtn');
+const createUnitBtn = document.getElementById('createUnitBtn');
 
 const STATE_CHIP = {
   active: '<span class="status-badge status-unused">ĐANG HOẠT ĐỘNG</span>',
@@ -34,6 +39,11 @@ const ACTION_LABEL = {
   PARTNER_ADMIN_LOCK_USER: 'Bạn khóa tài khoản',
   PARTNER_ADMIN_UNLOCK_USER: 'Bạn mở khóa tài khoản',
   PARTNER_ADMIN_REMOVE_OWN_CONNECTION: 'Bạn gỡ hệ thống của mình khỏi tài khoản dùng chung',
+  PARTNER_ADMIN_UPDATE_PROFILE: 'Bạn sửa họ tên/đặt lại mật khẩu',
+  PARTNER_ADMIN_UPDATE_PERMISSIONS: 'Bạn đổi quyền tính năng',
+  PARTNER_ADMIN_UPDATE_LOCATION: 'Bạn đổi điểm tiêu tài khoản',
+  PARTNER_ADMIN_CREATE_COMPANY: 'Bạn tạo công ty',
+  PARTNER_ADMIN_CREATE_UNIT: 'Bạn tạo điểm tiêu',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -41,8 +51,10 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tabUsers').classList.toggle('hidden', btn.dataset.tab !== 'users');
+    document.getElementById('tabOrg').classList.toggle('hidden', btn.dataset.tab !== 'org');
     document.getElementById('tabAudit').classList.toggle('hidden', btn.dataset.tab !== 'audit');
     document.getElementById('tabScan').classList.toggle('hidden', btn.dataset.tab !== 'scan');
+    if (btn.dataset.tab === 'org' && !orgLoaded) loadOrg();
     if (btn.dataset.tab === 'audit' && !auditLoaded) loadAudit();
     if (btn.dataset.tab === 'scan' && !scanLoaded) loadScan();
   });
@@ -173,6 +185,9 @@ function escapeHtml(str) {
 }
 
 let ownConnectionName = '';
+let scopedUsersCache = [];
+let ownUnitsCache = [];
+let openEditUserId = null;
 
 async function load() {
   try {
@@ -180,7 +195,12 @@ async function load() {
     ownConnectionName = (user && user.permissions && user.permissions.partnerAdminConnectionName) || '';
     partnerAdminTitle.textContent = ownConnectionName ? `Quản trị đối tác - Hệ thống ${ownConnectionName}` : 'Quản trị đối tác';
 
-    const rows = await apiFetch('/partner-admin/users');
+    const [rows, units] = await Promise.all([apiFetch('/partner-admin/users'), apiFetch('/partner-admin/units')]);
+    scopedUsersCache = rows;
+    // Nap san danh sach diem tieu cua chinh doi tac (dung cho o chon trong "Sua tai khoan") ngay
+    // tu dau, KHONG cho den khi mo tab "Cong ty & Diem tieu" - tranh truong hop bam "Sua" 1 tai
+    // khoan truoc khi tung mo tab do, o chon se trong khong co gi de chon.
+    ownUnitsCache = units;
     renderList(rows);
   } catch (err) {
     notAllowedNotice.classList.remove('hidden');
@@ -190,10 +210,10 @@ async function load() {
 
 function renderList(rows) {
   if (!rows.length) {
-    listBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có tài khoản nào - tạo mới ở form bên trên</td></tr>';
+    accList.innerHTML = '<p class="text-muted">Chưa có tài khoản nào - tạo mới ở form bên trên.</p>';
     return;
   }
-  listBody.innerHTML = rows
+  accList.innerHTML = rows
     .map((u) => {
       const stateLabel = u.isDeleted ? '<span class="status-badge status-used">ĐÃ KHÓA</span>' : STATE_CHIP[u.state] || '';
       const actionLabel = u.isDeleted ? 'Mở khóa' : 'Khóa';
@@ -211,35 +231,145 @@ function renderList(rows) {
       const sharedBadge = u.exclusiveToThisSystem
         ? ''
         : ' <span class="status-badge status-other">DÙNG CHUNG HỆ THỐNG KHÁC</span>';
+      const editPanel = openEditUserId === u.userId ? renderEditPanel(u) : '';
       return `
-      <tr data-user-id="${u.userId}" data-username="${escapeHtml(u.username)}">
-        <td data-label="Tên đăng nhập">${escapeHtml(u.username)}${sharedBadge}</td>
-        <td data-label="Họ tên">${escapeHtml(u.fullName || '')}</td>
-        <td data-label="Trạng thái">${stateLabel}</td>
-        <td data-label="Hành động">${action}</td>
-      </tr>`;
+      <div class="acc-row" data-user-id="${u.userId}" data-username="${escapeHtml(u.username)}">
+        <div class="acc-row-main">
+          <span class="acc-row-name">${escapeHtml(u.username)} — ${escapeHtml(u.fullName || '')}${sharedBadge}</span>
+          <span class="acc-row-sub">${stateLabel ? '' : ''}${u.isDeleted ? 'Đã khóa' : 'Đang hoạt động'} · Điểm tiêu: ${escapeHtml(u.locationName || '(chưa gán)')}</span>
+        </div>
+        <div class="acc-row-right">
+          <button type="button" class="btn-secondary edit-user-btn">${openEditUserId === u.userId ? 'Đóng' : 'Sửa'}</button>
+          ${action}
+        </div>
+      </div>
+      ${editPanel}`;
     })
     .join('');
 
-  listBody.querySelectorAll('tr[data-user-id] .toggle-active-btn').forEach((btn) => {
-    btn.addEventListener('click', () => toggleActive(btn.closest('tr')));
+  accList.querySelectorAll('.acc-row .toggle-active-btn').forEach((btn) => {
+    btn.addEventListener('click', () => toggleActive(btn.closest('.acc-row')));
   });
-  listBody.querySelectorAll('tr[data-user-id] .remove-connection-btn').forEach((btn) => {
-    btn.addEventListener('click', () => removeOwnConnection(btn.closest('tr')));
+  accList.querySelectorAll('.acc-row .remove-connection-btn').forEach((btn) => {
+    btn.addEventListener('click', () => removeOwnConnection(btn.closest('.acc-row')));
+  });
+  accList.querySelectorAll('.acc-row .edit-user-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.acc-row');
+      const userId = Number(row.dataset.userId);
+      openEditUserId = openEditUserId === userId ? null : userId;
+      renderList(scopedUsersCache);
+    });
+  });
+  wireEditPanelHandlers();
+}
+
+/** O "Sua tai khoan" (v3.76): ho ten/mat khau + 6 quyen tinh nang + diem tieu - xem phan tich
+ * da gui nguoi dung truoc khi lam (mockup). Diem tieu: tai khoan dung CHUNG them he thong khac
+ * chi hien DANG CHI XEM (khong doi duoc qua day) - theo dung quyet dinh nguoi dung: chi quan tri
+ * day du HCRC moi doi diem tieu cho tai khoan dung chung duoc. */
+function renderEditPanel(u) {
+  const locationField = u.exclusiveToThisSystem
+    ? `
+    <label>Điểm tiêu</label>
+    <select class="edit-location-select">
+      <option value="">(chưa gán)</option>
+      ${ownUnitsCache
+        .map(
+          (unit) =>
+            `<option value="${unit.Id}" ${unit.LocationCode === u.locationsDetail ? 'selected' : ''}>${escapeHtml(unit.CompanyName || '')} - ${escapeHtml(unit.PartnerName)}</option>`
+        )
+        .join('')}
+    </select>
+    <p class="hint" style="margin-top:4px;">Chỉ hiện các điểm tiêu do bạn tạo (tab "Công ty &amp; Điểm tiêu").</p>`
+    : `
+    <label>Điểm tiêu</label>
+    <div class="loc-readonly">
+      Điểm tiêu hiện tại: <strong>${escapeHtml(u.locationName || '(chưa gán)')}</strong> — tài khoản này đang dùng chung hệ thống khác,
+      chỉ <strong>quản trị viên HCRC</strong> mới đổi được điểm tiêu cho tài khoản dùng chung. Liên hệ HCRC nếu cần thay đổi.
+    </div>`;
+
+  return `
+  <div class="edit-panel" data-edit-panel="${u.userId}">
+    <h4>Sửa tài khoản: ${escapeHtml(u.username)}</h4>
+    <label>Họ tên</label>
+    <input class="edit-fullname" value="${escapeHtml(u.fullName || '')}" />
+    <label>Đặt lại mật khẩu (để trống = giữ nguyên)</label>
+    <input class="edit-password" type="password" placeholder="Nhập mật khẩu mới nếu muốn đổi" />
+
+    <label class="mt-10" style="display:block;">Quyền tính năng</label>
+    <div class="perm-grid">
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canRedeemVoucher" ${u.permissions && u.permissions.canRedeemVoucher ? 'checked' : ''} /> Thu hồi voucher</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewReconciliation" ${u.permissions && u.permissions.canViewReconciliation ? 'checked' : ''} /> Báo cáo đối soát</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewSummary" ${u.permissions && u.permissions.canViewSummary ? 'checked' : ''} /> Báo cáo tổng hợp</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewUsedVouchers" ${u.permissions && u.permissions.canViewUsedVouchers ? 'checked' : ''} /> Voucher đã sử dụng</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewBusinessGuide" ${u.permissions && u.permissions.canViewBusinessGuide ? 'checked' : ''} /> Hướng dẫn nghiệp vụ</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewSystemGuide" ${u.permissions && u.permissions.canViewSystemGuide ? 'checked' : ''} /> Hướng dẫn hệ thống</label>
+    </div>
+
+    ${locationField}
+
+    <div class="flex gap-10 mt-16">
+      <button type="button" class="btn-primary save-edit-btn">Lưu thay đổi</button>
+    </div>
+  </div>`;
+}
+
+function wireEditPanelHandlers() {
+  accList.querySelectorAll('.save-edit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => saveEdit(btn.closest('.edit-panel')));
   });
 }
 
-async function toggleActive(tr) {
-  const userId = tr.dataset.userId;
-  const username = tr.dataset.username;
-  const isCurrentlyLocked = tr.querySelector('.toggle-active-btn').textContent.trim() === 'Mở khóa';
+async function saveEdit(panel) {
+  const userId = Number(panel.dataset.editPanel);
+  const row = scopedUsersCache.find((u) => u.userId === userId);
+  const username = row ? row.username : String(userId);
+  const fullName = panel.querySelector('.edit-fullname').value.trim();
+  const password = panel.querySelector('.edit-password').value;
+  const perms = {};
+  panel.querySelectorAll('.edit-perm').forEach((cb) => {
+    perms[cb.dataset.perm] = cb.checked;
+  });
+  const locationSelect = panel.querySelector('.edit-location-select');
+
+  const btn = panel.querySelector('.save-edit-btn');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/partner-admin/users/${userId}/profile`, {
+      method: 'PUT',
+      body: JSON.stringify({ fullName, password, username }),
+    });
+    await apiFetch(`/partner-admin/users/${userId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ ...perms, username }),
+    });
+    if (locationSelect) {
+      await apiFetch(`/partner-admin/users/${userId}/location`, {
+        method: 'PUT',
+        body: JSON.stringify({ redemptionUnitId: locationSelect.value || null, username }),
+      });
+    }
+    showToast(`Đã lưu thay đổi cho tài khoản "${username}"`);
+    openEditUserId = null;
+    await load();
+  } catch (err) {
+    showToast(err.message);
+    btn.disabled = false;
+  }
+}
+
+async function toggleActive(row) {
+  const userId = row.dataset.userId;
+  const username = row.dataset.username;
+  const isCurrentlyLocked = row.querySelector('.toggle-active-btn').textContent.trim() === 'Mở khóa';
   const isDeleted = !isCurrentlyLocked;
   const confirmMsg = isDeleted
     ? `Khóa tài khoản "${username}"? Tài khoản sẽ không đăng nhập được nữa - có thể mở khóa lại sau.`
     : `Mở khóa tài khoản "${username}"?`;
   if (!confirm(confirmMsg)) return;
 
-  const btn = tr.querySelector('.toggle-active-btn');
+  const btn = row.querySelector('.toggle-active-btn');
   btn.disabled = true;
   try {
     await apiFetch(`/partner-admin/users/${encodeURIComponent(userId)}/active`, {
@@ -254,13 +384,13 @@ async function toggleActive(tr) {
   }
 }
 
-async function removeOwnConnection(tr) {
-  const userId = tr.dataset.userId;
-  const username = tr.dataset.username;
+async function removeOwnConnection(row) {
+  const userId = row.dataset.userId;
+  const username = row.dataset.username;
   const label = ownConnectionName || 'của bạn';
   if (!confirm(`Gỡ quyền dùng hệ thống "${label}" khỏi tài khoản "${username}"? Tài khoản sẽ không còn hiện trong danh sách của bạn nữa (phần hệ thống khác của tài khoản này không bị ảnh hưởng).`)) return;
 
-  const btn = tr.querySelector('.remove-connection-btn');
+  const btn = row.querySelector('.remove-connection-btn');
   btn.disabled = true;
   try {
     await apiFetch(`/partner-admin/users/${encodeURIComponent(userId)}/remove-connection`, {
@@ -274,6 +404,86 @@ async function removeOwnConnection(tr) {
     btn.disabled = false;
   }
 }
+
+// ===== Tab "Cong ty & Diem tieu" (v3.76) =====
+let orgLoaded = false;
+let ownCompaniesCache = [];
+
+async function loadOrg() {
+  try {
+    const [companies, units] = await Promise.all([
+      apiFetch('/partner-admin/companies'),
+      apiFetch('/partner-admin/units'),
+    ]);
+    orgLoaded = true;
+    ownCompaniesCache = companies;
+    ownUnitsCache = units;
+    newLocationCompany.innerHTML = companies.length
+      ? companies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('')
+      : '<option value="">Chưa có công ty - tạo công ty trước</option>';
+    renderOrg();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function renderOrg() {
+  if (!ownCompaniesCache.length) {
+    orgList.innerHTML = '<p class="text-muted">Chưa có công ty nào - tạo công ty ở form bên trên trước.</p>';
+    return;
+  }
+  orgList.innerHTML = ownCompaniesCache
+    .map((c) => {
+      const units = ownUnitsCache.filter((u) => u.CompanyId === c.Id);
+      return `
+      <div class="company-card">
+        <div class="company-card-head">
+          <span class="company-name">${escapeHtml(c.CompanyName)}</span>
+          <span class="text-muted" style="font-size:12px;">${units.length} điểm tiêu</span>
+        </div>
+        ${units.map((u) => `<span class="unit-chip">${escapeHtml(u.PartnerName)}</span>`).join('') || '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>'}
+      </div>`;
+    })
+    .join('');
+}
+
+createCompanyBtn.addEventListener('click', async () => {
+  const companyCode = document.getElementById('newCompanyCode').value.trim();
+  const companyName = document.getElementById('newCompanyName').value.trim();
+  if (!companyCode || !companyName) return showToast('Vui lòng nhập Mã công ty và Tên công ty');
+
+  createCompanyBtn.disabled = true;
+  try {
+    await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName }) });
+    showToast(`Đã tạo công ty "${companyName}"`);
+    document.getElementById('newCompanyCode').value = '';
+    document.getElementById('newCompanyName').value = '';
+    await loadOrg();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    createCompanyBtn.disabled = false;
+  }
+});
+
+createUnitBtn.addEventListener('click', async () => {
+  const locationName = document.getElementById('newLocationName').value.trim();
+  const companyId = newLocationCompany.value;
+  if (!locationName) return showToast('Vui lòng nhập Tên điểm tiêu');
+  if (!companyId) return showToast('Vui lòng tạo công ty trước khi tạo điểm tiêu');
+
+  createUnitBtn.disabled = true;
+  try {
+    await apiFetch('/partner-admin/units', { method: 'POST', body: JSON.stringify({ locationName, companyId }) });
+    showToast(`Đã tạo điểm tiêu "${locationName}"`);
+    document.getElementById('newLocationName').value = '';
+    await loadOrg();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    createUnitBtn.disabled = false;
+  }
+});
 
 createForm.addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -106,3 +106,34 @@
 .summary-filters label { margin-bottom: 6px; }
 .summary-filters input, .summary-filters select { margin-bottom: 0; }
 #systemsReportTable .status-badge { margin: 2px 4px 2px 0; }
+
+/* ===== "Quan tri doi tac" mo rong (v3.76): danh sach tai khoan dang hang + o sua lo tai cho,
+   tab moi "Cong ty & Diem tieu" ===== */
+.acc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--ink-100); gap: 10px; flex-wrap: wrap;
+}
+.acc-row:last-child { border-bottom: none; }
+.acc-row-main { display: flex; flex-direction: column; gap: 2px; }
+.acc-row-name { font-weight: 700; color: var(--ink-900); font-size: 14.5px; }
+.acc-row-sub { color: var(--muted); font-size: 12.5px; }
+.acc-row-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.edit-panel {
+  border: 1.5px solid var(--primary); border-radius: var(--radius-md); background: var(--primary-light);
+  padding: 18px; margin: 10px 0 20px;
+}
+.edit-panel h4 { margin: 0 0 12px; font-size: 15px; color: var(--primary-dark); }
+.perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 10px 0 16px; }
+@media (max-width: 480px) { .perm-grid { grid-template-columns: 1fr; } }
+.perm-item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-700); }
+.loc-readonly {
+  background: var(--ink-100); border: 1px dashed var(--ink-300); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: 13px; color: var(--ink-700);
+}
+.loc-readonly strong { color: var(--ink-900); }
+
+.company-card { border: 1px solid var(--ink-200); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; }
+.company-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.company-name { font-weight: 700; color: var(--ink-900); font-size: 14.5px; }
+.unit-chip { display: inline-block; background: var(--ink-100); color: var(--ink-700); font-size: 12px; padding: 3px 10px; border-radius: 999px; margin: 3px 4px 0 0; }

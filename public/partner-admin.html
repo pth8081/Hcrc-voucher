@@ -29,6 +29,7 @@
         <h2 id="partnerAdminTitle">Quản trị đối tác</h2>
         <div class="tabs">
           <button type="button" class="tab-btn active" data-tab="users">Quản lý tài khoản</button>
+          <button type="button" class="tab-btn" data-tab="org">Công ty &amp; Điểm tiêu</button>
           <button type="button" class="tab-btn" data-tab="audit">Nhật ký quản trị</button>
           <button type="button" class="tab-btn" data-tab="scan">Hoạt động quét/thu hồi</button>
         </div>
@@ -37,7 +38,8 @@
           <p class="hint mb-10">
             Bạn chỉ xem/quản lý được <strong>tài khoản nhân viên CHỈ dùng đúng hệ thống của bạn</strong>
             - không thấy tài khoản quản trị HCRC hay tài khoản thuộc đối tác khác. "Khóa" tạm ngừng
-            đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay.
+            đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay. "Sửa" cho phép đổi
+            họ tên, đặt lại mật khẩu, quyền tính năng và điểm tiêu của nhân viên.
           </p>
           <form id="createForm">
             <label>Tên đăng nhập *</label>
@@ -50,14 +52,35 @@
           </form>
 
           <h3 class="mt-20">Danh sách tài khoản</h3>
-          <div class="table-wrap table-responsive">
-            <table>
-              <thead>
-                <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Trạng thái</th><th>Hành động</th></tr>
-              </thead>
-              <tbody id="listBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
-            </table>
+          <div id="accList"></div>
+        </div>
+
+        <div id="tabOrg" class="tab-panel hidden">
+          <p class="hint mb-10">
+            Công ty &amp; điểm tiêu bạn tự tạo <strong>chỉ phục vụ nhóm báo cáo/đối soát nội bộ của bạn</strong>
+            - không nhìn thấy hoặc dùng chung với công ty/điểm tiêu của HCRC hay đối tác khác.
+          </p>
+          <div class="grid2">
+            <div>
+              <h3>Tạo công ty mới</h3>
+              <label>Mã công ty *</label>
+              <input id="newCompanyCode" placeholder="VD: FUJI-HN" />
+              <label>Tên công ty *</label>
+              <input id="newCompanyName" placeholder="VD: Fuji Mart - Chi nhánh Hà Nội" />
+              <button class="btn-primary mt-10" id="createCompanyBtn">Tạo công ty</button>
+            </div>
+            <div>
+              <h3>Tạo điểm tiêu mới</h3>
+              <label>Tên điểm tiêu *</label>
+              <input id="newLocationName" placeholder="VD: Fuji Mart - 25 Láng Hạ" />
+              <label>Thuộc công ty *</label>
+              <select id="newLocationCompany"></select>
+              <button class="btn-primary mt-10" id="createUnitBtn">Tạo điểm tiêu</button>
+            </div>
           </div>
+
+          <h3 class="mt-20">Công ty &amp; điểm tiêu của bạn</h3>
+          <div id="orgList"></div>
         </div>
 
         <div id="tabAudit" class="tab-panel hidden">

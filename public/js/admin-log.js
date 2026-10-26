@@ -37,6 +37,11 @@ const ACTION_LABEL = {
   PARTNER_ADMIN_LOCK_USER: 'Đối tác khóa tài khoản',
   PARTNER_ADMIN_UNLOCK_USER: 'Đối tác mở khóa tài khoản',
   PARTNER_ADMIN_REMOVE_OWN_CONNECTION: 'Đối tác gỡ hệ thống của mình khỏi tài khoản dùng chung',
+  PARTNER_ADMIN_UPDATE_PROFILE: 'Đối tác sửa họ tên/đặt lại mật khẩu',
+  PARTNER_ADMIN_UPDATE_PERMISSIONS: 'Đối tác đổi quyền tính năng',
+  PARTNER_ADMIN_UPDATE_LOCATION: 'Đối tác đổi điểm tiêu tài khoản',
+  PARTNER_ADMIN_CREATE_COMPANY: 'Đối tác tạo công ty',
+  PARTNER_ADMIN_CREATE_UNIT: 'Đối tác tạo điểm tiêu',
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {

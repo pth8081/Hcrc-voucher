@@ -5,11 +5,42 @@ async function list() {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT Id, CompanyCode, CompanyName, ContactName, ContactPhone, ContactEmail,
-           Address, TaxCode, BankAccount, BankName, Status, CreatedDate, UpdatedDate
+           Address, TaxCode, BankAccount, BankName, Status, CreatedDate, UpdatedDate,
+           CreatedByPartnerConnectionId
     FROM dbo.RedemptionCompanies
     ORDER BY CompanyName
   `);
   return result.recordset;
+}
+
+/** Danh sach cong ty do DUNG 1 doi tac (connectionId) tu tao - dung cho man hinh "Quan tri doi
+ * tac" (xem partnerAdminService.js) - KHAC voi list() o tren (quan tri day du, thay TOAN BO ke
+ * ca cong ty HCRC tao) - doi tac chi thay/chon duoc dung cong ty cua chinh ho, xem muc 18 README. */
+async function listByConnection(connectionId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('connectionId', sql.Int, connectionId)
+    .query(`
+      SELECT Id, CompanyCode, CompanyName, Status, CreatedDate
+      FROM dbo.RedemptionCompanies
+      WHERE CreatedByPartnerConnectionId = @connectionId
+      ORDER BY CompanyName
+    `);
+  return result.recordset;
+}
+
+/** true neu cong ty (id) nay THUOC DUNG doi tac (connectionId) - dung de chan doi tac chon/gan
+ * 1 cong ty KHONG phai cua ho (vd cong ty HCRC tao, hoac cua doi tac khac) khi tao Diem tieu moi -
+ * xem partnerAdminService.js#createOwnUnit. */
+async function isOwnedByConnection(companyId, connectionId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, companyId)
+    .input('connectionId', sql.Int, connectionId)
+    .query('SELECT 1 FROM dbo.RedemptionCompanies WHERE Id = @id AND CreatedByPartnerConnectionId = @connectionId');
+  return !!result.recordset.length;
 }
 
 /** 1 cong ty theo id - dung de lay trang thai TRUOC KHI sua (audit log ghi ca before/after,
@@ -45,14 +76,18 @@ async function create(data) {
       .input('taxCode', sql.NVarChar(50), data.taxCode || null)
       .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
       .input('bankName', sql.NVarChar(200), data.bankName || null)
+      // null (mac dinh) = tao qua man hinh quan tri day du (HCRC) - giu nguyen hanh vi cu. Co
+      // gia tri = do CHINH doi tac nay tu tao qua man hinh "Quan tri doi tac" (xem
+      // partnerAdminService.js#createOwnCompany), dung de loc lai dung pham vi cua ho sau nay.
+      .input('createdByPartnerConnectionId', sql.Int, data.createdByPartnerConnectionId || null)
       .query(`
         INSERT INTO dbo.RedemptionCompanies
           (CompanyCode, CompanyName, ContactName, ContactPhone, ContactEmail,
-           Address, TaxCode, BankAccount, BankName, Status, CreatedDate)
+           Address, TaxCode, BankAccount, BankName, Status, CreatedDate, CreatedByPartnerConnectionId)
         OUTPUT INSERTED.Id
         VALUES
           (@companyCode, @companyName, @contactName, @contactPhone, @contactEmail,
-           @address, @taxCode, @bankAccount, @bankName, 1, GETDATE())
+           @address, @taxCode, @bankAccount, @bankName, 1, GETDATE(), @createdByPartnerConnectionId)
       `);
     return result.recordset[0].Id;
   }, 'Ma cong ty (CompanyCode)');
@@ -122,4 +157,4 @@ async function remove(id) {
   await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.RedemptionCompanies WHERE Id = @id');
 }
 
-module.exports = { list, create, update, remove, getById };
+module.exports = { list, listByConnection, isOwnedByConnection, create, update, remove, getById };

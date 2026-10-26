@@ -2,10 +2,20 @@ const userAdminService = require('./userAdminService');
 const userScheduleService = require('./userScheduleService');
 const userVoucherSystemService = require('./userVoucherSystemService');
 const permissionService = require('./permissionService');
+const companyService = require('./companyService');
+const redemptionUnitService = require('./redemptionUnitService');
+const locationService = require('./locationService');
 
 function forbidden(message) {
   const err = new Error(message);
   err.statusCode = 403;
+  err.publicMessage = message;
+  return err;
+}
+
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
   err.publicMessage = message;
   return err;
 }
@@ -53,22 +63,36 @@ async function listScopedUsers(connectionId) {
     permissionService.listCreatedByPartnerConnection(),
   ]);
 
-  return withSchedule
+  const rows = withSchedule
     .filter((u) => Number(u.role) === 0)
     .filter((u) => createdByPartnerByUserId.get(u.userId) === connectionId)
     .map((u) => {
       const systemIds = (voucherSystemsByUserId.get(u.userId) || []).map((s) => s.connectionId);
       return { u, systemIds };
     })
-    .filter(({ systemIds }) => systemIds.includes(connectionId))
-    .map(({ u, systemIds }) => ({
+    .filter(({ systemIds }) => systemIds.includes(connectionId));
+
+  // Promise.all: resolve ten dia diem (bat dong bo) cho TUNG tai khoan song song, tranh goi tuan
+  // tu lam cham man hinh khi doi tac co nhieu nhan vien.
+  return Promise.all(
+    rows.map(async ({ u, systemIds }) => ({
       userId: u.userId,
       username: u.username,
       fullName: u.fullName,
       state: u.state,
       isDeleted: u.isDeleted,
       exclusiveToThisSystem: systemIds.length === 1,
-    }));
+      // v3.76: tra them diem tieu HIEN TAI (ma + ten da resolve) de man hinh "Sua tai khoan" hien
+      // ro va chon san dung diem tieu dang gan, khong bat doi tac phai tra cuu rieng. Tra them
+      // quyen tinh nang HIEN TAI (6 quyen) de man hinh tick san dung trang thai - KHONG tra
+      // partnerAdminConnectionId/isPartnerAdmin (permissionService.getPermissions() van tra ve
+      // 2 truong nay, nhung frontend chi doc 6 quyen tinh nang can thiet, khong dung 2 truong con
+      // lai cho man hinh nay).
+      locationsDetail: u.locationsDetail || null,
+      locationName: u.locationsDetail ? await locationService.getDetailNameByCode(u.locationsDetail) : null,
+      permissions: await permissionService.getPermissions(u.userId),
+    }))
+  );
 }
 
 /** Nem loi 403 neu userId KHONG thuoc dung pham vi cua connectionId nay (xem listScopedUsers) -
@@ -144,4 +168,144 @@ async function removeOwnConnection(userId, connectionId) {
   await userVoucherSystemService.removeConnection(userId, connectionId);
 }
 
-module.exports = { listScopedUsers, assertInScope, createScopedUser, setScopedUserActive, removeOwnConnection };
+/**
+ * Sua ho ten/dat lai mat khau cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.76) - tai
+ * dung nguyen ven userAdminService.updateProfile() (ham quan tri day du dang dung), chi them
+ * assertInScope() de dam bao doi tac khong sua duoc tai khoan ngoai pham vi cua ho.
+ */
+async function updateScopedUserProfile(userId, connectionId, { fullName, password }) {
+  await assertInScope(userId, connectionId);
+  await userAdminService.updateProfile(userId, { fullName, password });
+}
+
+/**
+ * Doi quyen tinh nang (6 quyen) cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.76).
+ *
+ * QUAN TRONG (chong leo thang dac quyen): ham nay CHI BUILD lai object perms tu DUNG 6 truong
+ * ro rang liet ke duoi day - KHONG BAO GIO nhan/ghi truong `partnerAdminConnectionId` (quyen
+ * "Quan tri doi tac") qua duong nay, du nguoi goi co co tinh gui kem truong do trong body hay
+ * khong - tranh 1 doi tac tu cap quyen "Quan tri doi tac" cho 1 tai khoan khac (tao them 1 "doi
+ * tac quan tri" ngang hang voi chinh ho). Muon gan/go quyen nay BAT BUOC phai qua man hinh "Tai
+ * khoan" cua quan tri day du (user.controller.js#updatePartnerAdmin).
+ */
+async function updateScopedUserPermissions(userId, connectionId, perms, updatedBy) {
+  await assertInScope(userId, connectionId);
+  const safePerms = {
+    canRedeemVoucher: !!perms.canRedeemVoucher,
+    canViewReconciliation: !!perms.canViewReconciliation,
+    canViewSummary: !!perms.canViewSummary,
+    canViewUsedVouchers: !!perms.canViewUsedVouchers,
+    canViewBusinessGuide: !!perms.canViewBusinessGuide,
+    canViewSystemGuide: !!perms.canViewSystemGuide,
+  };
+  await permissionService.setPermissions(userId, safePerms, updatedBy);
+  return safePerms;
+}
+
+/** Nem loi neu redemptionUnitId KHONG thuoc dung pham vi cua connectionId nay (ke thua "chu so
+ * huu" qua CompanyId cua Don vi thu hoi - xem companyService.js#isOwnedByConnection, sql/038) -
+ * bat buoc goi truoc khi gan 1 Don vi thu hoi cho tai khoan, tranh doi tac gan nham/co y gan diem
+ * tieu cua HCRC hoac doi tac khac. Tra ve chinh Don vi thu hoi (da xac nhan thuoc pham vi). */
+async function assertUnitOwnedByConnection(redemptionUnitId, connectionId) {
+  const unit = await redemptionUnitService.getById(redemptionUnitId);
+  if (!unit) throw badRequest('Khong tim thay Diem tieu da chon');
+  const owned = await companyService.isOwnedByConnection(unit.CompanyId, connectionId);
+  if (!owned) throw forbidden('Diem tieu nay khong thuoc pham vi quan tri cua ban');
+  return unit;
+}
+
+/**
+ * Gan/doi Diem tieu cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.76). redemptionUnitId
+ * rong = go diem tieu (Locations_Detail = NULL).
+ *
+ * BAT BUOC tai khoan dang CHI dung DUY NHAT he thong cua doi tac nay (exclusiveToThisSystem) -
+ * giong het dieu kien cua setScopedUserActive() o tren. Tai khoan dang DUNG CHUNG them he thong
+ * khac (vd duoc HCRC cap them quyen dung he thong HCRC) chi CHINH QUAN TRI DAY DU moi doi duoc
+ * diem tieu - theo yeu cau nguoi dung: tranh doi tac vo tinh (hoac co y) gan nham 1 diem tieu cua
+ * ho cho tai khoan dang lam viec chung cho ca 2 phia, trong khi chi HCRC moi co du boi canh ca
+ * 2 he thong de biet diem tieu nao la dung.
+ */
+async function updateScopedUserLocation(userId, connectionId, redemptionUnitId) {
+  const row = await assertInScope(userId, connectionId);
+  if (!row.exclusiveToThisSystem) {
+    throw forbidden(
+      'Tai khoan nay dang duoc quan tri day du cap them quyen dung he thong khac - chi quan tri day du moi doi duoc diem tieu cua tai khoan nay.'
+    );
+  }
+  let locationsDetail = null;
+  if (redemptionUnitId) {
+    const unit = await assertUnitOwnedByConnection(redemptionUnitId, connectionId);
+    locationsDetail = unit.LocationDetailId ? await redemptionUnitService.getLocationCodeById(redemptionUnitId) : null;
+  }
+  await userAdminService.updateLocation(userId, locationsDetail);
+}
+
+/** Danh sach cong ty do CHINH doi tac nay tu tao (v3.76) - xem companyService.js#listByConnection. */
+async function listOwnCompanies(connectionId) {
+  return companyService.listByConnection(connectionId);
+}
+
+/** Tao 1 cong ty MOI, LUON danh dau CreatedByPartnerConnectionId = connectionId cua doi tac dang
+ * tao (v3.76) - bo qua hoan toan gia tri nguoi goi co the gui len, dam bao cong ty moi tao luon
+ * thuoc dung pham vi, hien ngay trong danh sach cua chinh doi tac do. */
+async function createOwnCompany({ companyCode, companyName }, connectionId) {
+  if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
+  if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
+  return companyService.create({
+    companyCode: String(companyCode).trim(),
+    companyName: String(companyName).trim(),
+    createdByPartnerConnectionId: connectionId,
+  });
+}
+
+/** Danh sach Diem tieu do CHINH doi tac nay tu tao (v3.76) - xem redemptionUnitService.js#listByConnection. */
+async function listOwnUnits(connectionId) {
+  return redemptionUnitService.listByConnection(connectionId);
+}
+
+/**
+ * Tao 1 Diem tieu MOI cho doi tac (v3.76) - gop 2 buoc "Tao dia diem" + "Tao don vi thu hoi" cua
+ * man hinh quan tri day du (units.js) thanh 1 buoc don gian hon cho doi tac: chi can nhap Ten diem
+ * tieu + chon Cong ty (CUA CHINH HO). PartnerCode (ma noi bo, bat buoc UNIQUE tren RedemptionUnits)
+ * duoc TU DONG sinh (khong bat doi tac tu nghi 1 ma rieng, tranh loi trung ma kho hieu).
+ *
+ * BAT BUOC companyId da chon phai THUOC DUNG pham vi doi tac nay (assertUnitOwnedByConnection
+ * dung lai duoc o day qua companyService.isOwnedByConnection) - tranh doi tac gan diem tieu moi
+ * vao 1 cong ty cua HCRC hoac doi tac khac.
+ */
+async function createOwnUnit({ locationName, companyId }, connectionId) {
+  const trimmedName = locationName ? String(locationName).trim() : '';
+  if (!trimmedName) throw badRequest('Thieu ten diem tieu');
+  if (!companyId) throw badRequest('Thieu cong ty');
+
+  const owned = await companyService.isOwnedByConnection(Number(companyId), connectionId);
+  if (!owned) throw forbidden('Cong ty da chon khong thuoc pham vi quan tri cua ban');
+
+  const location = await locationService.createDetail(trimmedName);
+  // Ma noi bo (PartnerCode) UNIQUE toan he thong - sinh tu connectionId + id dia diem vua tao
+  // (da la so nguyen DUY NHAT tuyet doi, xem locationService.js#createDetail) nen khong bao gio
+  // trung, khong can kiem tra lai.
+  const partnerCode = `P${connectionId}-${location.id}`;
+  const unitId = await redemptionUnitService.create({
+    locationDetailId: location.id,
+    companyId: Number(companyId),
+    partnerCode,
+    partnerName: trimmedName,
+  });
+  return { id: unitId, locationDetailId: location.id, locationCode: location.locationCode, partnerCode };
+}
+
+module.exports = {
+  listScopedUsers,
+  assertInScope,
+  createScopedUser,
+  setScopedUserActive,
+  removeOwnConnection,
+  updateScopedUserProfile,
+  updateScopedUserPermissions,
+  updateScopedUserLocation,
+  listOwnCompanies,
+  createOwnCompany,
+  listOwnUnits,
+  createOwnUnit,
+};
