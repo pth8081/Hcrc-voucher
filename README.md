@@ -2219,35 +2219,45 @@ Du lieu: `sql/034_create_email_report_schedules.sql` (bang `EmailReportSchedules
 Excel** (dung lai dung engine xuat Excel cua 3 bao cao, khong them thu vien moi) - chua ho tro
 PDF.
 
-## 18. Quet nhieu voucher - Thu hoi 1 lan (v3.75)
+## 18. Quet voucher - 1 luong DUY NHAT cho ca 1 va nhieu ma (v3.75, don gian hoa v3.78)
 
-Man hinh "Quet voucher" co them **cong tac che do quet** o dau trang: **"Quet tung cai"** (mac
-dinh, hanh vi cu nguyen ven - quet 1 ma, xac nhan thu hoi NGAY, moi duoc quet ma tiep theo) hoac
-**"Quet nhieu"** (moi, v3.75) - quet nhieu ma lien tiep vao 1 danh sach tam, xem lai/bot ma, roi
-moi bam **"Thu hoi tat ca"** 1 lan de thu hoi toan bo danh sach cung luc. Phuc vu dung truong
-hop 1 khach co nhieu voucher muon thanh toan gop, khong can xac nhan tung cai mot.
+Man hinh "Quet voucher" dung **1 luong DUY NHAT**: moi ma quet xong (con dung duoc) **tu dong
+them** vao 1 danh sach cho thu hoi, roi bam **"Xác nhận thu hồi"** 1 lan de thu hoi toan bo danh
+sach (du danh sach chi co 1 hay nhieu voucher). Khong con khai niem "che do" nao phai chon truoc.
+
+> **Lich su**: ban dau (v3.75) day la 2 che do rieng - **"Quet tung cai"** (mac dinh, xac nhan
+> thu hoi NGAY sau moi ma) va **"Quet nhieu"** (phai chu dong bam chuyen che do). Phan hoi thuc te:
+> nguoi dung de **quen chuyen che do** truoc khi quet, phai lam lai thao tac khi phat hien sai che
+> do giua chung. **v3.78 bo han cong tac nay** - hop nhat thanh 1 luong DUY NHAT (hanh vi cua luong
+> "Quet nhieu" cu, ap dung cho CA truong hop 1 voucher) vi khong co lop bao mat/logic backend nao
+> gan voi 2 che do ca - `redeemVoucherBatch()` da luon la ham DUY NHAT xu ly thu hoi ca truoc va
+> sau thay doi nay, chi la giao dien truoc day tach rieng 1 duong goi API `/vouchers/redeem` khac
+> (khong batch) cho truong hop 1 ma. Endpoint `POST /api/vouchers/redeem` (khong batch) van con
+> trong code/README (muc 5) de khong pha vo tich hop ngoai neu co, nhung **giao dien web khong con
+> goi no nua** - web CHI con goi `/api/vouchers/redeem-batch`, ke ca khi danh sach co dung 1 ma.
 
 ### Cach hoat dong
 
-- O che do "Quet nhieu", **moi lan quet CHI chay buoc KIEM TRA** (hoi Core xem con dung duoc
-  khong + lay menh gia), **CHUA goi thu hoi gi ca** - ma hop le (con UNUSED) duoc **tu dong them**
-  vao danh sach tam, san sang quet ngay ma tiep theo (khong can thao tac gi them). Ma khong hop le
-  (da dung/het han/loai tru...) bi tu choi ngay bang thong bao, KHONG them vao danh sach.
+- **Moi lan quet CHI chay buoc KIEM TRA** (hoi Core xem con dung duoc khong + lay menh gia),
+  **CHUA goi thu hoi gi ca** - ma hop le (con UNUSED) duoc **tu dong them** vao danh sach tam,
+  san sang quet ngay ma tiep theo (khong can thao tac gi them). Ma khong hop le (da dung/het
+  han/loai tru...) bi tu choi ngay bang thong bao, KHONG them vao danh sach.
 - Danh sach tam **chi ton tai tren man hinh** (chua chi dinh gi ca CSDL/Core) - co the **bam ✕
   bo bot** bat ky voucher nao trong danh sach (vd khach doi y khong lay nua) ma khong anh huong
   gi, hoac bam **"Xoa het"** de lam lai tu dau. Danh sach toi da **20 voucher/lan**.
-- Bam **"Thu hoi tat ca"** se hoi xac nhan 1 lan (hien ro tong so voucher + tong menh gia), sau
-  do backend xu ly **tuan tu TUNG MA MOT** (Core Voucher API khong co san API thu hoi hang loat) -
-  nhung gop lai trong **1 lan goi API duy nhat tu giao dien**, van nam trong CUNG 1 co che khoa
-  "1 tai khoan chi xu ly 1 luot tai 1 thoi diem" (v3.72, xem muc 8) ap dung cho CA LAN thu hoi
-  hang loat (khong chi tung ma rieng le).
+- Bam **"Xác nhận thu hồi"** se hoi xac nhan 1 lan (hien ro tong so voucher + tong menh gia - chu
+  rieng khi danh sach CHI co 1 voucher, cau hoi doi thanh "Bạn có muốn thu hồi voucher này không?"
+  thay vi "...tất cả 1 voucher..." nghe gong), sau do backend xu ly **tuan tu TUNG MA MOT** (Core
+  Voucher API khong co san API thu hoi hang loat) - nhung gop lai trong **1 lan goi API duy nhat
+  tu giao dien**, van nam trong CUNG 1 co che khoa "1 tai khoan chi xu ly 1 luot tai 1 thoi diem"
+  (v3.72, xem muc 8) ap dung cho CA LAN goi (khong chi tung ma rieng le, ke ca danh sach 1 ma).
 - **KHONG the "tat ca hoac khong gi ca"**: 1 khi 1 ma da goi Core thanh cong THAT SU thi KHONG
   the hoan tac (Core khong co API "huy thu hoi"), nen 1 ma loi **CHI lam ma do that bai**, cac
   ma con lai trong danh sach van duoc xu ly binh thuong, KHONG dung ca lot. Vi du 2 tinh huong
   thuong gap:
   - **1 voucher da bi nguoi khac thu hoi truoc** (vd 2 quay cung xu ly 1 khach, hoac khach dua
-    nham ma da dung roi) trong luc dang cho bam "Thu hoi tat ca": ma do se bao **"Thất bại"** kem
-    ly do ro rang, cac ma khac van thu hoi binh thuong.
+    nham ma da dung roi) trong luc dang cho bam "Xác nhận thu hồi": ma do se bao **"Thất bại"**
+    kem ly do ro rang, cac ma khac van thu hoi binh thuong.
   - **Mat ket noi mang giua luc dang thu hoi 1 ma trong lo**: ma do van duoc tinh la **da thu
     hoi tai cho** (giong het co che hang doi dong bo da co tu truoc - muc 4c), danh dau "CHỜ ĐỒNG
     BỘ", van tinh vao tong tien, he thong se tu dong gui lai sau.
@@ -2255,35 +2265,42 @@ hop 1 khach co nhieu voucher muon thanh toan gop, khong can xac nhan tung cai mo
   ly do) VA **"Tổng THỰC THU"** tinh dung theo so voucher THAT SU thu hoi duoc (khong tinh ma
   that bai) - KHONG dung tong tam tinh luc quet ban dau (co the da thay doi do cac tinh huong o
   tren). Moi voucher thu hoi thanh cong van duoc ghi 1 dong rieng vao "Các giao dịch thu hồi gần
-  đây" va bang `VOUCHER_SYNC` y het nhu quet tung cai - **khong gop/cong don thanh 1 giao dich**,
-  chi gop o buoc XAC NHAN tren giao dien.
+  đây" va bang `VOUCHER_SYNC` - **khong gop/cong don thanh 1 giao dich**, chi gop o buoc XAC NHAN
+  tren giao dien.
 
 ### Huong dan su dung (co hinh anh)
 
-1. Tren man hinh Quet voucher, bam **"Quét nhiều"** trong "Chế độ quét" o dau trang.
+1. Man hinh Quet voucher - khong con cong tac chon che do, cu quet thang.
 
-   <img src="/images/guide-business/07-quet-nhieu-mo-che-do.png" alt="Chuyen sang che do Quet nhieu" width="520" />
+   <img src="/images/guide-business/02-san-sang-quet.png" alt="Man hinh san sang quet, khong con cong tac che do" width="520" />
 
-2. Quet lan luot tung voucher (may quet hoac camera) - moi ma quet xong tu dong hien vao danh
-   sach "Danh sách đã quét (chưa thu hồi)" ben duoi, kem mệnh giá + tong tam tinh. Bam ✕ tren 1
-   dong neu muon bo voucher do ra khoi danh sach.
+2. Quet 1 voucher - tu dong hien vao danh sach "Danh sách đã quét (chưa thu hồi)" ben duoi, kem
+   mệnh giá + tong tam tinh. Quet **dung 1 ma** van hoat dong binh thuong, khong can quet them.
 
-   <img src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sach voucher da quet, chua thu hoi" width="520" />
+   <img src="/images/guide-business/03-con-dung-duoc.png" alt="Danh sach hien 1 voucher vua quet" width="520" />
 
-3. Quet xong, bam **"Thu hồi tất cả"** - xac nhan lai 1 lan (hien tong so voucher + tong tien).
+3. Neu khach co nhieu voucher, quet tiep lan luot - moi ma hop le tu them vao CUNG danh sach. Bam
+   ✕ tren 1 dong neu muon bo voucher do ra khoi danh sach.
 
-   <img src="/images/guide-business/09-quet-nhieu-xac-nhan.png" alt="Hop xac nhan thu hoi tat ca" width="400" />
+   <img src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sach nhieu voucher da quet, chua thu hoi" width="520" />
 
-4. Xem ket qua: moi voucher co trang thai rieng, va dong **"Tổng THỰC THU"** cuoi cung la so tien
-   THAT SU da thu hoi duoc (vi du duoi day: 5 voucher quet, 1 that bai do da bi tieu truoc, 1
-   dang cho dong bo do mat mang giua chung - tong thuc thu la 4/5 voucher).
+4. Quet xong, bam **"Xác nhận thu hồi"** - xac nhan lai 1 lan (hien tong so voucher + tong tien).
+   Chu hoi tu doi theo so luong: dung 1 voucher thi hoi "Bạn có muốn thu hồi voucher này không?",
+   tu 2 voucher tro len moi hoi "...tất cả N voucher này...".
 
-   <img src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Ket qua thu hoi hang loat - thanh cong/cho dong bo/that bai" width="520" />
+   <img src="/images/guide-business/04-xac-nhan-thu-hoi.png" alt="Hop xac nhan thu hoi dung 1 voucher" width="400" />
+   <img src="/images/guide-business/09-quet-nhieu-xac-nhan.png" alt="Hop xac nhan thu hoi nhieu voucher" width="400" />
+
+5. Xem ket qua: moi voucher co trang thai rieng, va dong **"Tổng THỰC THU"** cuoi cung la so tien
+   THAT SU da thu hoi duoc (vi du duoi day: 1 that bai do da bi tieu truoc - tong thuc thu khong
+   tinh ma do).
+
+   <img src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Ket qua thu hoi - thanh cong/cho dong bo/that bai" width="520" />
 
 Du lieu/API: `src/services/voucherService.js#redeemVoucherBatch` (xu ly tuan tu, gioi han
 `MAX_BATCH_SIZE=20`), `POST /api/vouchers/redeem-batch` (`src/routes/voucher.routes.js`,
-`src/controllers/voucher.controller.js`). Khong co migration CSDL moi (dung lai nguyen ven bang
-`VOUCHER_SYNC`/`VoucherScanLogs` hien co, ghi 1 dong/voucher y het quet tung cai).
+`src/controllers/voucher.controller.js`) - **duy nhat 1 endpoint** giao dien web con goi de thu
+hoi, ke ca danh sach 1 ma (tu v3.78). Khong co migration CSDL moi.
 
 ## 19. Lich su phien ban (Changelog)
 
@@ -2295,7 +2312,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.77)**: sua loi that o production - 2 migration seed du lieu mau
+Ban **moi nhat (v3.78)**: don gian hoa man hinh Quet voucher - **bo han cong tac "Quét từng
+cái/Quét nhiều"** (v3.75), hop nhat thanh **1 luong DUY NHAT**: moi ma quet xong tu dong vao 1
+danh sach cho, xac nhan thu hoi 1 lan cho du danh sach co 1 hay nhieu voucher (hop thoai xac
+nhan tu doi chu cho tu nhien theo so luong). Ly do: nguoi dung phan anh de quen chuyen che do
+truoc khi quet. Khong doi gi ve bao mat/logic backend (`redeemVoucherBatch()` van la ham DUY
+NHAT xu ly thu hoi, da duoc kiem tra lai/xac nhan an toan truoc khi lam) - giao dien web chi con
+goi `POST /api/vouchers/redeem-batch`, khong con goi `/vouchers/redeem` (khong batch) nua. Cap
+nhat lai anh minh hoa trong "Huong dan nghiep vu" khop voi giao dien moi. Khong co migration CSDL
+moi. Xem muc 18.
+
+Ban truoc do (v3.77): sua loi that o production - 2 migration seed du lieu mau
 (`sql/023_seed_api_server_connection.sql` dong "HCRC Voucher API Server",
 `sql/029_seed_fuji_connection.sql` dong "Fuji") dung dieu kien "co dong ten nay chua" de quyet
 dinh co seed hay khong - vi `scripts/migrate.js` chay lai TOAN BO noi dung file .sql o MOI lan

@@ -25,8 +25,10 @@ bấm nút đăng nhập bằng sinh trắc học trên màn hình đăng nhập
 khẩu), bạn sẽ được yêu cầu <strong>đổi mật khẩu mới</strong> trước khi dùng tiếp - đây là bước
 bắt buộc, không thể bỏ qua.</p>
 
-<h2>2. Quét và thu hồi voucher</h2>
-<p>Đây là màn hình chính, mở ngay sau khi đăng nhập (menu "Quét voucher").</p>
+<h2>2. Quét và thu hồi voucher (1 hoặc nhiều mã)</h2>
+<p>Đây là màn hình chính, mở ngay sau khi đăng nhập (menu "Quét voucher"). Quét <strong>1 mã
+hay nhiều mã</strong> của cùng 1 khách đều đi qua đúng 1 luồng - không cần chọn trước "chế độ"
+nào, hệ thống tự gom vào 1 danh sách chờ, bạn xác nhận thu hồi khi đã quét xong.</p>
 <div class="guide-figure">
   <img class="guide-screenshot" src="/images/guide-business/02-san-sang-quet.png" alt="Màn hình Quét voucher ở trạng thái sẵn sàng, chưa quét mã nào" />
   <p class="cap">Màn hình "Quét voucher" khi sẵn sàng quét</p>
@@ -36,93 +38,71 @@ bắt buộc, không thể bỏ qua.</p>
     (ô nhập sẽ tự động nhận ký tự và bấm Enter), hoặc bấm nút <strong>"Quét bằng camera"</strong>
     trên điện thoại/tablet không có máy quét rời. Hệ thống <strong>không cho gõ tay</strong> mã
     voucher để tránh nhầm lẫn.</li>
-  <li><strong>Xem kết quả kiểm tra</strong>:
-    <ul>
-      <li>Nếu <strong>còn dùng được</strong>: hiện mệnh giá, ngày cấp, hạn sử dụng + nút
-        <strong>"Xác nhận thu hồi"</strong>.</li>
-      <li>Nếu <strong>đã sử dụng</strong> (màu đỏ): chỉ còn nút "Quét mã khác", không thu hồi
-        được nữa.</li>
-    </ul>
+  <li><strong>Mã còn dùng được</strong> sẽ <strong>tự động thêm vào danh sách</strong> chờ thu
+    hồi bên dưới (kèm mệnh giá + tổng tạm tính) - ô nhập sẵn sàng quét ngay mã tiếp theo, không
+    cần thao tác gì thêm. Quét đúng 1 mã thì danh sách chỉ có 1 dòng - vẫn hoạt động bình thường,
+    không cần quét thêm mã nào khác mới xác nhận được.
     <div class="guide-figure">
-      <img class="guide-screenshot" src="/images/guide-business/03-con-dung-duoc.png" alt="Kết quả kiểm tra: voucher chưa sử dụng, hiện mệnh giá/ngày cấp/hạn sử dụng và nút Xác nhận thu hồi" />
-      <p class="cap">Voucher còn dùng được - sẵn sàng xác nhận thu hồi</p>
+      <img class="guide-screenshot" src="/images/guide-business/03-con-dung-duoc.png" alt="Danh sách chờ thu hồi hiện 1 voucher vừa quét, kèm mệnh giá và nút Xác nhận thu hồi" />
+      <p class="cap">Voucher còn dùng được - đã vào danh sách chờ thu hồi</p>
     </div>
   </li>
-  <li><strong>Bấm "Xác nhận thu hồi"</strong> sẽ hiện thêm 1 hộp thoại hỏi lại "Bạn có muốn thu
-    hồi voucher này không?" - bấm <strong>"Có, thu hồi"</strong> để hoàn tất, hoặc
-    <strong>"Không"</strong> để quay lại màn quét mà KHÔNG thu hồi gì cả (hệ thống voucher đang
-    chọn - nếu có - vẫn giữ nguyên). Sau khi xác nhận "Có, thu hồi", hệ thống sẽ báo 1 trong 2
-    kết quả:
-    <ul>
-      <li><strong>"Đã đồng bộ"</strong> (màu xanh): giao dịch đã được ghi nhận thành công về hệ
-        thống trung tâm ngay lập tức.</li>
-      <li><strong>"Đang chờ đồng bộ"</strong> (màu vàng): voucher ĐÃ được thu hồi thành công tại
-        quầy của bạn (khách hàng có thể ra về bình thường), nhưng hệ thống trung tâm tạm thời
-        mất kết nối - sẽ TỰ ĐỘNG gửi lại trong vài phút tới, không cần làm gì thêm. Nếu thấy
-        nhiều giao dịch liên tục ở trạng thái này, báo cho quản trị viên kiểm tra đường truyền
-        mạng.</li>
-    </ul>
+  <li><strong>Mã đã sử dụng/hết hạn/không hợp lệ</strong> sẽ báo lỗi ngay (ở góc màn hình) và
+    <strong>không</strong> được thêm vào danh sách - quét lại mã khác ngay, không ảnh hưởng các
+    mã đã có sẵn trong danh sách.
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/05-da-su-dung.png" alt="Thông báo voucher đã được sử dụng, không thêm vào danh sách chờ thu hồi" />
+      <p class="cap">Voucher đã sử dụng - báo lỗi, không thêm vào danh sách</p>
+    </div>
+  </li>
+  <li>Nếu khách có <strong>nhiều voucher</strong>, cứ quét tiếp lần lượt - mỗi mã hợp lệ tự thêm
+    vào cùng danh sách. Muốn bớt 1 voucher khỏi danh sách (khách đổi ý không lấy nữa) thì bấm nút
+    <strong>✕</strong> cạnh mã đó; bấm "Xóa hết" để làm lại từ đầu. Danh sách tối đa 20 voucher.
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sách nhiều voucher đã quét, chưa thu hồi, kèm tổng tạm tính" />
+      <p class="cap">Quét thêm nhiều mã - vẫn gom chung 1 danh sách</p>
+    </div>
+    <div class="guide-figure">
+      <img class="guide-screenshot" src="/images/guide-business/11-bo-bot-1-ma.png" alt="Bấm nút X để bỏ bớt 1 voucher khỏi danh sách trước khi xác nhận thu hồi" />
+      <p class="cap">Bấm ✕ để bỏ bớt 1 mã khách không lấy nữa</p>
+    </div>
+  </li>
+  <li>Quét xong (dù 1 hay nhiều mã), bấm <strong>"Xác nhận thu hồi"</strong> - hộp thoại hỏi lại
+    hiện rõ <strong>tổng số voucher + tổng mệnh giá</strong>, bấm <strong>"Có, thu hồi"</strong>
+    để hoàn tất, hoặc <strong>"Không"</strong> để đóng hộp thoại mà KHÔNG thu hồi gì cả (danh
+    sách vẫn giữ nguyên, quét thêm/bớt rồi xác nhận lại sau cũng được).
     <div class="guide-figure">
       <img class="guide-screenshot" src="/images/guide-business/04-xac-nhan-thu-hoi.png" alt="Hộp thoại hỏi lại: Bạn có muốn thu hồi voucher này không, kèm nút Có thu hồi và Không" />
-      <p class="cap">Hộp thoại hỏi lại trước khi thu hồi thật</p>
+      <p class="cap">Xác nhận thu hồi - đúng 1 voucher</p>
     </div>
-  </li>
-  <li>Ô nhập sẽ <strong>tự động quay lại</strong> để sẵn sàng quét mã tiếp theo.</li>
-</ol>
-
-<h2>3. Quét nhiều voucher - Thu hồi 1 lần</h2>
-<p>Dùng khi 1 khách có <strong>nhiều voucher muốn thu hồi cùng lúc</strong> (thay vì phải xác
-nhận "Có, thu hồi" từng cái một) - quét nhiều mã vào 1 danh sách tạm, xem lại/bớt bớt, rồi bấm
-<strong>1 nút duy nhất</strong> để thu hồi toàn bộ.</p>
-<ol>
-  <li>Bấm <strong>"Quét nhiều"</strong> trong ô "Chế độ quét" ở đầu trang (mặc định đang là
-    "Quét từng cái").
-    <div class="guide-figure">
-      <img class="guide-screenshot" src="/images/guide-business/07-quet-nhieu-mo-che-do.png" alt="Chuyển chế độ quét sang Quét nhiều, màn hình sẵn sàng quét nhiều voucher" />
-      <p class="cap">Chuyển sang chế độ "Quét nhiều"</p>
-    </div>
-  </li>
-  <li>Quét lần lượt từng voucher như bình thường - <strong>mỗi mã quét xong tự động thêm vào
-    danh sách</strong> bên dưới (kèm mệnh giá + tổng tạm tính), <strong>chưa thu hồi ngay</strong>,
-    sẵn sàng quét mã tiếp theo luôn. Mã không hợp lệ (đã dùng/hết hạn...) sẽ báo lỗi và
-    <strong>không</strong> được thêm vào danh sách. Muốn bớt 1 voucher khỏi danh sách (khách đổi
-    ý không lấy nữa) thì bấm nút <strong>✕</strong> cạnh mã đó; bấm "Xóa hết" để làm lại từ đầu.
-    Danh sách tối đa 20 voucher.
-    <div class="guide-figure">
-      <img class="guide-screenshot" src="/images/guide-business/08-quet-nhieu-danh-sach.png" alt="Danh sách các voucher đã quét, chưa thu hồi, kèm tổng tạm tính và nút Thu hồi tất cả" />
-      <p class="cap">Danh sách voucher đang chờ thu hồi</p>
-    </div>
-  </li>
-  <li>Quét xong hết, bấm <strong>"Thu hồi tất cả"</strong> - hộp thoại hỏi lại hiện rõ
-    <strong>tổng số voucher + tổng mệnh giá</strong>, bấm "Có, thu hồi" để xác nhận.
     <div class="guide-figure">
       <img class="guide-screenshot" src="/images/guide-business/09-quet-nhieu-xac-nhan.png" alt="Hộp thoại xác nhận thu hồi tất cả voucher trong danh sách, kèm tổng số voucher và tổng mệnh giá" />
-      <p class="cap">Xác nhận thu hồi cả danh sách</p>
+      <p class="cap">Xác nhận thu hồi - nhiều voucher cùng lúc</p>
     </div>
   </li>
-  <li>Xem kết quả: mỗi voucher có trạng thái riêng (<strong>"Đã thu hồi"</strong> màu xanh,
-    <strong>"Đã thu hồi (chờ đồng bộ)"</strong> màu vàng, hoặc <strong>"Thất bại"</strong> màu đỏ
-    kèm lý do cụ thể) - dòng <strong>"Tổng THỰC THU"</strong> ở cuối là số tiền THẬT SỰ đã thu hồi
-    được (không tính các voucher thất bại).
+  <li>Sau khi xác nhận "Có, thu hồi", xem kết quả: mỗi voucher có trạng thái riêng
+    (<strong>"Đã thu hồi"</strong> màu xanh - đã ghi nhận thành công về hệ thống trung tâm ngay
+    lập tức, <strong>"Đã thu hồi (chờ đồng bộ)"</strong> màu vàng - đã thu hồi thành công tại
+    quầy nhưng hệ thống trung tâm tạm mất kết nối, sẽ TỰ ĐỘNG gửi lại sau mà không cần làm gì
+    thêm, hoặc <strong>"Thất bại"</strong> màu đỏ kèm lý do cụ thể) - dòng
+    <strong>"Tổng THỰC THU"</strong> ở cuối là số tiền THẬT SỰ đã thu hồi được (không tính các
+    voucher thất bại).
     <div class="guide-figure">
-      <img class="guide-screenshot" src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Kết quả thu hồi hàng loạt: từng voucher kèm trạng thái riêng và tổng thực thu cuối cùng" />
-      <p class="cap">Kết quả sau khi thu hồi cả danh sách</p>
+      <img class="guide-screenshot" src="/images/guide-business/10-quet-nhieu-ket-qua.png" alt="Kết quả thu hồi: từng voucher kèm trạng thái riêng và tổng thực thu cuối cùng" />
+      <p class="cap">Kết quả sau khi xác nhận thu hồi</p>
     </div>
   </li>
 </ol>
-<p class="hint"><strong>Lưu ý quan trọng</strong>: 1 voucher trong danh sách bị lỗi (ví dụ vừa bị
-quầy khác thu hồi trước, hoặc mất mạng đúng lúc xử lý mã đó) <strong>CHỈ làm mã đó thất bại</strong>,
-KHÔNG ảnh hưởng các voucher khác trong cùng đợt - vì vậy "Tổng THỰC THU" hiển thị sau cùng mới là
-số tiền chính xác cần thu của khách, không phải tổng lúc mới quét xong.</p>
+<p class="hint"><strong>Lưu ý quan trọng</strong>: 1 voucher trong danh sách bị lỗi lúc xác nhận
+(ví dụ vừa bị quầy khác thu hồi trước, hoặc mất mạng đúng lúc xử lý mã đó) <strong>CHỈ làm mã đó
+thất bại</strong>, KHÔNG ảnh hưởng các voucher khác trong cùng đợt - vì vậy "Tổng THỰC THU" hiển
+thị sau cùng mới là số tiền chính xác cần thu của khách, không phải tổng lúc mới quét xong.</p>
 
-<h2>4. Các tình huống thường gặp</h2>
+<h2>3. Các tình huống thường gặp</h2>
 <p><strong>"Voucher này đã được sử dụng"</strong>: mã voucher đã bị tiêu trước đó (có thể do
-chính mình quét nhầm lại, hoặc quầy/thiết bị khác đã tiêu trước). Không thể thu hồi lại - báo
-khách hàng kiểm tra lại voucher.</p>
-<div class="guide-figure">
-  <img class="guide-screenshot" src="/images/guide-business/05-da-su-dung.png" alt="Kết quả kiểm tra: voucher đã sử dụng (màu đỏ), chỉ còn nút Quét mã khác" />
-  <p class="cap">Voucher đã sử dụng - không thể thu hồi lại</p>
-</div>
+chính mình quét nhầm lại, hoặc quầy/thiết bị khác đã tiêu trước). Không thể thu hồi lại, và
+<strong>không</strong> được thêm vào danh sách chờ thu hồi (xem mục 2) - báo khách hàng kiểm tra
+lại voucher.</p>
 <p><strong>"Tài khoản tạm khóa quét voucher do có quá nhiều lần kiểm tra không hợp lệ"</strong>:
 hệ thống tự động khóa tạm (vài phút) nếu quét liên tục nhiều mã không hợp lệ/không tồn tại - đây
 là cơ chế bảo vệ, tự hết sau ít phút, không cần làm gì.</p>
@@ -146,7 +126,7 @@ viên để xem xét nới lại giới hạn cho phù hợp thực tế.</p>
 voucher bạn vừa chọn (menu "Kết nối API") - không thể quét/thu hồi bằng hệ thống này cho đến khi
 được mở khóa lại. Chọn hệ thống voucher khác (nếu có) hoặc báo quản trị viên.</p>
 
-<h2>5. Các loại báo cáo</h2>
+<h2>4. Các loại báo cáo</h2>
 <p>Tùy theo quyền được cấp, menu có thể hiện 1 hoặc cả 3 loại báo cáo sau - mỗi loại phục vụ
 mục đích khác nhau:</p>
 <table>
@@ -176,7 +156,7 @@ mục đích khác nhau:</p>
 <p class="hint">Cột "Đồng bộ" trong bảng giao dịch gần đây cho biết 1 giao dịch đã được hệ thống
 trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CHỜ ĐỒNG BỘ) - xem lại mục 2 ở trên.</p>
 
-<h2>6. Nhận báo cáo qua email tự động</h2>
+<h2>5. Nhận báo cáo qua email tự động</h2>
 <p>Nếu tài khoản của bạn xem được ít nhất 1 trong 3 loại báo cáo ở mục 5, bạn có thể tự tạo 1
 <strong>lịch gửi báo cáo qua email</strong> (menu "Lịch gửi email báo cáo") thay vì phải vào xem
 rồi tự xuất Excel mỗi lần: chọn loại báo cáo, khoảng ngày (có cả lựa chọn tự chọn Từ ngày-Đến
@@ -185,11 +165,11 @@ ngày), hệ thống voucher muốn gửi (bắt buộc tick ít nhất 1), emai
 luôn đúng phạm vi bạn đang được phép xem tại thời điểm gửi, không rộng hơn những gì bạn tự xem
 được trên màn hình báo cáo.</p>
 
-<h2>7. Bảo mật/tài khoản cá nhân</h2>
+<h2>6. Bảo mật/tài khoản cá nhân</h2>
 <p>Vào mục "Bảo mật" trên topbar để: đăng ký vân tay/Face ID cho thiết bị đang dùng, xem/đổi
 thiết bị xác thực hai yếu tố (nếu là quản trị).</p>
 
-<h2>8. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
+<h2>7. Cài ứng dụng ra màn hình chính (Android/iOS)</h2>
 <p>Cài ra màn hình chính giúp mở ứng dụng nhanh như 1 app bình thường (bấm vào icon là vào thẳng
 màn hình quét, không hiện thanh địa chỉ trình duyệt) - nên làm trên điện thoại dùng quét voucher
 hàng ngày.</p>

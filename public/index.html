@@ -28,15 +28,6 @@
     </div>
 
     <div class="card">
-      <span class="system-switch-label">Chế độ quét</span>
-      <div class="system-switch mb-10" id="scanModeSwitch">
-        <button type="button" class="system-btn selected-default" data-mode="SINGLE">Quét từng cái</button>
-        <button type="button" class="system-btn" data-mode="BATCH">Quét nhiều</button>
-      </div>
-      <p class="hint" id="scanModeHint">
-        Quét 1 mã, xác nhận thu hồi ngay rồi mới được quét mã tiếp theo.
-      </p>
-
       <div class="scan-hero" id="scanHero">
         <span class="scan-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -45,8 +36,9 @@
         </span>
         <h2 id="scanHeroTitle">Sẵn sàng quét voucher</h2>
         <p class="hint" id="scanHeroHint">
-          Chỉ chấp nhận mã được <strong>quét</strong> bằng máy quét mã vạch/QR hoặc camera —
-          không cho phép gõ tay để tránh nhập sai hoặc gian lận.
+          Quét từng mã một bằng máy quét mã vạch/QR hoặc camera — không cho phép gõ tay để
+          tránh nhập sai hoặc gian lận. Quét <strong>1 mã</strong> hay <strong>nhiều mã</strong>
+          của cùng 1 khách đều được — xác nhận thu hồi khi bạn quét xong.
         </p>
       </div>
 
@@ -69,31 +61,25 @@
       <div id="qr-reader" class="hidden mt-16"></div>
     </div>
 
-    <div id="resultCard" class="card hidden">
-      <h3>Kết quả kiểm tra</h3>
-      <div id="statusBadge"></div>
-      <div id="resultInfo" class="mt-12"></div>
-      <div id="resultActions" class="flex gap-10 mt-16"></div>
-    </div>
-
-    <!-- Che do "Quet nhieu": danh sach cac ma da quet/kiem tra, CHUA thu hoi - xem muc 19 README -->
+    <!-- Danh sach cac ma da quet/kiem tra, CHUA thu hoi - tu v3.78 la luong DUY NHAT (bo cong tac
+         "Quet tung cai/Quet nhieu" cu), ap dung cho CA quet 1 ma lan nhieu ma - xem muc 18 README -->
     <div id="batchListCard" class="card hidden">
       <h3>Danh sách đã quét (chưa thu hồi)</h3>
-      <p class="hint">Quét tiếp để thêm vào danh sách, hoặc bấm ✕ để bỏ bớt voucher khách không lấy nữa.</p>
+      <p class="hint">Quét tiếp nếu khách còn voucher khác, hoặc bấm ✕ để bỏ bớt voucher khách không lấy nữa.</p>
       <div id="batchList"></div>
       <div id="batchTotal" class="batch-total hidden"></div>
       <div class="flex gap-10 mt-16">
-        <button id="batchRedeemAllBtn" class="btn-success flex-1" disabled>Thu hồi tất cả</button>
+        <button id="batchRedeemAllBtn" class="btn-success flex-1" disabled>Xác nhận thu hồi</button>
         <button id="batchClearBtn" class="btn-secondary">Xóa hết</button>
       </div>
     </div>
 
     <div id="batchResultCard" class="card hidden">
-      <h3>Kết quả sau khi bấm "Thu hồi tất cả"</h3>
+      <h3>Kết quả thu hồi</h3>
       <div id="batchSummaryGrid" class="summary-grid"></div>
       <div id="batchResultList"></div>
       <div id="batchGrandTotal" class="grand-total"></div>
-      <button id="batchContinueBtn" class="btn-secondary mt-16 flex-1">Quét lô mới</button>
+      <button id="batchContinueBtn" class="btn-secondary mt-16 flex-1">Quét voucher mới</button>
     </div>
 
     <div class="card">
@@ -113,15 +99,10 @@
     <div class="confirm-box">
       <div class="confirm-icon">?</div>
       <h3 id="confirmRedeemTitle">Bạn có muốn thu hồi voucher này không?</h3>
-      <p class="confirm-sub" id="confirmRedeemSub">
-        Mã voucher <strong id="confirmRedeemCode"></strong> — mệnh giá
-        <strong id="confirmRedeemAmount"></strong> — hệ thống
-        <strong id="confirmRedeemSystem"></strong>. Sau khi xác nhận sẽ KHÔNG thể hoàn tác.
-      </p>
-      <p class="confirm-sub hidden" id="confirmRedeemSubBatch">
-        Tổng cộng <strong id="confirmBatchCount"></strong> voucher — tổng mệnh giá
-        <strong id="confirmBatchAmount"></strong> — hệ thống
-        <strong id="confirmBatchSystem"></strong>. Sau khi xác nhận sẽ KHÔNG thể hoàn tác.
+      <p class="confirm-sub">
+        Tổng cộng <strong id="confirmCount"></strong> voucher — tổng mệnh giá
+        <strong id="confirmAmount"></strong> — hệ thống
+        <strong id="confirmSystem"></strong>. Sau khi xác nhận sẽ KHÔNG thể hoàn tác.
       </p>
       <div class="confirm-actions">
         <button id="confirmRedeemYesBtn" class="btn-success">Có, thu hồi</button>
