@@ -1212,6 +1212,71 @@ Du lieu: `sql/037_add_is_locked_api_connection.sql` (them cot `ApiConnections.Is
 (deu chi admin, nhu cac thao tac khac tren man hinh nay - cong tac tren giao dien goi dung 2 API
 nay, khong co API rieng).
 
+### 4l. Doi tac tu sua tai khoan nhan vien + tu tao cong ty/diem tieu rieng (v3.76)
+
+Mo rong man hinh `/partner-admin.html` (muc 4j), cho phep 1 "Quan tri doi tac" (vd Fuji) **tu
+quan ly sau hon** nhan vien cua chinh ho - khong con phai nho admin HCRC moi lan can sua ho ten,
+dat lai mat khau, bat/tat quyen tinh nang, hay them 1 diem tieu/cong ty moi.
+
+**Sua tai khoan (ho ten, mat khau, 6 quyen tinh nang):** moi dong trong "Danh sach tai khoan" co
+them nut **"Sua"**, mo ra 1 o sua ngay tren dong (khong chuyen trang) gom: ho ten, o dat lai mat
+khau (de trong = giu nguyen), va 6 o tich quyen tinh nang (Thu hoi voucher, Bao cao doi soat, Bao
+cao tong hop, Voucher da su dung, Huong dan nghiep vu, Huong dan he thong - giong het 6 quyen tren
+man hinh "Tai khoan" day du cua admin). Bam "Luu thay doi" goi tuan tu 3 API (ho so, quyen, va
+diem tieu neu co doi) roi tai lai danh sach.
+
+- **Chong leo thang quyen (quan trong nhat):** `updateScopedUserPermissions()` **khong bao gio**
+  nhan truc tiep object quyen tu client - luon dung 1 **danh sach trang (whitelist) dung 6
+  truong** de dung lai object gui xuong `permissionService.setPermissions()`, du client co co
+  tinh gui kem `partnerAdminConnectionId` hay `role` trong payload cung bi loai bo hoan toan,
+  khong bao gio toi duoc tang luu CSDL. Da kiem thu adversarial rieng cho truong hop nay.
+- Van bat buoc `assertInScope()` truoc moi thao tac (nhu cac ham sua khac trong muc 4j) - tu
+  choi 403 neu userId ngoai pham vi quan tri cua ho.
+
+**Gan/doi diem tieu cho tai khoan (chi tai khoan DOC QUYEN 1 he thong):** o sua co them o chon
+diem tieu, nhung **chi hien duoi dang chon duoc** (dropdown) khi `exclusiveToThisSystem === true`
+(tai khoan CHI dung dung 1 he thong cua ho - xem muc 4j). Voi tai khoan **dung chung he thong
+khac** (vd duoc HCRC cap them quyen dung ca he thong HCRC), o nay chuyen thanh **chi xem** (khong
+sua duoc) kem dong giai thich ro: *"tai khoan nay dang dung chung he thong khac, chi quan tri
+vien HCRC moi doi duoc diem tieu cho tai khoan dung chung"*. Ly do ky thuat: `Users.Locations_Detail`
+la **1 truong DUY NHAT GIA TRI** (1 tai khoan chi gan duoc DUNG 1 diem tieu tai 1 thoi diem,
+khong co khai niem gan nhieu diem cung luc) - neu de Fuji tu doi diem tieu cua 1 tai khoan dang
+dung chung se vo tinh anh huong ca luong nghiep vu phia he thong kia, nen chi quan tri day du
+(nguoi co day du boi canh ca 2 phia) moi duoc phep doi trong truong hop nay. Chon diem tieu moi
+goi `assertUnitOwnedByConnection()` - tu choi 403 neu diem tieu do thuoc 1 cong ty **khong phai**
+do chinh ho tao ra (xem phan duoi).
+
+**Tu tao cong ty va diem tieu rieng:** tab moi **"Cong ty & Diem tieu"** tren man hinh
+`/partner-admin.html`, cho phep tao **cong ty** (ma + ten) va **diem tieu** (ten, bat buoc chon 1
+cong ty do chinh ho da tao) **CHI phuc vu nhom bao cao/doi soat noi bo cua ho** - hoan toan tach
+biet, khong nhin thay hay dung chung voi cong ty/diem tieu cua HCRC hay doi tac khac:
+
+- `sql/038_add_created_by_partner_connection_company.sql`: them cot
+  `RedemptionCompanies.CreatedByPartnerConnectionId` (NULL = HCRC tao qua man hinh admin day du;
+  co gia tri = Id ket noi cua doi tac da tu tao cong ty do qua man tu phuc vu) - **cung 1 kieu
+  "ghi 1 lan, khong doi lai"** nhu `VoucherAppPermissions.CreatedByPartnerConnectionId` cua muc 4j
+  (v3.70), de tranh 2 nguon su that khac nhau ve quyen so huu.
+- `RedemptionUnits` (diem tieu) **khong co cot so huu rieng** - ke thua quyen so huu qua
+  `CompanyId` tro ve cong ty cha (`companyService.js#isOwnedByConnection()`), tranh 2 noi phai
+  dong bo voi nhau.
+- Tao diem tieu moi dung lai **DUNG** ham `locationService.js#createDetail()` da co san (tu dong
+  sinh ma khong trung) - **khong** mo endpoint `GET /api/locations/details` (danh sach TOAN BO
+  dia diem) cho doi tac, vi endpoint do von duoc ghi chu ro trong code la **chi danh cho admin**
+  do nguy co lo du lieu cheo cong ty neu mo rong pham vi truy cap.
+- Danh sach cong ty/diem tieu cua rieng ho: `listOwnCompanies()`/`listOwnUnits()` loc dung
+  `CreatedByPartnerConnectionId` cua chinh ho, giong het nguyen tac loc o muc 4j.
+
+Da kiem thu day du (mock cac service lien quan, khong can CSDL that): sua ho so/quyen trong pham
+vi; sua ngoai pham vi bi chan 403; payload quyen co co tinh gui kem `partnerAdminConnectionId`/`role`
+van bi loai bo hoan toan truoc khi luu; tao cong ty rieng gan dung connectionId + chi hien trong
+danh sach cua chinh ho; tao diem tieu cho 1 cong ty **khong phai cua ho** bi chan 403; tao diem
+tieu thanh cong voi ma tu sinh dung dinh dang; doi diem tieu tren tai khoan dung chung bi chan
+403; doi diem tieu tren tai khoan doc quyen thanh cong.
+
+Du lieu: `sql/038_add_created_by_partner_connection_company.sql`. API: xem 7 dong moi trong bang
+muc 5 (`PUT .../profile`, `PUT .../permissions`, `PUT .../location`, `GET/POST .../companies`,
+`GET/POST .../units`).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1265,6 +1330,13 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/partner-admin/users/:userId/remove-connection` | (can quyen "Quan tri doi tac") Go DUNG he thong cua chinh ho khoi 1 tai khoan dang dung chung — muc 4j |
 | GET | `/api/partner-admin/audit-log(/export)` | (can quyen "Quan tri doi tac") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j |
 | GET | `/api/partner-admin/scan-log(/export)` | (can quyen "Quan tri doi tac") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/profile` | (can quyen "Quan tri doi tac") Doi ho ten/dat lai mat khau 1 tai khoan trong pham vi — `{ fullName, password? }` — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/permissions` | (can quyen "Quan tri doi tac") Doi 6 quyen tinh nang 1 tai khoan trong pham vi (loc bo moi truong khac qua whitelist) — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/location` | (can quyen "Quan tri doi tac") Doi diem tieu — CHI tai khoan doc quyen 1 he thong cua ho (`exclusiveToThisSystem=true`) — `{ redemptionUnitId }` — muc 4l |
+| GET | `/api/partner-admin/companies` | (can quyen "Quan tri doi tac") Danh sach cong ty DO CHINH ho tao — muc 4l |
+| POST | `/api/partner-admin/companies` | (can quyen "Quan tri doi tac") Tao cong ty moi, tu dong gan quyen so huu cho ho — `{ companyCode, companyName }` — muc 4l |
+| GET | `/api/partner-admin/units` | (can quyen "Quan tri doi tac") Danh sach diem tieu thuoc cac cong ty DO CHINH ho tao — muc 4l |
+| POST | `/api/partner-admin/units` | (can quyen "Quan tri doi tac") Tao diem tieu moi cho 1 cong ty cua ho — `{ locationName, companyId }` — muc 4l |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -2216,7 +2288,16 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.75)**: them che do **"Quét nhiều"** tren man hinh Quet voucher (canh che do
+Ban **moi nhat (v3.76)**: mo rong man hinh "Quan tri doi tac" (muc 4j) - cho phep doi tac
+**tu sua** ho ten/mat khau/6 quyen tinh nang cua nhan vien minh, **tu doi diem tieu** (chi voi
+tai khoan doc quyen 1 he thong cua ho), va **tu tao cong ty/diem tieu rieng** o tab moi "Cong ty
+& Diem tieu" - tat ca deu gioi han dung trong pham vi do chinh ho tao ra, khong cham duoc du lieu
+cua HCRC hay doi tac khac. Diem bao mat quan trong nhat: sua quyen tinh nang dung whitelist 6
+truong co dinh, loai bo hoan toan `partnerAdminConnectionId`/`role` du client co co tinh gui kem.
+Migration moi: `sql/038` (them cot so huu cho `RedemptionCompanies`, cung mo hinh "ghi 1 lan" nhu
+`sql/035`). Xem muc 4l.
+
+Ban truoc do (v3.75): them che do **"Quét nhiều"** tren man hinh Quet voucher (canh che do
 "Quét từng cái" cu) - quet nhieu voucher lien tiep vao 1 danh sach tam (toi da 20), xem lai/bot
 ma, roi bam **"Thu hồi tất cả"** 1 lan de thu hoi toan bo cung luc, thay vi phai xac nhan tung
 ma rieng le. Xu ly tuan tu tung ma o backend (Core khong co API thu hoi hang loat), 1 ma loi
