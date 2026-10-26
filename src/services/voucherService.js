@@ -666,6 +666,44 @@ function sanitizeValueAmt(rawValueAmt, { voucherCode, transNum } = {}) {
   return n;
 }
 
+// Do rong THAT cua cac cot string trong VOUCHER_SYNC (bang Core cu, KHONG duoc doi cau truc) -
+// xac nhan TRUC TIEP qua INFORMATION_SCHEMA.COLUMNS tren production (dot ra soat sau loi that
+// "String or binary data would be truncated" voi 1 ma Fuji 13 ky tu) - HEP HON NHIEU so voi cac
+// gia tri sql.NChar/NVarChar(...) app tung khai bao o INSERT phia duoi (do chi la "y dinh" phia
+// client luc dau, khong phai do rong CỘT THẬT - SQL Server van tu choi neu gia tri thuc te vuot
+// qua do rong that). Nguyen nhan cu the da xac nhan: ma QUET cua doi tac (vd Fuji) co dang
+// "C" + serial (vd "CE21000044090", 13 ky tu) - serial Core tra ve o truong voucherSerial
+// ("E21000044090") CHI 12 ky tu, chu "C" them o dau chi la quy uoc in/quet VAT LY cua doi tac,
+// khong phai 1 phan cua serial goc trong Core (doi chieu du lieu HCRC that: cot "MÃ VOUCHER"
+// tren bao cao luon dang "E..." 12 ky tu, KHONG BAO GIO co "C" - vi ma quet cua HCRC von di da
+// khong co tien to nay, nen chua bao gio gap loi tran cot). Them 3 cot khac cung co cung kieu
+// loi tiem an (app khai bao rong hon that, chua tung kich hoat vi du lieu thuc te tinh co van
+// vua, nhung van la 1 qua bom hen gio) - sua dong bo luon, khong doi den khi gap loi moi vá tiep.
+const VOUCHER_SYNC_REAL_WIDTH = {
+  userName: 30, // User_Name nchar(30) - app tung khai bao NChar(60)
+  voucherSerial: 50, // Voucher_Serial nvarchar(50) - app tung khai bao NVarChar(100)
+  voucherCode: 12, // Voucher_Code nvarchar(12) - app tung khai bao NVarChar(24)
+  locationsGroup: 50, // Locations_Group nvarchar(50) - app tung khai bao NVarChar(100)
+  locationsDetail: 50, // Locations_Detail nvarchar(50) - app tung khai bao NVarChar(100)
+  locationDetailName: 100, // Location_DetailName nvarchar(100) - app tung khai bao NVarChar(200)
+};
+
+/** Cat gia tri ve DUNG do rong cot that truoc khi ghi VOUCHER_SYNC, canh bao ro trong log neu
+ * thuc su phai cat bot (de admin biet ma theo doi/kiem tra lai nguon du lieu, khong am tham mat
+ * thong tin ma khong ai hay biet). `allowNull`: giu nguyen NULL thay vi ep thanh chuoi rong (dung
+ * cho locationDetailName - tai khoan chua gan diem tieu la tinh huong binh thuong, khac voi "co
+ * gia tri nhung qua dai"). */
+function truncateForSync(value, fieldKey, { voucherCode, transNum, allowNull = false } = {}) {
+  if (allowNull && (value === null || value === undefined)) return null;
+  const maxLen = VOUCHER_SYNC_REAL_WIDTH[fieldKey];
+  const str = String(value || '').trim();
+  if (str.length > maxLen) {
+    // eslint-disable-next-line no-console
+    console.warn(`[voucherService] Gia tri ghi vao VOUCHER_SYNC.${fieldKey} ("${str}") dai hon do rong cot that (${maxLen} ky tu) cho voucher ${voucherCode} (transNum ${transNum}) - da CAT CON ${maxLen} ky tu dau de tranh loi SQL, can kiem tra lai nguon du lieu (ten dai qua muc thong thuong?).`);
+  }
+  return str.slice(0, maxLen);
+}
+
 /**
  * Goi Core API thu hoi VA ghi VOUCHER_SYNC trong CUNG 1 khoa (sp_getapplock, theo dung ma
  * voucher, pham vi 1 transaction) - xem ghi chu H5 o redeemVoucher() phia tren ve ly do gop
@@ -714,9 +752,16 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, c
       throw new Error('Khong lay duoc khoa xu ly voucher (dang co request khac xu ly cung ma nay), vui long thu lai.');
     }
 
+    // Doi chieu trung ma PHAI dung CUNG 1 gia tri se duoc GHI vao Voucher_Code o duoi (xem
+    // truncateForSync) - neu so sanh bang ma quet goc (voucherCode, co the dai hon 12 ky tu) se
+    // KHONG BAO GIO khop voi gia tri da cat ngan dang luu, lam mat tac dung chong trung hoan
+    // toan cho cac he thong co ma quet dang "C" + serial (vd Fuji). Uu tien voucherSerial Core
+    // tra ve (da xac nhan la gia tri dung - xem ghi chu VOUCHER_SYNC_REAL_WIDTH o tren), chi
+    // fallback ve ma quet goc neu Core khong tra ve serial.
+    const syncVoucherCode = truncateForSync(precheck.voucherSerial || voucherCode, 'voucherCode', { voucherCode, transNum });
     const existing = await transaction
       .request()
-      .input('voucherCode', sql.NVarChar(24), voucherCode)
+      .input('voucherCode', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.voucherCode), syncVoucherCode)
       .query('SELECT TOP 1 TRANS_NUM FROM dbo.VOUCHER_SYNC WHERE Voucher_Code = @voucherCode');
 
     if (existing.recordset[0]) {
@@ -757,15 +802,15 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, c
       await transaction
         .request()
         .input('userid', sql.Int, user.userId)
-        .input('userName', sql.NChar(60), user.fullName || user.username)
+        .input('userName', sql.NChar(VOUCHER_SYNC_REAL_WIDTH.userName), truncateForSync(user.fullName || user.username, 'userName', { voucherCode, transNum }))
         .input('transNum', sql.Char(18), transNum)
-        .input('voucherSerial', sql.NVarChar(100), precheck.voucherSerial || '')
-        .input('voucherCode', sql.NVarChar(24), voucherCode)
+        .input('voucherSerial', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.voucherSerial), truncateForSync(precheck.voucherSerial, 'voucherSerial', { voucherCode, transNum }))
+        .input('voucherCode', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.voucherCode), syncVoucherCode)
         .input('status', sql.NVarChar(240), 'REDEEMED')
         .input('computerName', sql.NVarChar(100), 'PARTNER_REDEMPTION_APP')
-        .input('locationsGroup', sql.NVarChar(100), user.locationsGroup || '')
-        .input('locationsDetail', sql.NVarChar(100), user.locationsDetail || '')
-        .input('locationDetailName', sql.NVarChar(200), locationDetailName)
+        .input('locationsGroup', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.locationsGroup), truncateForSync(user.locationsGroup, 'locationsGroup', { voucherCode, transNum }))
+        .input('locationsDetail', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.locationsDetail), truncateForSync(user.locationsDetail, 'locationsDetail', { voucherCode, transNum }))
+        .input('locationDetailName', sql.NVarChar(VOUCHER_SYNC_REAL_WIDTH.locationDetailName), truncateForSync(locationDetailName, 'locationDetailName', { voucherCode, transNum, allowNull: true }))
         .input('valueAmt', sql.Numeric(18, 2), safeValueAmt)
         .input('sync', sql.NVarChar(2), pendingSync ? 'N' : 'Y')
         .query(`

@@ -2312,7 +2312,22 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.78)**: don gian hoa man hinh Quet voucher - **bo han cong tac "Quét từng
+Ban **moi nhat (v3.79)**: sua loi that o production - thu hoi voucher cua 1 doi tac (vd Fuji)
+bi loi SQL **"String or binary data would be truncated"** khong ghi duoc vao `VOUCHER_SYNC`.
+Nguyen nhan: ma quet cua doi tac co dang **"C" + serial** (vd `CE21000044090`, 13 ky tu), trong
+khi cot that `VOUCHER_SYNC.Voucher_Code` (bang Core cu, khong duoc doi cau truc) chi rong **12
+ky tu** - xac nhan truc tiep qua `INFORMATION_SCHEMA.COLUMNS` tren production, HCRC chua tung
+gap loi nay vi ma quet cua HCRC von di da khong co tien to "C". Sua: khi ghi vao cot hep nay,
+uu tien dung gia tri **`voucherSerial` Core tra ve** (da la dang rut gon dung 12 ky tu, khong
+phai ma quet goc) - goi Core de kiem tra/thu hoi VAN dung nguyen ma quet day du nhu cu, khong
+doi gi o buoc do. Nhan tien ra soat va sua dong bo **3 cot khac** cua `VOUCHER_SYNC` co cung
+kieu loi tiem an (app tung khai bao rong hon do rong cot THAT: `User_Name` thuc te `nchar(30)`,
+`Voucher_Serial` thuc te `nvarchar(50)`, `Location_DetailName` thuc te `nvarchar(100)`) - deu
+duoc cat an toan + ghi canh bao log neu thuc su phai cat, tranh lap lai loi tuong tu voi du
+lieu dai bat thuong (vd ten nhan vien hoac ten diem tieu qua dai). Xem
+`src/services/voucherService.js#truncateForSync`.
+
+Ban truoc do (v3.78): don gian hoa man hinh Quet voucher - **bo han cong tac "Quét từng
 cái/Quét nhiều"** (v3.75), hop nhat thanh **1 luong DUY NHAT**: moi ma quet xong tu dong vao 1
 danh sach cho, xac nhan thu hoi 1 lan cho du danh sach co 1 hay nhieu voucher (hop thoai xac
 nhan tu doi chu cho tu nhien theo so luong). Ly do: nguoi dung phan anh de quen chuyen che do
