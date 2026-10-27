@@ -1230,7 +1230,8 @@ them nut **"Sua"**, mo ra 1 o sua ngay tren dong (khong chuyen trang) gom: ho te
 khau (de trong = giu nguyen), va 6 o tich quyen tinh nang (Thu hoi voucher, Bao cao doi soat, Bao
 cao tong hop, Voucher da su dung, Huong dan nghiep vu, Huong dan he thong - giong het 6 quyen tren
 man hinh "Tai khoan" day du cua admin). Bam "Luu thay doi" goi tuan tu 3 API (ho so, quyen, va
-diem tieu neu co doi) roi tai lai danh sach.
+diem tieu neu co doi) roi tai lai danh sach. (Tu v3.84 co them quyen tinh nang thu 7 "Lich gui
+email" - xem muc 17c.)
 
 - **Chong leo thang quyen (quan trong nhat):** `updateScopedUserPermissions()` **khong bao gio**
   nhan truc tiep object quyen tu client - luon dung 1 **danh sach trang (whitelist) dung 6
@@ -1414,7 +1415,7 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | DELETE | `/api/auth/2fa/admins/:userId` | (can quyen admin) Go 2FA cua **admin khac** (khong tu go duoc cua chinh minh) |
 | GET | `/api/users` | (can quyen admin) Danh sach tai khoan + lich hieu luc + quyen tinh nang + trang thai hien tai |
 | POST | `/api/users` | (can quyen admin) Tao tai khoan moi — muc 15a |
-| PUT | `/api/users/:userId/permissions` | (can quyen admin) Doi 4 quyen tinh nang cua 1 tai khoan nhan vien — muc 15b |
+| PUT | `/api/users/:userId/permissions` | (can quyen admin) Doi 7 quyen tinh nang cua 1 tai khoan nhan vien — muc 15b/17c |
 | PUT | `/api/users/:userId/schedule` | (can quyen admin) Dat/sua `ActiveFrom`/`ActiveUntil` cua 1 tai khoan |
 | PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" - `{ connectionId, canManageAccounts?, canManageOrg?, canViewAuditLog?, canViewScanLog? }` (4 co tuy chon, mac dinh true) — muc 4j/4m |
 | PUT | `/api/users/:userId/admin-features` | (can quyen admin, KHONG tu sua duoc chinh minh) Doi 5 quyen man hinh "Quan tri" cua 1 tai khoan Quan tri khac — `{ canManageUnits, canManageConnections, canManageUsers, canViewAdminLog, canManageEmailSettings }` — muc 4m |
@@ -1425,7 +1426,7 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | GET | `/api/partner-admin/audit-log(/export)` | (can quyen con "Nhat ky quan tri") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j/4m |
 | GET | `/api/partner-admin/scan-log(/export)` | (can quyen con "Hoat dong quet/thu hoi") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j/4m |
 | PUT | `/api/partner-admin/users/:userId/profile` | (can quyen con "Quan ly tai khoan") Doi ho ten/dat lai mat khau 1 tai khoan trong pham vi — `{ fullName, password? }` — muc 4l |
-| PUT | `/api/partner-admin/users/:userId/permissions` | (can quyen con "Quan ly tai khoan") Doi 6 quyen tinh nang 1 tai khoan trong pham vi (loc bo moi truong khac qua whitelist) — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/permissions` | (can quyen con "Quan ly tai khoan") Doi 7 quyen tinh nang 1 tai khoan trong pham vi (loc bo moi truong khac qua whitelist) — muc 4l/17c |
 | PUT | `/api/partner-admin/users/:userId/location` | (can quyen con "Quan ly tai khoan") Doi diem tieu — CHI tai khoan doc quyen 1 he thong cua ho (`exclusiveToThisSystem=true`) — `{ redemptionUnitId }` — muc 4l |
 | PUT | `/api/partner-admin/users/:userId/report-access-group` | (can quyen con "Quan ly tai khoan") Doi nhom quyen xem bao cao — CHI tai khoan doc quyen 1 he thong cua ho — `{ reportAccessGroupId }` — muc 4m |
 | GET | `/api/partner-admin/companies` | (can quyen con "Quan ly tai khoan" HOAC "Cong ty & Diem tieu") Danh sach cong ty thuoc pham vi ho (tu tao hoac HCRC gan) — muc 4l/4m |
@@ -1916,8 +1917,9 @@ Khac voi "Bao cao tong hop" (12b, cong don theo Cong ty -> Diem tieu), trang nay
 1 giao dich**, khong cong don — dung khi can xem/doi soat chi tiet tung voucher hoac xuat du
 lieu ra ngoai:
 
-- **Bo loc ngay tuy chon** — de trong ca 2 o "Tu ngay"/"Den ngay" se lay **TOAN BO lich su**
-  (khong gioi han); dien 1 hoac ca 2 o de thu hep pham vi.
+- **Bo loc ngay tuy chon** — mac dinh vao trang la **hom nay -> hom nay** (v3.84, muc 12f); de
+  trong ca 2 o "Tu ngay"/"Den ngay" se lay **TOAN BO lich su** (khong gioi han); dien 1 hoac ca 2
+  o de thu hep pham vi.
 - **Nut "Xuat Excel"** — tai ve file `.xlsx` **that** (dung thu vien `exceljs`, khong phai CSV
   doi ten) voi dung du lieu dang hien thi tren man hinh (cung bo loc ngay, cung pham vi cong ty
   duoc phep xem). Nut nay goi API bang `fetch()` kem san header `Authorization` roi tai xuong
@@ -2034,6 +2036,31 @@ che tick chon/luu/kiem tra san co. "Khac" **chi co y nghia khi xem bao cao**, **
 he thong that de chon luc quet/thu hoi (`voucherService.js#resolveAllowedConnectionId` tu dong
 bo qua gia tri nay truoc khi ap dung logic chon ket noi, tranh tai khoan CHI duoc tick "Khac" bi
 loi khi quet thay vi duoc bao ro "chua co quyen dung he thong voucher nao").
+
+### 12f. Mac dinh ngay "hom nay" + cot "Cong ty" tren ca 3 bao cao (v3.84)
+
+Theo yeu cau: ca HCRC lan doi tac, moi lan mo 1 trong 3 man hinh bao cao deu phai **BAM CHON LAI
+NGAY** moi xem duoc gi (hoac vo tinh xem nham khoang ngay cu/mac dinh dau thang) - gay bat tien
+khi chi can xem nhanh du lieu **HOM NAY**.
+
+- **`/report.html`** (Bao cao doi soat): da mac dinh "hom nay -> hom nay" tu truoc, khong doi gi
+  o day.
+- **`/summary-report.html`** (Bao cao tong hop, muc 12b): truoc mac dinh **"dau thang -> hom
+  nay"**, nay doi thanh **"hom nay -> hom nay"** (`public/js/summary-report.js`).
+- **`/used-vouchers.html`** (muc 12c): truoc **de trong ca 2 o** (mac dinh xem TOAN BO lich su),
+  nay cung mac dinh **"hom nay -> hom nay"** luc vao trang (`public/js/used-vouchers.js`). Van
+  **xoa trong duoc** ca 2 o bat ky luc nao de xem lai toan bo lich su nhu cu - chi doi GIA TRI
+  mac dinh ngay luc mo trang, khong gioi han lai kha nang loc.
+- **Xuat Excel**: ca 3 nut "Xuat Excel" deu dung chung o Tu ngay/Den ngay dang hien tren man
+  hinh (`buildQuery()`), nen mac dinh "hom nay" cung tu dong ap dung cho file xuat ra, khong can
+  sua rieng.
+
+**Them cot "Cong ty"**: `summary-report.html`/`used-vouchers.html` da co cot nay tu truoc; rieng
+**"Bao cao doi soat" (`/report.html`) chua co** - bo sung cot "Cong ty" vao CA 2 bang (Tong hop
+theo dia diem + Chi tiet giao dich) tren man hinh LAN file Excel xuat ra
+(`src/services/reportService.js#dailyReconciliation`/`buildReconciliationExcelBuffer`, noi them
+`RedemptionCompanies.CompanyName`). Khong doi logic phan quyen/loc, chi them 1 cot hien thi.
+Khong co migration CSDL moi.
 
 ## 13. Phan quyen xem bao cao theo cong ty
 
@@ -2313,6 +2340,42 @@ Du lieu: `sql/034_create_email_report_schedules.sql` (bang `EmailReportSchedules
 Excel** (dung lai dung engine xuat Excel cua 3 bao cao, khong them thu vien moi) - chua ho tro
 PDF.
 
+### 17c. Gioi han quyen tao/sua lich gui email - them quyen tinh nang thu 7 (v3.84)
+
+Truoc ban nay, **bat ky tai khoan nao xem duoc it nhat 1 trong 3 bao cao** (muc 17b) deu tu dong
+thay va tao duoc "Lich gui email bao cao" - ke ca nhan vien thuong chi duoc cap quyen XEM bao
+cao, khong phai nguoi quan tri. Theo yeu cau: nguoi thiet lap lich gui email phai la **"Quan tri
+doi tac" hoac tai khoan duoc phan quyen rieng**, khong phai nhan vien thuong.
+
+Them quyen tinh nang thu 7 **`CanManageEmailSchedules`** (`VoucherAppPermissions`, DEFAULT **0**
+- KHAC voi 6 quyen con lai dang DEFAULT 1, vi quyen nay THEM MOI mot gioi han, khong giu nguyen
+hanh vi cu):
+
+- **Khong co quyen nay** → muc "Lich gui email bao cao" **an hoan toan khoi menu**
+  (`public/js/layout.js`) VA bi chan o toan bo API `/api/email-schedules/*`
+  (`src/routes/emailSchedule.routes.js`, them `requireFeature('canManageEmailSchedules')` noi
+  tiep dieu kien "xem duoc >=1 bao cao" da co san - ca 2 dieu kien deu phai dung).
+- **Tu dong CO quyen nay khi duoc gan "Quan tri doi tac"**: ngay luc HCRC gan 1 tai khoan lam
+  "Quan tri doi tac" (`PUT /api/users/:userId/partner-admin`, muc 4j), he thong **tu cap luon**
+  quyen nay (`permissionService.js#grantEmailScheduleAccess`) - khong phai tick rieng ngay sau
+  do. Chieu nguoc lai **KHONG tu dong thu hoi**: thu hoi "Quan tri doi tac" khong tu dong go
+  quyen quan ly lich email (tranh gay bat ngo mat quyen ngoai y muon) - muon thu hoi phai bo tick
+  rieng o cot "Lich gui email" cua man hinh "Tai khoan".
+- **HCRC tick/bo tick trong tay** o cot moi **"Lich gui email"** cua man hinh "Tai khoan" (cung
+  nhom 6 o tick quyen tinh nang da co, muc 15b) va o panel "Sua tai khoan" cua man hinh "Quan tri
+  doi tac" (doi tac tu cap cho nhan vien cua minh, muc 4j).
+- **Khong anh huong lich dang co san**: job nen gui email dinh ky (`emailScheduler.js`) chi kiem
+  tra `IsEnabled` + dung gio, khong kiem tra lai quyen nay - 1 lich da tao van tiep tuc gui dung
+  gio du nguoi tao sau nay bi thu hoi quyen "Quan tri doi tac"/"Lich gui email"; quyen nay chi
+  chan **thao tac quan ly** (xem/tao/sua/xoa/gui ngay) qua man hinh/API, khong hoi to lich dang
+  chay.
+
+Du lieu: `sql/042_add_can_manage_email_schedules.sql` (them cot, DEFAULT 0, kem backfill cap san
+quyen nay cho (a) tai khoan dang la "Quan tri doi tac", (b) tai khoan dang co san >=1 lich gui
+email tu truoc do - tranh ban nay tu dung khoa luon nhung tai khoan dang that su dung tinh nang
+nay). API: `PUT /api/users/:userId/permissions` va `PUT /api/partner-admin/users/:userId/permissions`
+nhan them truong `canManageEmailSchedules` trong 6 quyen tinh nang da co (xem muc 5/15b).
+
 ## 18. Quet voucher - 1 luong DUY NHAT cho ca 1 va nhieu ma (v3.75, don gian hoa v3.78)
 
 Man hinh "Quet voucher" dung **1 luong DUY NHAT**: moi ma quet xong (con dung duoc) **tu dong
@@ -2433,7 +2496,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.83)**: tai khoan "Quan tri doi tac" **MAC DINH xem duoc TOAN BO du lieu he
+Ban **moi nhat (v3.84)**: 2 thay doi doc lap. **(1)** Them quyen tinh nang thu 7
+**"Lich gui email bao cao"** (`CanManageEmailSchedules`, DEFAULT 0) - truoc day BAT KY tai khoan
+nao xem duoc >=1 bao cao deu tu tao/sua duoc lich gui email tu dong, nay CHI "Quan tri doi tac"
+(tu dong co san) hoac tai khoan duoc cap rieng moi thay/thao tac duoc man hinh nay; lich dang
+chay khong bi anh huong, chi chan thao tac quan ly. **(2)** Ca 3 man hinh bao cao mac dinh
+**"hom nay -> hom nay"** luc vao trang (truoc: Bao cao tong hop mac dinh dau thang, Voucher da
+su dung de trong/xem toan bo lich su) + them cot **"Cong ty"** vao "Bao cao doi soat" (2 bao cao
+con lai da co san cot nay). Migration: `sql/042_add_can_manage_email_schedules.sql` (kem
+backfill grandfather cho tai khoan dang la "Quan tri doi tac"/dang co lich gui email tu truoc).
+Xem muc 12f, 17c.
+
+Ban truoc do (v3.83): tai khoan "Quan tri doi tac" **MAC DINH xem duoc TOAN BO du lieu he
 thong cua ho** trong bao cao (truoc phai tu tao Nhom quyen xem bao cao ALL roi tu gan cho chinh
 minh moi xem het). Tinh "Toan bo" cung duoc sua CHINH XAC hon: gom CA du lieu cua tai khoan do
 HCRC tao nhung duoc cap them quyen dung he thong cua doi tac (vd 1 nhan vien HCRC duoc cap them

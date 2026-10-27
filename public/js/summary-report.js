@@ -6,10 +6,11 @@ const toDateInput = document.getElementById('toDate');
 const reportBody = document.getElementById('reportBody');
 const exportBtn = document.getElementById('exportBtn');
 
-const today = new Date();
-const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-fromDateInput.value = firstOfMonth.toISOString().slice(0, 10);
-toDateInput.value = today.toISOString().slice(0, 10);
+// v3.84: mac dinh "hom nay -> hom nay" (dong bo voi 2 bao cao con lai) - truoc day la "dau thang
+// -> hom nay", theo yeu cau nguoi dung.
+const today = new Date().toISOString().slice(0, 10);
+fromDateInput.value = today;
+toDateInput.value = today;
 
 document.getElementById('loadBtn').addEventListener('click', loadReport);
 exportBtn.addEventListener('click', exportExcel);

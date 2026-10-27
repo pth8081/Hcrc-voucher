@@ -48,6 +48,7 @@ const PERM_FIELDS = [
   'canViewUsedVouchers',
   'canViewBusinessGuide',
   'canViewSystemGuide',
+  'canManageEmailSchedules',
 ];
 const showDeletedCheckbox = document.getElementById('showDeletedCheckbox');
 const userSearchInput = document.getElementById('userSearchInput');
@@ -305,6 +306,7 @@ function renderUsers(users) {
         <td class="perm-cell" data-label="Voucher đã dùng">${permCheckbox('canViewUsedVouchers', perms.canViewUsedVouchers, isAdmin)}</td>
         <td class="perm-cell" data-label="HD nghiệp vụ">${permCheckbox('canViewBusinessGuide', perms.canViewBusinessGuide, isAdmin)}</td>
         <td class="perm-cell" data-label="HD hệ thống">${permCheckbox('canViewSystemGuide', perms.canViewSystemGuide, isAdmin)}</td>
+        <td class="perm-cell" data-label="Lịch gửi email">${permCheckbox('canManageEmailSchedules', perms.canManageEmailSchedules, isAdmin)}</td>
         <td data-label="Kích hoạt từ"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
         <td data-label="Hết hạn"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell" data-label="Trạng thái">${STATE_CHIP[u.state] || ''}</td>
