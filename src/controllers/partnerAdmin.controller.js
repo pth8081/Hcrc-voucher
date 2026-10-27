@@ -13,9 +13,9 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName } = req.body;
+    const { username, password, fullName, redemptionUnitId } = req.body;
     const created = await partnerAdminService.createScopedUser(
-      { username, password, fullName },
+      { username, password, fullName, redemptionUnitId },
       req.partnerAdminConnectionId,
       req.user.username
     );
@@ -23,7 +23,7 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_USER',
       targetUsername: created.username,
-      detail: { before: null, after: { connectionName: req.partnerAdminConnectionName } },
+      detail: { before: null, after: { connectionName: req.partnerAdminConnectionName, redemptionUnitId: redemptionUnitId || null } },
     });
     res.json({ success: true, data: created });
   } catch (err) {
@@ -123,6 +123,28 @@ async function updateUserLocation(req, res, next) {
   }
 }
 
+async function updateUserReportAccessGroup(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { reportAccessGroupId, username } = req.body;
+    await partnerAdminService.updateScopedUserReportAccessGroup(
+      userId,
+      req.partnerAdminConnectionId,
+      reportAccessGroupId ? Number(reportAccessGroupId) : null,
+      req.user.username
+    );
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_REPORT_ACCESS_GROUP',
+      targetUsername: username || String(userId),
+      detail: { before: null, after: { reportAccessGroupId: reportAccessGroupId || null } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listCompanies(req, res, next) {
   try {
     const data = await partnerAdminService.listOwnCompanies(req.partnerAdminConnectionId);
@@ -148,6 +170,39 @@ async function createCompany(req, res, next) {
   }
 }
 
+async function updateCompany(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const { companyCode, companyName } = req.body;
+    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName }, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_COMPANY',
+      targetUsername: companyName,
+      detail: { before: null, after: { id, companyCode } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeCompany(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    await partnerAdminService.removeOwnCompany(id, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_DELETE_COMPANY',
+      targetUsername: String(id),
+      detail: { before: null, after: null },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listUnits(req, res, next) {
   try {
     const data = await partnerAdminService.listOwnUnits(req.partnerAdminConnectionId);
@@ -168,6 +223,110 @@ async function createUnit(req, res, next) {
       detail: { before: null, after: created },
     });
     res.status(201).json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateUnit(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const { locationName, companyId } = req.body;
+    await partnerAdminService.updateOwnUnit(id, { locationName, companyId }, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_UNIT',
+      targetUsername: locationName,
+      detail: { before: null, after: { id, companyId: companyId || null } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeUnit(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    await partnerAdminService.removeOwnUnit(id, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_DELETE_UNIT',
+      targetUsername: String(id),
+      detail: { before: null, after: null },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function validateGroupBody(body) {
+  const { groupName, scopeType, companyIds } = body;
+  if (!groupName || !['ALL', 'SPECIFIC'].includes(scopeType)) {
+    return 'Thieu groupName hoac scopeType khong hop le (phai la ALL hoac SPECIFIC)';
+  }
+  if (scopeType === 'SPECIFIC' && (!Array.isArray(companyIds) || !companyIds.length)) {
+    return 'Nhom pham vi SPECIFIC phai chon it nhat 1 cong ty';
+  }
+  return null;
+}
+
+async function listReportAccessGroups(req, res, next) {
+  try {
+    const data = await partnerAdminService.listOwnReportAccessGroups(req.partnerAdminConnectionId);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createReportAccessGroup(req, res, next) {
+  try {
+    const error = validateGroupBody(req.body);
+    if (error) return res.status(400).json({ success: false, message: error });
+    const id = await partnerAdminService.createOwnReportAccessGroup(req.body, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_CREATE_ACCESS_GROUP',
+      targetUsername: req.body.groupName,
+      detail: { before: null, after: { id, scopeType: req.body.scopeType, companyIds: req.body.companyIds } },
+    });
+    res.status(201).json({ success: true, data: { id } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateReportAccessGroup(req, res, next) {
+  try {
+    const error = validateGroupBody(req.body);
+    if (error) return res.status(400).json({ success: false, message: error });
+    const id = Number(req.params.id);
+    await partnerAdminService.updateOwnReportAccessGroup(id, req.body, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_ACCESS_GROUP',
+      targetUsername: req.body.groupName,
+      detail: { before: null, after: { id, scopeType: req.body.scopeType, companyIds: req.body.companyIds } },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeReportAccessGroup(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    await partnerAdminService.removeOwnReportAccessGroup(id, req.partnerAdminConnectionId);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_DELETE_ACCESS_GROUP',
+      targetUsername: String(id),
+      detail: { before: null, after: null },
+    });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -250,10 +409,19 @@ module.exports = {
   updateUserProfile,
   updateUserPermissions,
   updateUserLocation,
+  updateUserReportAccessGroup,
   listCompanies,
   createCompany,
+  updateCompany,
+  removeCompany,
   listUnits,
   createUnit,
+  updateUnit,
+  removeUnit,
+  listReportAccessGroups,
+  createReportAccessGroup,
+  updateReportAccessGroup,
+  removeReportAccessGroup,
   auditLog,
   auditLogExport,
   scanLog,

@@ -7,11 +7,17 @@ const partnerAdminTitle = document.getElementById('partnerAdminTitle');
 const accList = document.getElementById('accList');
 const createForm = document.getElementById('createForm');
 const createBtn = document.getElementById('createBtn');
+const newUserCompany = document.getElementById('newUserCompany');
+const newUserUnit = document.getElementById('newUserUnit');
 
 const orgList = document.getElementById('orgList');
 const newLocationCompany = document.getElementById('newLocationCompany');
 const createCompanyBtn = document.getElementById('createCompanyBtn');
 const createUnitBtn = document.getElementById('createUnitBtn');
+const cancelCompanyEditBtn = document.getElementById('cancelCompanyEditBtn');
+const cancelUnitEditBtn = document.getElementById('cancelUnitEditBtn');
+const companyFormTitle = document.getElementById('companyFormTitle');
+const unitFormTitle = document.getElementById('unitFormTitle');
 
 const STATE_CHIP = {
   active: '<span class="status-badge status-unused">ĐANG HOẠT ĐỘNG</span>',
@@ -42,9 +48,56 @@ const ACTION_LABEL = {
   PARTNER_ADMIN_UPDATE_PROFILE: 'Bạn sửa họ tên/đặt lại mật khẩu',
   PARTNER_ADMIN_UPDATE_PERMISSIONS: 'Bạn đổi quyền tính năng',
   PARTNER_ADMIN_UPDATE_LOCATION: 'Bạn đổi điểm tiêu tài khoản',
+  PARTNER_ADMIN_UPDATE_REPORT_ACCESS_GROUP: 'Bạn đổi nhóm quyền xem báo cáo tài khoản',
   PARTNER_ADMIN_CREATE_COMPANY: 'Bạn tạo công ty',
+  PARTNER_ADMIN_UPDATE_COMPANY: 'Bạn sửa công ty',
+  PARTNER_ADMIN_DELETE_COMPANY: 'Bạn xóa công ty',
   PARTNER_ADMIN_CREATE_UNIT: 'Bạn tạo điểm tiêu',
+  PARTNER_ADMIN_UPDATE_UNIT: 'Bạn sửa điểm tiêu',
+  PARTNER_ADMIN_DELETE_UNIT: 'Bạn xóa điểm tiêu',
+  PARTNER_ADMIN_CREATE_ACCESS_GROUP: 'Bạn tạo nhóm quyền xem báo cáo',
+  PARTNER_ADMIN_UPDATE_ACCESS_GROUP: 'Bạn sửa nhóm quyền xem báo cáo',
+  PARTNER_ADMIN_DELETE_ACCESS_GROUP: 'Bạn xóa nhóm quyền xem báo cáo',
 };
+
+// M20 (v3.81): 4 tab cua man nay gio gan voi 4 quyen con rieng (xem permissionService.js) - tab
+// nao KHONG duoc HCRC cap se AN HAN khoi menu (khong chi khoa API) - doc truc tiep tu
+// user.permissions (da "chup" san luc dang nhap, xem authService.js#issueSession). Gia tri
+// !== false (thay vi === true) de tuong thich nguoc voi phien dang nhap TU TRUOC khi co tinh
+// nang nay (permissions con thieu truong, coi nhu "chua ro" -> van hien, giong cach layout.js xu
+// ly NAV_ITEMS khi permissions null).
+const TAB_PERMISSION = {
+  users: 'partnerAdminCanManageAccounts',
+  org: 'partnerAdminCanManageOrg',
+  reportAccess: 'partnerAdminCanManageOrg',
+  audit: 'partnerAdminCanViewAuditLog',
+  scan: 'partnerAdminCanViewScanLog',
+};
+
+function applyTabPermissions() {
+  const user = getUser();
+  const permissions = (user && user.permissions) || {};
+  const tabButtons = Array.from(document.querySelectorAll('#partnerAdminTabs .tab-btn'));
+  let firstVisible = null;
+  tabButtons.forEach((btn) => {
+    const requiredPerm = TAB_PERMISSION[btn.dataset.tab];
+    const visible = !requiredPerm || permissions[requiredPerm] !== false;
+    btn.classList.toggle('hidden', !visible);
+    if (visible && !firstVisible) firstVisible = btn;
+  });
+  // Neu tab dang active ("users", mac dinh trong HTML) bi an, chuyen sang tab DAU TIEN con hien -
+  // tranh man hinh trang (ca tab active lan panel cua no deu an) khi tai khoan khong co quyen
+  // "Quan ly tai khoan" nhung co quyen khac.
+  const activeBtn = tabButtons.find((b) => b.classList.contains('active'));
+  if ((!activeBtn || activeBtn.classList.contains('hidden')) && firstVisible) {
+    tabButtons.forEach((b) => b.classList.remove('active'));
+    firstVisible.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+    const panel = document.getElementById(`tab${firstVisible.dataset.tab[0].toUpperCase()}${firstVisible.dataset.tab.slice(1)}`);
+    if (panel) panel.classList.remove('hidden');
+  }
+}
+applyTabPermissions();
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -52,9 +105,11 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.classList.add('active');
     document.getElementById('tabUsers').classList.toggle('hidden', btn.dataset.tab !== 'users');
     document.getElementById('tabOrg').classList.toggle('hidden', btn.dataset.tab !== 'org');
+    document.getElementById('tabReportAccess').classList.toggle('hidden', btn.dataset.tab !== 'reportAccess');
     document.getElementById('tabAudit').classList.toggle('hidden', btn.dataset.tab !== 'audit');
     document.getElementById('tabScan').classList.toggle('hidden', btn.dataset.tab !== 'scan');
     if (btn.dataset.tab === 'org' && !orgLoaded) loadOrg();
+    if (btn.dataset.tab === 'reportAccess' && !groupsLoaded) loadGroups();
     if (btn.dataset.tab === 'audit' && !auditLoaded) loadAudit();
     if (btn.dataset.tab === 'scan' && !scanLoaded) loadScan();
   });
@@ -187,25 +242,113 @@ function escapeHtml(str) {
 let ownConnectionName = '';
 let scopedUsersCache = [];
 let ownUnitsCache = [];
+let ownCompaniesCache = [];
+let ownGroupsCache = [];
 let openEditUserId = null;
 
-async function load() {
-  try {
-    const user = getUser();
-    ownConnectionName = (user && user.permissions && user.permissions.partnerAdminConnectionName) || '';
-    partnerAdminTitle.textContent = ownConnectionName ? `Quản trị đối tác - Hệ thống ${ownConnectionName}` : 'Quản trị đối tác';
+/** O chon "Cong ty" dung chung cho CA create-form lan bo loc (tach 2 bien DOM rieng - id khac
+ * nhau - nhung dung chung 1 nguon du lieu ownCompaniesCache) - diem 1 (gan Cong ty/Diem tieu
+ * ngay luc tao) va diem 5/6 (bo loc danh sach) trong cung 1 tab "Quan ly tai khoan". */
+function renderCompanySelectOptions(select, placeholder) {
+  const current = select.value;
+  select.innerHTML = `<option value="">${placeholder}</option>` + ownCompaniesCache.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('');
+  if (ownCompaniesCache.some((c) => String(c.Id) === current)) select.value = current;
+}
 
-    const [rows, units] = await Promise.all([apiFetch('/partner-admin/users'), apiFetch('/partner-admin/units')]);
-    scopedUsersCache = rows;
-    // Nap san danh sach diem tieu cua chinh doi tac (dung cho o chon trong "Sua tai khoan") ngay
-    // tu dau, KHONG cho den khi mo tab "Cong ty & Diem tieu" - tranh truong hop bam "Sua" 1 tai
-    // khoan truoc khi tung mo tab do, o chon se trong khong co gi de chon.
-    ownUnitsCache = units;
-    renderList(rows);
-  } catch (err) {
+function unitOptionsForCompany(companyId) {
+  const list = companyId ? ownUnitsCache.filter((u) => String(u.CompanyId) === String(companyId)) : ownUnitsCache;
+  return list.map((u) => `<option value="${u.Id}">${escapeHtml(u.CompanyName || '')} - ${escapeHtml(u.PartnerName)}</option>`).join('');
+}
+
+const newUserSearchInput = document.getElementById('userSearchInput');
+const filterCompanySelect = document.getElementById('filterCompany');
+const filterUnitSelect = document.getElementById('filterUnit');
+
+function refreshNewUserUnitOptions() {
+  const companyId = newUserCompany.value;
+  if (!companyId) {
+    newUserUnit.innerHTML = '<option value="">-- Chọn công ty trước --</option>';
+    return;
+  }
+  const opts = unitOptionsForCompany(companyId);
+  newUserUnit.innerHTML = opts ? `<option value="">-- Không gán điểm tiêu --</option>${opts}` : '<option value="">-- Công ty này chưa có điểm tiêu nào --</option>';
+}
+newUserCompany.addEventListener('change', refreshNewUserUnitOptions);
+
+function refreshFilterUnitOptions() {
+  const companyId = filterCompanySelect.value;
+  const current = filterUnitSelect.value;
+  const list = companyId ? ownUnitsCache.filter((u) => String(u.CompanyId) === String(companyId)) : ownUnitsCache;
+  filterUnitSelect.innerHTML = '<option value="">Tất cả điểm tiêu</option>' + list.map((u) => `<option value="${u.Id}">${escapeHtml(u.CompanyName || '')} - ${escapeHtml(u.PartnerName)}</option>`).join('');
+  if (list.some((u) => String(u.Id) === current)) filterUnitSelect.value = current;
+}
+filterCompanySelect.addEventListener('change', () => {
+  refreshFilterUnitOptions();
+  applyListFilter();
+});
+filterUnitSelect.addEventListener('change', applyListFilter);
+newUserSearchInput.addEventListener('input', applyListFilter);
+
+/** Loc danh sach tai khoan (v3.81, diem 5/6) - ket hop o tim kiem + 2 bo loc Cong ty/Diem tieu,
+ * dung lai `data-company-id`/`data-unit-id` da gan san luc renderList() (xem findUnitForRow()).
+ * Chon Cong ty nhung KHONG chon rieng 1 Diem tieu = hien TOAN BO tai khoan cua cong ty do. */
+function applyListFilter() {
+  const term = newUserSearchInput.value.trim().toLowerCase();
+  const companyFilter = filterCompanySelect.value;
+  const unitFilter = filterUnitSelect.value;
+  document.querySelectorAll('#accList .acc-row').forEach((row) => {
+    const username = (row.dataset.username || '').toLowerCase();
+    const matchTerm = !term || username.includes(term);
+    const matchCompany = !companyFilter || row.dataset.companyId === companyFilter;
+    const matchUnit = !unitFilter || row.dataset.unitId === unitFilter;
+    row.classList.toggle('hidden', !(matchTerm && matchCompany && matchUnit));
+  });
+}
+
+async function load() {
+  const user = getUser();
+  // M20 (v3.81): tai khoan khong phai partner-admin nao ca (isPartnerAdmin=false) moi coi la
+  // "khong duoc phep" (an ca trang) - tai khoan LA partner-admin nhung bi bo tick het ca 4 tab
+  // (hiem, nhung co the xay ra) van duoc vao trang, chi KHONG con tab nao de thao tac (giao dien
+  // trong, khong hien thong bao sai la "khong co quyen quan tri doi tac" trong khi thuc ra co).
+  if (!user || !user.permissions || !user.permissions.isPartnerAdmin) {
     notAllowedNotice.classList.remove('hidden');
     partnerAdminCard.classList.add('hidden');
+    return;
   }
+  ownConnectionName = (user.permissions && user.permissions.partnerAdminConnectionName) || '';
+  partnerAdminTitle.textContent = ownConnectionName ? `Quản trị đối tác - Hệ thống ${ownConnectionName}` : 'Quản trị đối tác';
+
+  // Goi DOC LAP tung API (khong Promise.all() rang buoc chung) - 1 tab khong duoc cap quyen (vd
+  // canManageAccounts=false) se khien DUNG endpoint do tra 403, nhung KHONG duoc lam hong du lieu
+  // cua cac tab khac van duoc phep. Tra ve mang rong khi loi, du dung nguyen nhan 403 (khong co
+  // quyen tab do, UI tab tuong ung da bi an boi applyTabPermissions() roi) hay loi mang that su.
+  const [rows, units, companies, groups] = await Promise.all([
+    apiFetch('/partner-admin/users').catch(() => []),
+    apiFetch('/partner-admin/units').catch(() => []),
+    apiFetch('/partner-admin/companies').catch(() => []),
+    apiFetch('/partner-admin/report-access-groups').catch(() => []),
+  ]);
+  scopedUsersCache = rows;
+  // Nap san danh sach diem tieu/cong ty/nhom quyen (dung cho o chon trong "Sua tai khoan" va
+  // form tao tai khoan) ngay tu dau, KHONG cho den khi mo cac tab khac - tranh truong hop mo
+  // form tao/sua tai khoan truoc khi tung mo cac tab do, o chon se trong khong co gi de chon.
+  ownUnitsCache = units;
+  ownCompaniesCache = companies;
+  ownGroupsCache = groups;
+  renderCompanySelectOptions(newUserCompany, '-- Chưa gán công ty --');
+  renderCompanySelectOptions(filterCompanySelect, 'Tất cả công ty của bạn');
+  refreshNewUserUnitOptions();
+  refreshFilterUnitOptions();
+  renderList(rows);
+  applyListFilter();
+}
+
+/** Tim Don vi thu hoi (qua do, Cong ty) 1 tai khoan dang gan, dua vao LocationCode - dung cho
+ * data-company-id/data-unit-id tren tung dong (v3.81, diem 5/6) de bo loc hoat dong duoc. */
+function findUnitForRow(u) {
+  if (!u.locationsDetail) return null;
+  return ownUnitsCache.find((unit) => unit.LocationCode === u.locationsDetail) || null;
 }
 
 function renderList(rows) {
@@ -232,8 +375,9 @@ function renderList(rows) {
         ? ''
         : ' <span class="status-badge status-other">DÙNG CHUNG HỆ THỐNG KHÁC</span>';
       const editPanel = openEditUserId === u.userId ? renderEditPanel(u) : '';
+      const unit = findUnitForRow(u);
       return `
-      <div class="acc-row" data-user-id="${u.userId}" data-username="${escapeHtml(u.username)}">
+      <div class="acc-row" data-user-id="${u.userId}" data-username="${escapeHtml(u.username)}" data-company-id="${unit ? unit.CompanyId : ''}" data-unit-id="${unit ? unit.Id : ''}">
         <div class="acc-row-main">
           <span class="acc-row-name">${escapeHtml(u.username)} — ${escapeHtml(u.fullName || '')}${sharedBadge}</span>
           <span class="acc-row-sub">${stateLabel ? '' : ''}${u.isDeleted ? 'Đã khóa' : 'Đang hoạt động'} · Điểm tiêu: ${escapeHtml(u.locationName || '(chưa gán)')}</span>
@@ -259,34 +403,61 @@ function renderList(rows) {
       const userId = Number(row.dataset.userId);
       openEditUserId = openEditUserId === userId ? null : userId;
       renderList(scopedUsersCache);
+      applyListFilter();
     });
   });
   wireEditPanelHandlers();
 }
 
-/** O "Sua tai khoan" (v3.76): ho ten/mat khau + 6 quyen tinh nang + diem tieu - xem phan tich
- * da gui nguoi dung truoc khi lam (mockup). Diem tieu: tai khoan dung CHUNG them he thong khac
- * chi hien DANG CHI XEM (khong doi duoc qua day) - theo dung quyet dinh nguoi dung: chi quan tri
- * day du HCRC moi doi diem tieu cho tai khoan dung chung duoc. */
+/** O "Sua tai khoan": ho ten/mat khau + 6 quyen tinh nang + diem tieu + nhom quyen xem bao cao
+ * (v3.81) - xem phan tich da gui nguoi dung truoc khi lam (mockup). Diem tieu/Nhom quyen bao cao:
+ * tai khoan dung CHUNG them he thong khac chi hien DANG CHI XEM (khong doi duoc qua day) - theo
+ * dung quyet dinh nguoi dung: chi quan tri day du HCRC moi doi duoc cho tai khoan dung chung. */
 function renderEditPanel(u) {
+  const extraField = (label, selectHtml, hintHtml) => `
+    <label>${label}</label>
+    ${selectHtml}
+    ${hintHtml || ''}`;
+
   const locationField = u.exclusiveToThisSystem
-    ? `
-    <label>Điểm tiêu</label>
-    <select class="edit-location-select">
-      <option value="">(chưa gán)</option>
-      ${ownUnitsCache
-        .map(
-          (unit) =>
-            `<option value="${unit.Id}" ${unit.LocationCode === u.locationsDetail ? 'selected' : ''}>${escapeHtml(unit.CompanyName || '')} - ${escapeHtml(unit.PartnerName)}</option>`
-        )
-        .join('')}
-    </select>
-    <p class="hint" style="margin-top:4px;">Chỉ hiện các điểm tiêu do bạn tạo (tab "Công ty &amp; Điểm tiêu").</p>`
+    ? extraField(
+        'Điểm tiêu',
+        `<select class="edit-location-select">
+          <option value="">(chưa gán)</option>
+          ${ownUnitsCache
+            .map(
+              (unit) =>
+                `<option value="${unit.Id}" ${unit.LocationCode === u.locationsDetail ? 'selected' : ''}>${escapeHtml(unit.CompanyName || '')} - ${escapeHtml(unit.PartnerName)}</option>`
+            )
+            .join('')}
+        </select>`,
+        '<p class="hint" style="margin-top:4px;">Chỉ hiện các điểm tiêu do bạn tạo, hoặc do HCRC tạo và gán cho bạn (tab "Công ty &amp; Điểm tiêu").</p>'
+      )
     : `
     <label>Điểm tiêu</label>
     <div class="loc-readonly">
       Điểm tiêu hiện tại: <strong>${escapeHtml(u.locationName || '(chưa gán)')}</strong> — tài khoản này đang dùng chung hệ thống khác,
       chỉ <strong>quản trị viên HCRC</strong> mới đổi được điểm tiêu cho tài khoản dùng chung. Liên hệ HCRC nếu cần thay đổi.
+    </div>`;
+
+  const reportAccessField = u.exclusiveToThisSystem
+    ? extraField(
+        'Nhóm quyền xem báo cáo',
+        `<select class="edit-report-access-select">
+          <option value="">-- Mặc định: chỉ xem công ty của điểm tiêu trên --</option>
+          ${ownGroupsCache
+            .map(
+              (g) =>
+                `<option value="${g.Id}" ${g.Id === u.reportAccessGroupId ? 'selected' : ''}>${escapeHtml(g.GroupName)} (${g.ScopeType === 'ALL' ? 'toàn bộ công ty của bạn' : `${g.companies.length} công ty`})</option>`
+            )
+            .join('')}
+        </select>`,
+        '<p class="hint" style="margin-top:4px;">Chỉ hiện các nhóm quyền do chính bạn tạo (tab "Nhóm quyền xem báo cáo").</p>'
+      )
+    : `
+    <label>Nhóm quyền xem báo cáo</label>
+    <div class="loc-readonly">
+      Hiện tại: <strong>${escapeHtml(u.reportAccessGroupName || 'Mặc định')}</strong> — chỉ quản trị viên HCRC mới đổi được cho tài khoản dùng chung.
     </div>`;
 
   return `
@@ -308,6 +479,7 @@ function renderEditPanel(u) {
     </div>
 
     ${locationField}
+    ${reportAccessField}
 
     <div class="flex gap-10 mt-16">
       <button type="button" class="btn-primary save-edit-btn">Lưu thay đổi</button>
@@ -332,6 +504,7 @@ async function saveEdit(panel) {
     perms[cb.dataset.perm] = cb.checked;
   });
   const locationSelect = panel.querySelector('.edit-location-select');
+  const reportAccessSelect = panel.querySelector('.edit-report-access-select');
 
   const btn = panel.querySelector('.save-edit-btn');
   btn.disabled = true;
@@ -348,6 +521,12 @@ async function saveEdit(panel) {
       await apiFetch(`/partner-admin/users/${userId}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId: locationSelect.value || null, username }),
+      });
+    }
+    if (reportAccessSelect) {
+      await apiFetch(`/partner-admin/users/${userId}/report-access-group`, {
+        method: 'PUT',
+        body: JSON.stringify({ reportAccessGroupId: reportAccessSelect.value || null, username }),
       });
     }
     showToast(`Đã lưu thay đổi cho tài khoản "${username}"`);
@@ -405,9 +584,10 @@ async function removeOwnConnection(row) {
   }
 }
 
-// ===== Tab "Cong ty & Diem tieu" (v3.76) =====
+// ===== Tab "Cong ty & Diem tieu" (v3.76, mo rong Sua/Xoa o v3.81 - diem 3) =====
 let orgLoaded = false;
-let ownCompaniesCache = [];
+let editingOwnCompanyId = null;
+let editingOwnUnitId = null;
 
 async function loadOrg() {
   try {
@@ -421,6 +601,8 @@ async function loadOrg() {
     newLocationCompany.innerHTML = companies.length
       ? companies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('')
       : '<option value="">Chưa có công ty - tạo công ty trước</option>';
+    renderCompanySelectOptions(newUserCompany, '-- Chưa gán công ty --');
+    renderCompanySelectOptions(filterCompanySelect, 'Tất cả công ty của bạn');
     renderOrg();
   } catch (err) {
     showToast(err.message);
@@ -432,19 +614,128 @@ function renderOrg() {
     orgList.innerHTML = '<p class="text-muted">Chưa có công ty nào - tạo công ty ở form bên trên trước.</p>';
     return;
   }
+  // "Thuoc chinh minh" = CreatedByPartnerConnectionId cua cong ty nay DUNG LA connection cua
+  // chinh doi tac dang xem - MOI cong ty tra ve o day da qua dieu kien nay roi (API chi tra ve
+  // dung pham vi), nen o day luon la true - tru TRUONG HOP cong ty do HCRC tao va GAN cho doi
+  // tac (van thuoc dung pham vi, nhung "chu thuc su" la HCRC) - server tu chan sua/xoa qua
+  // companyService.isOwnedByConnection() giong nhau cho ca 2 truong hop (dung 1 dieu kien), nen
+  // frontend o day KHONG the phan biet duoc "tu tao" voi "HCRC gan cho" chi tu du lieu co san.
+  // Vi vay LUON hien nut Sua/Xoa cho moi cong ty trong danh sach nay (ca 2 truong hop deu sua/xoa
+  // duoc that theo dung thiet ke "HCRC gan = dung duoc nhu cua minh") - khac voi demo ban dau (co
+  // badge rieng cho cong ty HCRC gan, chi de MINH HOA y tuong, khong phai gioi han that su).
   orgList.innerHTML = ownCompaniesCache
     .map((c) => {
       const units = ownUnitsCache.filter((u) => u.CompanyId === c.Id);
       return `
-      <div class="company-card">
+      <div class="company-card" data-company-id="${c.Id}">
         <div class="company-card-head">
           <span class="company-name">${escapeHtml(c.CompanyName)}</span>
-          <span class="text-muted" style="font-size:12px;">${units.length} điểm tiêu</span>
+          <span style="display:flex; align-items:center; gap:8px;">
+            <span class="text-muted" style="font-size:12px;">${units.length} điểm tiêu</span>
+            <button type="button" class="btn-secondary edit-company-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
+            <button type="button" class="btn-danger delete-company-btn" style="padding:4px 10px; font-size:12.5px;">Xóa</button>
+          </span>
         </div>
-        ${units.map((u) => `<span class="unit-chip">${escapeHtml(u.PartnerName)}</span>`).join('') || '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>'}
+        ${units
+          .map(
+            (u) => `
+          <span class="unit-chip">
+            ${escapeHtml(u.PartnerName)}
+            <button type="button" class="edit-unit-btn" data-id="${u.Id}" title="Sửa điểm tiêu" style="border:none;background:none;cursor:pointer;margin-left:4px;">✎</button>
+            <button type="button" class="delete-unit-btn" data-id="${u.Id}" title="Xóa điểm tiêu" style="border:none;background:none;cursor:pointer;color:var(--danger,#d33);">✕</button>
+          </span>`
+          )
+          .join('') || '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>'}
       </div>`;
     })
     .join('');
+
+  orgList.querySelectorAll('.edit-company-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.closest('.company-card').dataset.companyId);
+      const company = ownCompaniesCache.find((c) => c.Id === id);
+      if (company) populateCompanyEditForm(company);
+    });
+  });
+  orgList.querySelectorAll('.delete-company-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteOwnCompany(Number(btn.closest('.company-card').dataset.companyId)));
+  });
+  orgList.querySelectorAll('.edit-unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const unit = ownUnitsCache.find((u) => u.Id === Number(btn.dataset.id));
+      if (unit) populateUnitEditForm(unit);
+    });
+  });
+  orgList.querySelectorAll('.delete-unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteOwnUnit(Number(btn.dataset.id)));
+  });
+}
+
+function populateCompanyEditForm(c) {
+  editingOwnCompanyId = c.Id;
+  companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
+  document.getElementById('newCompanyCode').value = c.CompanyCode || '';
+  document.getElementById('newCompanyName').value = c.CompanyName || '';
+  createCompanyBtn.textContent = 'Cập nhật công ty';
+  cancelCompanyEditBtn.classList.remove('hidden');
+  createCompanyBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetCompanyEditForm() {
+  editingOwnCompanyId = null;
+  companyFormTitle.textContent = 'Tạo công ty mới';
+  document.getElementById('newCompanyCode').value = '';
+  document.getElementById('newCompanyName').value = '';
+  createCompanyBtn.textContent = 'Tạo công ty';
+  cancelCompanyEditBtn.classList.add('hidden');
+}
+cancelCompanyEditBtn.addEventListener('click', resetCompanyEditForm);
+
+async function deleteOwnCompany(id) {
+  const company = ownCompaniesCache.find((c) => c.Id === id);
+  if (!company) return;
+  if (!confirm(`Xóa công ty "${company.CompanyName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/partner-admin/companies/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa công ty');
+    if (editingOwnCompanyId === id) resetCompanyEditForm();
+    await loadOrg();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function populateUnitEditForm(u) {
+  editingOwnUnitId = u.Id;
+  unitFormTitle.textContent = `Sửa điểm tiêu: ${u.PartnerName}`;
+  document.getElementById('newLocationName').value = u.PartnerName || '';
+  newLocationCompany.value = String(u.CompanyId || '');
+  createUnitBtn.textContent = 'Cập nhật điểm tiêu';
+  cancelUnitEditBtn.classList.remove('hidden');
+  createUnitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetUnitEditForm() {
+  editingOwnUnitId = null;
+  unitFormTitle.textContent = 'Tạo điểm tiêu mới';
+  document.getElementById('newLocationName').value = '';
+  createUnitBtn.textContent = 'Tạo điểm tiêu';
+  cancelUnitEditBtn.classList.add('hidden');
+}
+cancelUnitEditBtn.addEventListener('click', resetUnitEditForm);
+
+async function deleteOwnUnit(id) {
+  const unit = ownUnitsCache.find((u) => u.Id === id);
+  if (!unit) return;
+  if (!confirm(`Xóa điểm tiêu "${unit.PartnerName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/partner-admin/units/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa điểm tiêu');
+    if (editingOwnUnitId === id) resetUnitEditForm();
+    await loadOrg();
+  } catch (err) {
+    showToast(err.message);
+  }
 }
 
 createCompanyBtn.addEventListener('click', async () => {
@@ -454,10 +745,16 @@ createCompanyBtn.addEventListener('click', async () => {
 
   createCompanyBtn.disabled = true;
   try {
-    await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName }) });
-    showToast(`Đã tạo công ty "${companyName}"`);
-    document.getElementById('newCompanyCode').value = '';
-    document.getElementById('newCompanyName').value = '';
+    if (editingOwnCompanyId) {
+      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName }) });
+      showToast(`Đã cập nhật công ty "${companyName}"`);
+      resetCompanyEditForm();
+    } else {
+      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName }) });
+      showToast(`Đã tạo công ty "${companyName}"`);
+      document.getElementById('newCompanyCode').value = '';
+      document.getElementById('newCompanyName').value = '';
+    }
     await loadOrg();
   } catch (err) {
     showToast(err.message);
@@ -474,9 +771,15 @@ createUnitBtn.addEventListener('click', async () => {
 
   createUnitBtn.disabled = true;
   try {
-    await apiFetch('/partner-admin/units', { method: 'POST', body: JSON.stringify({ locationName, companyId }) });
-    showToast(`Đã tạo điểm tiêu "${locationName}"`);
-    document.getElementById('newLocationName').value = '';
+    if (editingOwnUnitId) {
+      await apiFetch(`/partner-admin/units/${editingOwnUnitId}`, { method: 'PUT', body: JSON.stringify({ locationName, companyId }) });
+      showToast(`Đã cập nhật điểm tiêu "${locationName}"`);
+      resetUnitEditForm();
+    } else {
+      await apiFetch('/partner-admin/units', { method: 'POST', body: JSON.stringify({ locationName, companyId }) });
+      showToast(`Đã tạo điểm tiêu "${locationName}"`);
+      document.getElementById('newLocationName').value = '';
+    }
     await loadOrg();
   } catch (err) {
     showToast(err.message);
@@ -485,20 +788,167 @@ createUnitBtn.addEventListener('click', async () => {
   }
 });
 
+// ===== Tab "Nhom quyen xem bao cao" (v3.81, diem 8/9) =====
+let groupsLoaded = false;
+let editingOwnGroupId = null;
+const groupFormTitle = document.getElementById('groupFormTitle');
+const newGroupScope = document.getElementById('newGroupScope');
+const groupCompaniesField = document.getElementById('groupCompaniesField');
+const groupCompaniesList = document.getElementById('groupCompaniesList');
+const createGroupBtn = document.getElementById('createGroupBtn');
+const cancelGroupEditBtn = document.getElementById('cancelGroupEditBtn');
+const groupList = document.getElementById('groupList');
+
+function renderGroupCompanyCheckboxes() {
+  if (!ownCompaniesCache.length) {
+    groupCompaniesList.innerHTML = '<span class="text-muted">Chưa có công ty nào - tạo công ty ở tab "Công ty &amp; Điểm tiêu" trước.</span>';
+    return;
+  }
+  groupCompaniesList.innerHTML = ownCompaniesCache
+    .map((c) => `
+      <label class="checkbox-inline">
+        <input type="checkbox" class="groupCompanyCheckbox" value="${c.Id}" />
+        ${escapeHtml(c.CompanyName)}
+      </label>`)
+    .join('');
+}
+
+function toggleGroupCompaniesField() {
+  groupCompaniesField.style.display = newGroupScope.value === 'SPECIFIC' ? '' : 'none';
+}
+newGroupScope.addEventListener('change', toggleGroupCompaniesField);
+toggleGroupCompaniesField();
+
+async function loadGroups() {
+  try {
+    ownGroupsCache = await apiFetch('/partner-admin/report-access-groups');
+    groupsLoaded = true;
+    renderGroupCompanyCheckboxes();
+    renderGroups();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function renderGroups() {
+  if (!ownGroupsCache.length) {
+    groupList.innerHTML = '<p class="text-muted">Chưa có nhóm quyền nào - tạo ở form bên trái.</p>';
+    return;
+  }
+  groupList.innerHTML = ownGroupsCache
+    .map(
+      (g) => `
+      <div class="company-card" data-group-id="${g.Id}">
+        <div class="company-card-head">
+          <span class="company-name">${escapeHtml(g.GroupName)}</span>
+          <span style="display:flex; align-items:center; gap:8px;">
+            <span class="text-muted" style="font-size:12px;">${g.ScopeType === 'ALL' ? 'Toàn bộ công ty của bạn' : `${g.companies.length} công ty được chọn`}</span>
+            <button type="button" class="btn-secondary edit-group-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
+            <button type="button" class="btn-danger delete-group-btn" style="padding:4px 10px; font-size:12.5px;">Xóa</button>
+          </span>
+        </div>
+        ${g.ScopeType === 'SPECIFIC' ? g.companies.map((c) => `<span class="unit-chip">${escapeHtml(c.companyName)}</span>`).join('') : ''}
+      </div>`
+    )
+    .join('');
+
+  groupList.querySelectorAll('.edit-group-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.closest('.company-card').dataset.groupId);
+      const group = ownGroupsCache.find((g) => g.Id === id);
+      if (group) populateGroupEditForm(group);
+    });
+  });
+  groupList.querySelectorAll('.delete-group-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteOwnGroup(Number(btn.closest('.company-card').dataset.groupId)));
+  });
+}
+
+function populateGroupEditForm(g) {
+  editingOwnGroupId = g.Id;
+  groupFormTitle.textContent = `Sửa nhóm quyền: ${g.GroupName}`;
+  document.getElementById('newGroupName').value = g.GroupName || '';
+  newGroupScope.value = g.ScopeType;
+  toggleGroupCompaniesField();
+  renderGroupCompanyCheckboxes();
+  const companyIds = (g.companies || []).map((c) => c.companyId);
+  document.querySelectorAll('.groupCompanyCheckbox').forEach((cb) => {
+    cb.checked = companyIds.includes(Number(cb.value));
+  });
+  createGroupBtn.textContent = 'Cập nhật nhóm quyền';
+  cancelGroupEditBtn.classList.remove('hidden');
+  createGroupBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetGroupEditForm() {
+  editingOwnGroupId = null;
+  groupFormTitle.textContent = 'Thêm nhóm quyền';
+  document.getElementById('newGroupName').value = '';
+  newGroupScope.value = 'SPECIFIC';
+  toggleGroupCompaniesField();
+  renderGroupCompanyCheckboxes();
+  createGroupBtn.textContent = 'Lưu nhóm quyền';
+  cancelGroupEditBtn.classList.add('hidden');
+}
+cancelGroupEditBtn.addEventListener('click', resetGroupEditForm);
+
+async function deleteOwnGroup(id) {
+  const group = ownGroupsCache.find((g) => g.Id === id);
+  if (!group) return;
+  if (!confirm(`Xóa nhóm quyền "${group.GroupName}"? Không thể hoàn tác.`)) return;
+  try {
+    await apiFetch(`/partner-admin/report-access-groups/${id}`, { method: 'DELETE' });
+    showToast('Đã xóa nhóm quyền');
+    if (editingOwnGroupId === id) resetGroupEditForm();
+    await loadGroups();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+createGroupBtn.addEventListener('click', async () => {
+  const groupName = document.getElementById('newGroupName').value.trim();
+  const scopeType = newGroupScope.value;
+  const companyIds = Array.from(document.querySelectorAll('.groupCompanyCheckbox:checked')).map((el) => Number(el.value));
+  if (!groupName) return showToast('Vui lòng nhập Tên nhóm');
+  if (scopeType === 'SPECIFIC' && !companyIds.length) return showToast('Vui lòng chọn ít nhất 1 công ty');
+
+  const payload = { groupName, scopeType, companyIds };
+  createGroupBtn.disabled = true;
+  try {
+    if (editingOwnGroupId) {
+      await apiFetch(`/partner-admin/report-access-groups/${editingOwnGroupId}`, { method: 'PUT', body: JSON.stringify(payload) });
+      showToast('Đã cập nhật nhóm quyền');
+      resetGroupEditForm();
+    } else {
+      await apiFetch('/partner-admin/report-access-groups', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Đã lưu nhóm quyền');
+      document.getElementById('newGroupName').value = '';
+    }
+    await loadGroups();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    createGroupBtn.disabled = false;
+  }
+});
+
 createForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const fullName = document.getElementById('newFullName').value.trim();
+  const redemptionUnitId = newUserUnit.value || null;
 
   createBtn.disabled = true;
   try {
     await apiFetch('/partner-admin/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName }),
+      body: JSON.stringify({ username, password, fullName, redemptionUnitId }),
     });
     showToast(`Đã tạo tài khoản "${username}"`);
     createForm.reset();
+    newUserUnit.innerHTML = '<option value="">-- Chọn công ty trước --</option>';
     load();
   } catch (err) {
     showToast(err.message);

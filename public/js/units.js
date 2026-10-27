@@ -40,6 +40,8 @@ let companiesCache = [];
 let locationsCache = [];
 let unitsCache = [];
 let accessGroupsCache = [];
+let voucherConnectionsCache = [];
+const companyPartnerConnectionSelect = document.getElementById('companyPartnerConnection');
 // Dung chung 1 "mo hinh sua" cho ca 3 danh sach (Cong ty/Diem tieu/Nhom quyen): bam "Sua" tren 1
 // dong se DO LAI chinh form "Them..." o tren (gon hon rat nhieu so voi sua ngay tren dong bang,
 // vi cac form nay co toi 9-10 truong) - giong het cach man "Ket noi API" lam, dung
@@ -57,11 +59,27 @@ let editingAccessGroupId = null;
     unitsCard.classList.add('hidden');
     return;
   }
+  await loadVoucherConnections();
   await loadCompanies();
   await loadUnits();
   await loadAccessGroups();
   renderGroupCompaniesCheckboxes();
 })();
+
+/** v3.81 (diem 4): danh sach he thong voucher (doi tac) de gan cho 1 cong ty luc tao/sua - dung
+ * lai y nghia con co san o man hinh "Tai khoan" (vd o chon "Quan tri doi tac"). Khong chan loi
+ * cung nhu cac GET khac trong file nay (mo cho moi tai khoan Quan tri du khong co quyen
+ * adminCanManageConnections - xem apiConnection.routes.js). */
+async function loadVoucherConnections() {
+  try {
+    voucherConnectionsCache = await apiFetch('/api-connections');
+  } catch (err) {
+    voucherConnectionsCache = [];
+  }
+  companyPartnerConnectionSelect.innerHTML =
+    '<option value="">-- Công ty của HCRC (không gán đối tác) --</option>' +
+    voucherConnectionsCache.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
 
 async function loadLocations() {
   locationsCache = await apiFetch('/locations/details');
@@ -180,9 +198,18 @@ async function loadCompanies() {
   }
 }
 
+/** Ten doi tac hien thi cho 1 cong ty, resolve phia trinh duyet tu voucherConnectionsCache (GET
+ * /companies tra ve CreatedByPartnerConnectionId nhung khong JOIN san ten, tranh sua them 1 cau
+ * query chi de phuc vu 1 cot hien thi) - "-" neu la cong ty cua HCRC (khong gan doi tac). */
+function companyPartnerName(c) {
+  if (!c.CreatedByPartnerConnectionId) return '-';
+  const conn = voucherConnectionsCache.find((v) => v.id === c.CreatedByPartnerConnectionId);
+  return conn ? escapeHtml(conn.name) : '-';
+}
+
 function renderCompanies() {
   if (!companiesCache.length) {
-    companiesBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có công ty nào</td></tr>';
+    companiesBody.innerHTML = '<tr><td colspan="7" class="text-muted">Chưa có công ty nào</td></tr>';
     return;
   }
   companiesBody.innerHTML = companiesCache
@@ -191,6 +218,7 @@ function renderCompanies() {
       <tr>
         <td data-label="Mã">${escapeHtml(c.CompanyCode)}</td>
         <td data-label="Tên công ty">${escapeHtml(c.CompanyName)}</td>
+        <td data-label="Thuộc đối tác">${c.CreatedByPartnerConnectionId ? `<span class="status-badge status-other">${companyPartnerName(c)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td data-label="Liên hệ">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
         <td data-label="Số điểm tiêu" id="unit-count-${c.Id}">-</td>
         <td data-label="Trạng thái">${c.Status ? 'Hoạt động' : 'Ngừng'}</td>
@@ -218,6 +246,7 @@ function populateCompanyForm(c) {
   companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
   document.getElementById('companyCode').value = c.CompanyCode || '';
   document.getElementById('companyName').value = c.CompanyName || '';
+  companyPartnerConnectionSelect.value = c.CreatedByPartnerConnectionId ? String(c.CreatedByPartnerConnectionId) : '';
   document.getElementById('companyContactName').value = c.ContactName || '';
   document.getElementById('companyContactPhone').value = c.ContactPhone || '';
   document.getElementById('companyContactEmail').value = c.ContactEmail || '';
@@ -490,6 +519,7 @@ companyForm.addEventListener('submit', async (e) => {
   const payload = {
     companyCode: document.getElementById('companyCode').value.trim(),
     companyName: document.getElementById('companyName').value.trim(),
+    createdByPartnerConnectionId: companyPartnerConnectionSelect.value ? Number(companyPartnerConnectionSelect.value) : null,
     contactName: document.getElementById('companyContactName').value.trim(),
     contactPhone: document.getElementById('companyContactPhone').value.trim(),
     contactEmail: document.getElementById('companyContactEmail').value.trim(),

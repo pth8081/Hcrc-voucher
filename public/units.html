@@ -38,6 +38,11 @@
         <input id="companyCode" required />
         <label>Tên công ty *</label>
         <input id="companyName" required />
+        <label>Thuộc đối tác (tùy chọn)</label>
+        <select id="companyPartnerConnection">
+          <option value="">-- Công ty của HCRC (không gán đối tác) --</option>
+        </select>
+        <p class="hint mb-6">Chọn 1 đối tác để công ty này tự hiện ra trong màn hình "Quản trị đối tác" của họ, gán sẵn cho họ dùng ngay - không cần họ tự tạo lại.</p>
         <label>Người liên hệ</label>
         <input id="companyContactName" />
         <label>Số điện thoại</label>
@@ -62,9 +67,9 @@
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Mã</th><th>Tên công ty</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th><th>Hành động</th></tr>
+          <tr><th>Mã</th><th>Tên công ty</th><th>Thuộc đối tác</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th><th>Hành động</th></tr>
         </thead>
-        <tbody id="companiesBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="companiesBody"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

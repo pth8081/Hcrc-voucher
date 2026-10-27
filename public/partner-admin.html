@@ -27,9 +27,10 @@
     <div id="partnerAdminCard">
       <div class="card">
         <h2 id="partnerAdminTitle">Quản trị đối tác</h2>
-        <div class="tabs">
+        <div class="tabs" id="partnerAdminTabs">
           <button type="button" class="tab-btn active" data-tab="users">Quản lý tài khoản</button>
           <button type="button" class="tab-btn" data-tab="org">Công ty &amp; Điểm tiêu</button>
+          <button type="button" class="tab-btn" data-tab="reportAccess">Nhóm quyền xem báo cáo</button>
           <button type="button" class="tab-btn" data-tab="audit">Nhật ký quản trị</button>
           <button type="button" class="tab-btn" data-tab="scan">Hoạt động quét/thu hồi</button>
         </div>
@@ -39,48 +40,110 @@
             Bạn chỉ xem/quản lý được <strong>tài khoản nhân viên CHỈ dùng đúng hệ thống của bạn</strong>
             - không thấy tài khoản quản trị HCRC hay tài khoản thuộc đối tác khác. "Khóa" tạm ngừng
             đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay. "Sửa" cho phép đổi
-            họ tên, đặt lại mật khẩu, quyền tính năng và điểm tiêu của nhân viên.
+            họ tên, đặt lại mật khẩu, quyền tính năng, điểm tiêu và nhóm quyền xem báo cáo của nhân viên.
           </p>
           <form id="createForm">
-            <label>Tên đăng nhập *</label>
-            <input id="newUsername" required />
-            <label>Mật khẩu *</label>
-            <input id="newPassword" type="password" required placeholder="Ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt" />
-            <label>Họ tên *</label>
-            <input id="newFullName" required />
-            <button class="btn-primary btn-block mt-10" type="submit" id="createBtn">Tạo tài khoản</button>
+            <div class="form-grid">
+              <div>
+                <label>Tên đăng nhập *</label>
+                <input id="newUsername" required />
+              </div>
+              <div>
+                <label>Mật khẩu *</label>
+                <input id="newPassword" type="password" required placeholder="Ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt" />
+              </div>
+              <div>
+                <label>Họ tên *</label>
+                <input id="newFullName" required />
+              </div>
+              <div>
+                <label>Công ty (tùy chọn)</label>
+                <select id="newUserCompany">
+                  <option value="">-- Chưa gán công ty --</option>
+                </select>
+              </div>
+              <div>
+                <label>Điểm tiêu (tùy chọn)</label>
+                <select id="newUserUnit">
+                  <option value="">-- Chọn công ty trước --</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn-primary mt-10" type="submit" id="createBtn">Tạo tài khoản</button>
           </form>
 
           <h3 class="mt-20">Danh sách tài khoản</h3>
+          <div class="manage-toolbar">
+            <input id="userSearchInput" placeholder="Tìm theo tên đăng nhập hoặc họ tên..." />
+            <select id="filterCompany"><option value="">Tất cả công ty của bạn</option></select>
+            <select id="filterUnit"><option value="">Tất cả điểm tiêu</option></select>
+          </div>
           <div id="accList"></div>
         </div>
 
         <div id="tabOrg" class="tab-panel hidden">
           <p class="hint mb-10">
-            Công ty &amp; điểm tiêu bạn tự tạo <strong>chỉ phục vụ nhóm báo cáo/đối soát nội bộ của bạn</strong>
-            - không nhìn thấy hoặc dùng chung với công ty/điểm tiêu của HCRC hay đối tác khác.
+            Công ty &amp; điểm tiêu <strong>chỉ phục vụ nhóm báo cáo/đối soát nội bộ của bạn</strong>
+            - không nhìn thấy hoặc dùng chung với công ty/điểm tiêu của HCRC hay đối tác khác. Bạn có
+            <strong>toàn quyền sửa/xóa</strong> công ty &amp; điểm tiêu trong danh sách này - kể cả
+            công ty do <strong>HCRC tạo và gán riêng cho bạn</strong> (bạn quản lý như công ty của
+            chính mình ngay khi được gán, kể cả tự tạo thêm điểm tiêu cho công ty đó).
           </p>
           <div class="grid2">
             <div>
-              <h3>Tạo công ty mới</h3>
+              <h3 id="companyFormTitle">Tạo công ty mới</h3>
               <label>Mã công ty *</label>
               <input id="newCompanyCode" placeholder="VD: FUJI-HN" />
               <label>Tên công ty *</label>
               <input id="newCompanyName" placeholder="VD: Fuji Mart - Chi nhánh Hà Nội" />
               <button class="btn-primary mt-10" id="createCompanyBtn">Tạo công ty</button>
+              <button class="btn-secondary mt-10 hidden" type="button" id="cancelCompanyEditBtn">Hủy sửa</button>
             </div>
             <div>
-              <h3>Tạo điểm tiêu mới</h3>
+              <h3 id="unitFormTitle">Tạo điểm tiêu mới</h3>
               <label>Tên điểm tiêu *</label>
               <input id="newLocationName" placeholder="VD: Fuji Mart - 25 Láng Hạ" />
               <label>Thuộc công ty *</label>
               <select id="newLocationCompany"></select>
               <button class="btn-primary mt-10" id="createUnitBtn">Tạo điểm tiêu</button>
+              <button class="btn-secondary mt-10 hidden" type="button" id="cancelUnitEditBtn">Hủy sửa</button>
             </div>
           </div>
 
           <h3 class="mt-20">Công ty &amp; điểm tiêu của bạn</h3>
           <div id="orgList"></div>
+        </div>
+
+        <div id="tabReportAccess" class="tab-panel hidden">
+          <p class="hint mb-10">
+            Mặc định mỗi nhân viên CHỈ xem được báo cáo của đúng công ty gắn với điểm tiêu của mình.
+            Tạo nhóm ở đây để cấp thêm quyền xem CHÉO sang công ty khác <strong>trong số công ty của
+            bạn</strong>, hoặc xem toàn bộ công ty của bạn ("Toàn bộ" ở đây chỉ tính công ty thuộc hệ
+            thống của bạn - không bao giờ gồm công ty của HCRC hay đối tác khác) - rồi gán cho nhân
+            viên ở tab "Quản lý tài khoản".
+          </p>
+          <div class="grid2">
+            <div>
+              <h3 id="groupFormTitle">Thêm nhóm quyền</h3>
+              <label>Tên nhóm *</label>
+              <input id="newGroupName" placeholder="VD: Kế toán tổng hợp" />
+              <label>Phạm vi *</label>
+              <select id="newGroupScope">
+                <option value="SPECIFIC">Chỉ xem thêm một số công ty cụ thể (trong số công ty của bạn)</option>
+                <option value="ALL">Xem toàn bộ công ty của bạn</option>
+              </select>
+              <div id="groupCompaniesField">
+                <label>Công ty được xem thêm</label>
+                <div id="groupCompaniesList" class="hint">Đang tải danh sách công ty...</div>
+              </div>
+              <button class="btn-primary mt-10" id="createGroupBtn">Lưu nhóm quyền</button>
+              <button class="btn-secondary mt-10 hidden" type="button" id="cancelGroupEditBtn">Hủy sửa</button>
+            </div>
+            <div>
+              <h3>Danh sách nhóm quyền</h3>
+              <div id="groupList"></div>
+            </div>
+          </div>
         </div>
 
         <div id="tabAudit" class="tab-panel hidden">

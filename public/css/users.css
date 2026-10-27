@@ -136,4 +136,6 @@
 .company-card { border: 1px solid var(--ink-200); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; }
 .company-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .company-name { font-weight: 700; color: var(--ink-900); font-size: 14.5px; }
-.unit-chip { display: inline-block; background: var(--ink-100); color: var(--ink-700); font-size: 12px; padding: 3px 10px; border-radius: 999px; margin: 3px 4px 0 0; }
+.unit-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--ink-100); color: var(--ink-700); font-size: 12px; padding: 3px 6px 3px 10px; border-radius: 999px; margin: 3px 4px 0 0; }
+.unit-chip button { font-size: 12px; line-height: 1; padding: 2px 3px; color: var(--ink-500); }
+.unit-chip button:hover { color: var(--ink-900); }

@@ -1,4 +1,5 @@
 const { sql, getPool } = require('../config/db');
+const companyService = require('./companyService');
 
 /**
  * Phan quyen xem bao cao THEO CONG TY - tach biet hoan toan voi Users.status (vai tro quan
@@ -13,7 +14,7 @@ async function getUserGroup(userId) {
     .request()
     .input('userId', sql.Int, userId)
     .query(`
-      SELECT g.Id AS groupId, g.ScopeType AS scopeType
+      SELECT g.Id AS groupId, g.ScopeType AS scopeType, g.CreatedByPartnerConnectionId AS createdByPartnerConnectionId
       FROM dbo.UserReportAccess a
       INNER JOIN dbo.ReportAccessGroups g ON g.Id = a.GroupId
       WHERE a.UserId = @userId
@@ -70,7 +71,21 @@ async function resolveVisibleLocationCodes({ userId, ownLocationsDetail, role })
     // dien - danh dau ro de controller/frontend bao dung nguyen nhan thay vi de trong lang.
     return { scope: 'own', codes: ownCode ? [ownCode] : [], unassigned: !ownCode };
   }
+
+  // M20 (v3.81, QUAN TRONG - bao mat): nhom quyen CO CHU (CreatedByPartnerConnectionId khac
+  // NULL, tao qua man hinh "Quan tri doi tac" - xem partnerAdminService.js) thi ScopeType='ALL'
+  // KHONG DUOC hieu nhu ALL cua HCRC (bo qua loc hoan toan, tra ve { scope: 'all' }) - lam vay se
+  // lo du lieu VOUCHER_SYNC cua HCRC va MOI doi tac khac cho 1 nhan vien chi dang lam cho 1 doi
+  // tac. Phai tinh lai thanh danh sach dia diem cua DUNG cac cong ty THUOC VE doi tac do (dung
+  // companyService.listByConnection - CUNG dieu kien "chu so huu" ma man "Quan tri doi tac" dang
+  // dung de gioi han doi tac tu tao/xem cong ty cua chinh ho).
   if (group.scopeType === 'ALL') {
+    if (group.createdByPartnerConnectionId) {
+      const ownCompanies = await companyService.listByConnection(group.createdByPartnerConnectionId);
+      const codesFromCompanies = await getLocationCodesForCompanies(ownCompanies.map((c) => c.Id));
+      const codes = Array.from(new Set([ownCode, ...codesFromCompanies].filter(Boolean)));
+      return { scope: 'specific', codes };
+    }
     return { scope: 'all', codes: null };
   }
 
@@ -88,7 +103,7 @@ async function listGroups() {
   const pool = await getPool();
   const groups = (
     await pool.request().query(`
-      SELECT Id, GroupName, ScopeType, CreatedDate, UpdatedDate
+      SELECT Id, GroupName, ScopeType, CreatedDate, UpdatedDate, CreatedByPartnerConnectionId
       FROM dbo.ReportAccessGroups
       ORDER BY GroupName
     `)
@@ -108,6 +123,47 @@ async function listGroups() {
   }));
 }
 
+/** Danh sach nhom quyen do DUNG 1 doi tac (connectionId) tu tao - dung cho man hinh "Quan tri
+ * doi tac" (xem partnerAdminService.js), giong het mau companyService.js#listByConnection. */
+async function listGroupsByConnection(connectionId) {
+  const pool = await getPool();
+  const groups = (
+    await pool
+      .request()
+      .input('connectionId', sql.Int, connectionId)
+      .query(`
+        SELECT Id, GroupName, ScopeType, CreatedDate, UpdatedDate
+        FROM dbo.ReportAccessGroups
+        WHERE CreatedByPartnerConnectionId = @connectionId
+        ORDER BY GroupName
+      `)
+  ).recordset;
+  const companyRows = (
+    await pool.request().query(`
+      SELECT gc.GroupId, gc.CompanyId, c.CompanyName
+      FROM dbo.ReportAccessGroupCompanies gc
+      INNER JOIN dbo.RedemptionCompanies c ON c.Id = gc.CompanyId
+    `)
+  ).recordset;
+  return groups.map((g) => ({
+    ...g,
+    companies: companyRows.filter((c) => c.GroupId === g.Id).map((c) => ({ companyId: c.CompanyId, companyName: c.CompanyName })),
+  }));
+}
+
+/** true neu nhom quyen (id) nay THUOC DUNG doi tac (connectionId) - dung de chan doi tac
+ * sua/xoa/gan 1 nhom quyen KHONG phai cua ho (vd nhom quyen HCRC tao, hoac cua doi tac khac) -
+ * xem partnerAdminService.js#assertReportAccessGroupOwnedByConnection. */
+async function isGroupOwnedByConnection(groupId, connectionId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.Int, groupId)
+    .input('connectionId', sql.Int, connectionId)
+    .query('SELECT 1 FROM dbo.ReportAccessGroups WHERE Id = @id AND CreatedByPartnerConnectionId = @connectionId');
+  return !!result.recordset.length;
+}
+
 /** 1 nhom quyen theo id (kem danh sach companyIds) - dung de lay trang thai TRUOC KHI sua
  * (audit log ghi ca before/after, xem auditLogService.js). */
 async function getGroupById(groupId) {
@@ -115,23 +171,28 @@ async function getGroupById(groupId) {
   const result = await pool
     .request()
     .input('id', sql.Int, groupId)
-    .query('SELECT Id, GroupName, ScopeType FROM dbo.ReportAccessGroups WHERE Id = @id');
+    .query('SELECT Id, GroupName, ScopeType, CreatedByPartnerConnectionId FROM dbo.ReportAccessGroups WHERE Id = @id');
   const row = result.recordset[0];
   if (!row) return null;
   const companyIds = await getGroupCompanyIds(row.Id);
-  return { id: row.Id, groupName: row.GroupName, scopeType: row.ScopeType, companyIds };
+  return { id: row.Id, groupName: row.GroupName, scopeType: row.ScopeType, createdByPartnerConnectionId: row.CreatedByPartnerConnectionId, companyIds };
 }
 
-async function createGroup({ groupName, scopeType, companyIds }) {
+async function createGroup({ groupName, scopeType, companyIds, createdByPartnerConnectionId }) {
   const pool = await getPool();
   const result = await pool
     .request()
     .input('groupName', sql.NVarChar(200), groupName)
     .input('scopeType', sql.NVarChar(20), scopeType)
+    // null (mac dinh) = tao qua man hinh quan tri day du (HCRC) - giu nguyen hanh vi cu. Co gia
+    // tri = do CHINH doi tac nay tu tao qua man hinh "Quan tri doi tac" (xem
+    // partnerAdminService.js#createOwnReportAccessGroup) - xem ghi chu bao mat o
+    // resolveVisibleLocationCodes() ve y nghia rieng cua ScopeType='ALL' trong truong hop nay.
+    .input('createdByPartnerConnectionId', sql.Int, createdByPartnerConnectionId || null)
     .query(`
-      INSERT INTO dbo.ReportAccessGroups (GroupName, ScopeType, CreatedDate)
+      INSERT INTO dbo.ReportAccessGroups (GroupName, ScopeType, CreatedDate, CreatedByPartnerConnectionId)
       OUTPUT INSERTED.Id
-      VALUES (@groupName, @scopeType, GETDATE())
+      VALUES (@groupName, @scopeType, GETDATE(), @createdByPartnerConnectionId)
     `);
   const groupId = result.recordset[0].Id;
   await setGroupCompanies(groupId, scopeType === 'SPECIFIC' ? companyIds : []);
@@ -223,6 +284,8 @@ async function removeGroup(groupId) {
 module.exports = {
   resolveVisibleLocationCodes,
   listGroups,
+  listGroupsByConnection,
+  isGroupOwnedByConnection,
   createGroup,
   updateGroup,
   removeGroup,

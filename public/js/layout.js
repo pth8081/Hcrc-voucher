@@ -47,12 +47,16 @@ const NAV_ITEMS = [
 
 // Chi hien voi tai khoan quan tri (role === 'admin'), gom vao 1 dropdown "Quan tri" thay vi
 // nam rai rac ngang hang voi cac muc tren - tranh topbar qua dai khi them tinh nang moi.
+// M20 (v3.81): moi muc them `permission` - 1 trong 5 quyen rieng cua tung man hinh "Quan tri"
+// (adminCanManageUnits/...Connections/...Users/ViewAdminLog/...EmailSettings), mac dinh TRUE cho
+// moi tai khoan Quan tri dang co san (xem permissionService.js) - khong doi gi tren giao dien tru
+// khi co 1 Quan tri khac chu dong bo tick mot muc cu the cho 1 tai khoan nao do.
 const ADMIN_NAV_ITEMS = [
-  { key: 'units', href: '/units.html', label: 'Đơn vị thu hồi', icon: NAV_ICONS.units },
-  { key: 'connection', href: '/api-connection.html', label: 'Kết nối API', icon: NAV_ICONS.connection },
-  { key: 'users', href: '/users.html', label: 'Tài khoản', icon: NAV_ICONS.users },
-  { key: 'admin-log', href: '/admin-log.html', label: 'Nhật ký hệ thống', icon: NAV_ICONS.adminLog },
-  { key: 'email-settings', href: '/email-settings.html', label: 'Thiết lập email', icon: NAV_ICONS.email },
+  { key: 'units', href: '/units.html', label: 'Đơn vị thu hồi', icon: NAV_ICONS.units, permission: 'adminCanManageUnits' },
+  { key: 'connection', href: '/api-connection.html', label: 'Kết nối API', icon: NAV_ICONS.connection, permission: 'adminCanManageConnections' },
+  { key: 'users', href: '/users.html', label: 'Tài khoản', icon: NAV_ICONS.users, permission: 'adminCanManageUsers' },
+  { key: 'admin-log', href: '/admin-log.html', label: 'Nhật ký hệ thống', icon: NAV_ICONS.adminLog, permission: 'adminCanViewAdminLog' },
+  { key: 'email-settings', href: '/email-settings.html', label: 'Thiết lập email', icon: NAV_ICONS.email, permission: 'adminCanManageEmailSettings' },
 ];
 
 function initials(name) {
@@ -84,7 +88,12 @@ function renderTopbar(activeKey) {
     return required.some((p) => permissions[p]);
   };
   const visibleNavItems = NAV_ITEMS.filter(hasPermission);
-  const showAdminMenu = role !== 'staff';
+  // M20 (v3.81): truoc day showAdminMenu chi dua vao role !== 'staff' (moi tai khoan Quan tri
+  // luon thay du ca 5 muc) - gio loc THEM tung muc theo quyen rieng (adminCanManageUnits/...),
+  // an ca dropdown "Quan tri" neu khong con muc nao duoc phep (vd 1 tai khoan Quan tri bi bo tick
+  // het ca 5, tuy hiem nhung van co the xay ra).
+  const visibleAdminNavItems = role !== 'staff' ? ADMIN_NAV_ITEMS.filter(hasPermission) : [];
+  const showAdminMenu = visibleAdminNavItems.length > 0;
   const adminMenuActive = ADMIN_NAV_ITEMS.some((item) => item.key === activeKey);
 
   mount.outerHTML = `
@@ -114,7 +123,7 @@ function renderTopbar(activeKey) {
                 ${NAV_ICONS.units}<span>Quản trị</span>${NAV_ICONS.chevron}
               </button>
               <div class="nav-dropdown-panel" id="adminMenuPanel">
-                ${ADMIN_NAV_ITEMS.map(
+                ${visibleAdminNavItems.map(
                   (item) => `
                   <a href="${item.href}" class="nav-link ${item.key === activeKey ? 'active' : ''}">
                     ${item.icon}<span>${item.label}</span>
