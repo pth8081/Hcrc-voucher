@@ -114,6 +114,8 @@
           </p>
           <div class="manage-toolbar">
             <input id="userSearchInput" placeholder="Tìm theo tên đăng nhập hoặc họ tên..." />
+            <select id="filterCompany"><option value="">Tất cả công ty</option></select>
+            <select id="filterRedemptionUnit"><option value="">Tất cả điểm thu hồi</option></select>
             <label class="checkbox-inline">
               <input type="checkbox" id="showDeletedCheckbox" />
               Hiện cả tài khoản đã xóa
@@ -131,11 +133,12 @@
                   <th>Nhóm quyền xem báo cáo</th>
                   <th>Hệ thống voucher được dùng</th>
                   <th>Quản trị đối tác</th>
+                  <th>Quyền quản trị hệ thống</th>
                   <th>Mật khẩu mới</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="usersBody"><tr><td colspan="18" class="text-muted">Đang tải...</td></tr></tbody>
+              <tbody id="usersBody"><tr><td colspan="19" class="text-muted">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>

@@ -290,6 +290,18 @@ async function updatePartnerAdmin(req, res, next) {
     const normalized = connectionId ? Number(connectionId) : null;
     const before = await permissionService.getPermissions(userId);
     await permissionService.setPartnerAdminConnection(userId, normalized, req.user.username);
+    // M20 (v3.81): 4 quyen con (tung tab cua man hinh "Quan tri doi tac") - mac dinh TICK SAN ca
+    // 4 khi GUI khong kem (vd request cu tu truoc khi co tinh nang nay, hoac form khong hien o
+    // khi GO quyen) - giu dung hanh vi "thay du 4 tab" tu truoc, admin phai CHU DONG bo tick moi
+    // gioi han bot. Luon ghi (ca khi GO, connectionId=null) de tranh 1 dong quyen "treo" sai tu
+    // lan gan truoc, du khong con tac dung gi khi isPartnerAdmin=false.
+    const tabPerms = {
+      canManageAccounts: req.body.canManageAccounts !== false,
+      canManageOrg: req.body.canManageOrg !== false,
+      canViewAuditLog: req.body.canViewAuditLog !== false,
+      canViewScanLog: req.body.canViewScanLog !== false,
+    };
+    await permissionService.setPartnerAdminTabPermissions(userId, tabPerms, req.user.username);
     if (normalized) {
       await userVoucherSystemService.setAllowedConnections(userId, [normalized]);
     }
@@ -299,10 +311,51 @@ async function updatePartnerAdmin(req, res, next) {
       targetUsername: username || String(userId),
       detail: {
         before: { partnerAdminConnectionId: before.partnerAdminConnectionId },
-        after: { partnerAdminConnectionId: normalized },
+        after: { partnerAdminConnectionId: normalized, ...tabPerms },
       },
     });
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Doi 5 quyen man hinh "Quan tri" (AdminCanXxx) cho 1 tai khoan Quan tri KHAC (M20, v3.81).
+ *
+ * BAT BUOC khong duoc tu sua CHINH MINH o day - tranh 1 tai khoan Quan tri vo tinh (hoac co y) bo
+ * tick het 5 muc cua chinh ho, tu khoa khong con vao lai duoc man "Tai khoan" de mo lai cho chinh
+ * minh (khong con tai khoan Quan tri nao khac thao tac ho). Dung cung ly do voi M4 (khong tu khoa
+ * chinh tai khoan dang dang nhap) nhung ap dung rong hon (chan toan bo thao tac, khong chi rieng
+ * "khoa").
+ */
+async function updateAdminFeaturePermissions(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    if (userId === req.user.userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Khong the tu sua quyen quan tri he thong cua chinh tai khoan dang dang nhap - nho 1 Quan tri khac sua ho',
+      });
+    }
+    await userAdminService.assertUserExists(userId);
+    const { username } = req.body;
+    const before = await permissionService.getAdminFeaturePermissions(userId);
+    const perms = {
+      canManageUnits: !!req.body.canManageUnits,
+      canManageConnections: !!req.body.canManageConnections,
+      canManageUsers: !!req.body.canManageUsers,
+      canViewAdminLog: !!req.body.canViewAdminLog,
+      canManageEmailSettings: !!req.body.canManageEmailSettings,
+    };
+    await permissionService.setAdminFeaturePermissions(userId, perms, req.user.username);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_ADMIN_FEATURE_PERMISSIONS',
+      targetUsername: username || String(userId),
+      detail: { before, after: perms },
+    });
+    res.json({ success: true, data: perms });
   } catch (err) {
     next(err);
   }
@@ -319,4 +372,5 @@ module.exports = {
   updateDeleteStatus,
   updateVoucherSystems,
   updatePartnerAdmin,
+  updateAdminFeaturePermissions,
 };

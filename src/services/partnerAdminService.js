@@ -5,6 +5,7 @@ const permissionService = require('./permissionService');
 const companyService = require('./companyService');
 const redemptionUnitService = require('./redemptionUnitService');
 const locationService = require('./locationService');
+const reportAccessService = require('./reportAccessService');
 
 function forbidden(message) {
   const err = new Error(message);
@@ -57,11 +58,13 @@ function badRequest(message) {
  *            co lai toan quyen khoa/mo khoa ma khong can ai can thiep gi them.
  */
 async function listScopedUsers(connectionId) {
-  const [withSchedule, voucherSystemsByUserId, createdByPartnerByUserId] = await Promise.all([
+  const [withSchedule, voucherSystemsByUserId, createdByPartnerByUserId, reportAccessByUserId] = await Promise.all([
     userScheduleService.listAllWithSchedule(true), // true = gom ca tai khoan da xoa mem, de doi tac tu khoi phuc lai duoc chinh tai khoan ho da tao
     userVoucherSystemService.listUserAccess(),
     permissionService.listCreatedByPartnerConnection(),
+    reportAccessService.listUserAccess(),
   ]);
+  const reportAccessMap = new Map(reportAccessByUserId.map((a) => [a.userId, a]));
 
   const rows = withSchedule
     .filter((u) => Number(u.role) === 0)
@@ -91,6 +94,12 @@ async function listScopedUsers(connectionId) {
       locationsDetail: u.locationsDetail || null,
       locationName: u.locationsDetail ? await locationService.getDetailNameByCode(u.locationsDetail) : null,
       permissions: await permissionService.getPermissions(u.userId),
+      // v3.81 (diem 8/9): nhom quyen xem bao cao HIEN TAI - chi co the la nhom DO CHINH doi tac
+      // nay tao (updateScopedUserReportAccessGroup() da chan gan nhom cua nguoi khac), nen o day
+      // khong can loc/kiem tra lai "chu so huu" cua nhom - chi tra thang de man "Sua tai khoan"
+      // hien ro va chon san.
+      reportAccessGroupId: reportAccessMap.get(u.userId)?.groupId || null,
+      reportAccessGroupName: reportAccessMap.get(u.userId)?.groupName || null,
     }))
   );
 }
@@ -114,11 +123,22 @@ async function assertInScope(userId, connectionId) {
  * moi tao LUON nam trong dung pham vi, hien ngay trong danh sach cua chinh partner-admin do. Ghi
  * nho CreatedByPartnerConnectionId = connectionId DUY NHAT 1 LAN o day (xem sql/035) - gia tri
  * nay se KHONG BAO GIO doi sau do du UserVoucherSystems cua tai khoan co thay doi the nao, la can
- * cu de listScopedUsers() xac dinh tai khoan nay co "thuoc ve" doi tac nay hay khong. */
-async function createScopedUser({ username, password, fullName }, connectionId, createdBy) {
+ * cu de listScopedUsers() xac dinh tai khoan nay co "thuoc ve" doi tac nay hay khong.
+ *
+ * redemptionUnitId (v3.81, diem 1): gan LUON Diem tieu ngay luc tao neu co chon - truoc day phai
+ * tao xong roi vao "Sua tai khoan" moi gan duoc. Dung lai assertUnitOwnedByConnection() (dinh
+ * nghia o duoi) de dam bao diem tieu da chon THUOC DUNG pham vi doi tac nay (cua chinh ho tu tao,
+ * hoac do HCRC tao va gan rieng cho ho - ca 2 deu di qua CHUNG 1 dieu kien "chu so huu").
+ */
+async function createScopedUser({ username, password, fullName, redemptionUnitId }, connectionId, createdBy) {
   const created = await userAdminService.createUser({ username, password, fullName, role: 0 }, createdBy);
   await userVoucherSystemService.setAllowedConnections(created.userId, [connectionId]);
   await permissionService.setCreatedByPartnerConnection(created.userId, connectionId);
+  if (redemptionUnitId) {
+    const unit = await assertUnitOwnedByConnection(Number(redemptionUnitId), connectionId);
+    const locationsDetail = unit.LocationDetailId ? await redemptionUnitService.getLocationCodeById(Number(redemptionUnitId)) : null;
+    await userAdminService.updateLocation(created.userId, locationsDetail);
+  }
   return created;
 }
 
@@ -240,6 +260,31 @@ async function updateScopedUserLocation(userId, connectionId, redemptionUnitId) 
   await userAdminService.updateLocation(userId, locationsDetail);
 }
 
+/**
+ * Gan/doi "Nhom quyen xem bao cao" cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.81,
+ * diem 8/9). groupId rong = go khoi nhom (ve mac dinh: chi xem cong ty cua diem tieu dang gan).
+ *
+ * BAT BUOC ca 2 dieu kien: (1) tai khoan dang CHI dung DUY NHAT he thong cua doi tac nay
+ * (exclusiveToThisSystem) - CUNG ly do voi updateScopedUserLocation() o tren (tranh doi tac vo
+ * tinh/co y mo rong pham vi xem bao cao cho 1 tai khoan dang lam viec chung ca 2 phia); (2) nhom
+ * quyen da chon phai DO CHINH doi tac nay tao (assertReportAccessGroupOwnedByConnection, dinh
+ * nghia cung section voi cac ham quan tri nhom quyen ben duoi) - tranh gan nham/co y gan 1 nhom
+ * quyen cua HCRC hoac doi tac khac (se khong resolve duoc dung vi dieu kien loc o day, nhung van
+ * nen chan tu som cho ro rang thay vi de "gan duoc nhung khong co tac dung").
+ */
+async function updateScopedUserReportAccessGroup(userId, connectionId, groupId, updatedBy) {
+  const row = await assertInScope(userId, connectionId);
+  if (!row.exclusiveToThisSystem) {
+    throw forbidden(
+      'Tai khoan nay dang duoc quan tri day du cap them quyen dung he thong khac - chi quan tri day du moi doi duoc nhom quyen xem bao cao cua tai khoan nay.'
+    );
+  }
+  if (groupId) {
+    await assertReportAccessGroupOwnedByConnection(Number(groupId), connectionId);
+  }
+  await reportAccessService.setUserGroup(userId, groupId ? Number(groupId) : null, updatedBy);
+}
+
 /** Danh sach cong ty do CHINH doi tac nay tu tao (v3.76) - xem companyService.js#listByConnection. */
 async function listOwnCompanies(connectionId) {
   return companyService.listByConnection(connectionId);
@@ -256,6 +301,34 @@ async function createOwnCompany({ companyCode, companyName }, connectionId) {
     companyName: String(companyName).trim(),
     createdByPartnerConnectionId: connectionId,
   });
+}
+
+/**
+ * Sua 1 cong ty DA THUOC pham vi connectionId nay (v3.81, diem 3 - "toan quyen quan ly"). Dung
+ * CHUNG 1 dieu kien "chu so huu" voi isOwnedByConnection (CreatedByPartnerConnectionId = connectionId)
+ * cho CA 2 truong hop: cong ty do CHINH doi tac nay tu tao, VA cong ty do HCRC tao roi GAN cho ho
+ * (diem 4, qua company.controller.js#update) - ca 2 deu cho DOI TAC TOAN QUYEN sua/xoa ngay khi
+ * thuoc pham vi cua ho, dung yeu cau nguoi dung ("doi tac phai toan quyen quan ly") - khong phan
+ * biet rieng "ai la nguoi tao ban dau", vi du lieu khong luu rieng thong tin do.
+ *
+ * KHONG BAO GIO nhan/ghi `createdByPartnerConnectionId` qua duong nay (chi liet ke ro 2 truong
+ * duoc sua: companyCode, companyName) - tranh doi tac tu doi "chu so huu" cua chinh cong ty minh
+ * dang sua (vd tu nhan cong ty do la cua doi tac khac, hoac tu "tra lai" cho HCRC).
+ */
+async function updateOwnCompany(id, { companyCode, companyName }, connectionId) {
+  const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
+  if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
+  if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
+  if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
+  await companyService.update(Number(id), { companyCode: String(companyCode).trim(), companyName: String(companyName).trim() });
+}
+
+/** Xoa 1 cong ty DA THUOC pham vi connectionId nay (v3.81, diem 3) - dieu kien "chu so huu" giong
+ * het updateOwnCompany(). companyService.remove() tu chan neu con diem tieu gan vao (409). */
+async function removeOwnCompany(id, connectionId) {
+  const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
+  if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
+  await companyService.remove(Number(id));
 }
 
 /** Danh sach Diem tieu do CHINH doi tac nay tu tao (v3.76) - xem redemptionUnitService.js#listByConnection. */
@@ -295,6 +368,94 @@ async function createOwnUnit({ locationName, companyId }, connectionId) {
   return { id: unitId, locationDetailId: location.id, locationCode: location.locationCode, partnerCode };
 }
 
+/**
+ * Sua 1 Diem tieu DA THUOC pham vi connectionId nay (v3.81, diem 3) - chi cho sua Ten diem tieu +
+ * doi Cong ty (giong dung 2 truong form "Tao diem tieu" o tren), giu nguyen moi truong khac
+ * (PartnerCode, lien he, han muc...) nhu luc tao - doi tac khong can/khong thay cac truong do o
+ * day. Cong ty MOI chon (neu doi) cung phai THUOC DUNG pham vi doi tac nay.
+ */
+async function updateOwnUnit(id, { locationName, companyId }, connectionId) {
+  const existing = await assertUnitOwnedByConnection(Number(id), connectionId);
+  const trimmedName = locationName ? String(locationName).trim() : '';
+  if (!trimmedName) throw badRequest('Thieu ten diem tieu');
+  const targetCompanyId = companyId ? Number(companyId) : existing.CompanyId;
+  const owned = await companyService.isOwnedByConnection(targetCompanyId, connectionId);
+  if (!owned) throw forbidden('Cong ty da chon khong thuoc pham vi quan tri cua ban');
+  await redemptionUnitService.update(Number(id), {
+    locationDetailId: existing.LocationDetailId,
+    companyId: targetCompanyId,
+    partnerCode: existing.PartnerCode,
+    partnerName: trimmedName,
+    contactName: existing.ContactName,
+    contactPhone: existing.ContactPhone,
+    contactEmail: existing.ContactEmail,
+    address: existing.Address,
+    taxCode: existing.TaxCode,
+    bankAccount: existing.BankAccount,
+    bankName: existing.BankName,
+    dailyLimitAmount: existing.DailyLimitAmount,
+    status: existing.Status,
+  });
+}
+
+/** Xoa 1 Diem tieu DA THUOC pham vi connectionId nay (v3.81, diem 3) - redemptionUnitService.remove()
+ * tu chan neu con nhan vien dang hoat dong gan vao (409). */
+async function removeOwnUnit(id, connectionId) {
+  await assertUnitOwnedByConnection(Number(id), connectionId);
+  await redemptionUnitService.remove(Number(id));
+}
+
+/** Nem loi 403 neu nhom quyen (groupId) nay KHONG thuoc dung pham vi cua connectionId nay - xem
+ * reportAccessService.js#isGroupOwnedByConnection. */
+async function assertReportAccessGroupOwnedByConnection(groupId, connectionId) {
+  const owned = await reportAccessService.isGroupOwnedByConnection(groupId, connectionId);
+  if (!owned) throw forbidden('Nhom quyen nay khong thuoc pham vi quan tri cua ban');
+}
+
+/** Danh sach "Nhom quyen xem bao cao" do CHINH doi tac nay tu tao (v3.81, diem 8/9) - xem
+ * reportAccessService.js#listGroupsByConnection. */
+async function listOwnReportAccessGroups(connectionId) {
+  return reportAccessService.listGroupsByConnection(connectionId);
+}
+
+/** Kiem tra + chuan hoa (groupName, scopeType, companyIds) dung chung cho tao/sua nhom quyen cua
+ * doi tac - BAT BUOC moi companyId (khi SPECIFIC) phai THUOC DUNG pham vi doi tac nay, tranh ho
+ * cap quyen xem cheo sang cong ty cua HCRC/doi tac khac qua nhom quyen tu tao. */
+async function validateOwnGroupInput({ groupName, scopeType, companyIds }, connectionId) {
+  if (!groupName || !String(groupName).trim()) throw badRequest('Thieu ten nhom quyen');
+  if (!['ALL', 'SPECIFIC'].includes(scopeType)) throw badRequest('Pham vi khong hop le (phai la ALL hoac SPECIFIC)');
+  if (scopeType !== 'SPECIFIC') return { groupName: String(groupName).trim(), scopeType, companyIds: [] };
+  if (!Array.isArray(companyIds) || !companyIds.length) throw badRequest('Pham vi "chi xem them 1 so cong ty" phai chon it nhat 1 cong ty');
+  for (const companyId of companyIds) {
+    const owned = await companyService.isOwnedByConnection(Number(companyId), connectionId);
+    if (!owned) throw forbidden('1 trong cac cong ty da chon khong thuoc pham vi quan tri cua ban');
+  }
+  return { groupName: String(groupName).trim(), scopeType, companyIds: companyIds.map(Number) };
+}
+
+/** Tao 1 "Nhom quyen xem bao cao" MOI, LUON danh dau CreatedByPartnerConnectionId = connectionId
+ * (v3.81, diem 8/9) - xem ghi chu bao mat o reportAccessService.js#resolveVisibleLocationCodes ve
+ * y nghia rieng cua ScopeType='ALL' cho nhom quyen co chu la doi tac (CHI tinh cong ty cua DUNG
+ * doi tac do, khong bao gio la "toan bo he thong"). */
+async function createOwnReportAccessGroup(input, connectionId) {
+  const safe = await validateOwnGroupInput(input, connectionId);
+  return reportAccessService.createGroup({ ...safe, createdByPartnerConnectionId: connectionId });
+}
+
+/** Sua 1 "Nhom quyen xem bao cao" DA THUOC pham vi connectionId nay (v3.81, diem 8/9). */
+async function updateOwnReportAccessGroup(id, input, connectionId) {
+  await assertReportAccessGroupOwnedByConnection(Number(id), connectionId);
+  const safe = await validateOwnGroupInput(input, connectionId);
+  await reportAccessService.updateGroup(Number(id), safe);
+}
+
+/** Xoa 1 "Nhom quyen xem bao cao" DA THUOC pham vi connectionId nay (v3.81, diem 8/9) -
+ * reportAccessService.removeGroup() tu chan neu con tai khoan dang gan (409). */
+async function removeOwnReportAccessGroup(id, connectionId) {
+  await assertReportAccessGroupOwnedByConnection(Number(id), connectionId);
+  await reportAccessService.removeGroup(Number(id));
+}
+
 module.exports = {
   listScopedUsers,
   assertInScope,
@@ -304,8 +465,17 @@ module.exports = {
   updateScopedUserProfile,
   updateScopedUserPermissions,
   updateScopedUserLocation,
+  updateScopedUserReportAccessGroup,
   listOwnCompanies,
   createOwnCompany,
+  updateOwnCompany,
+  removeOwnCompany,
   listOwnUnits,
   createOwnUnit,
+  updateOwnUnit,
+  removeOwnUnit,
+  listOwnReportAccessGroups,
+  createOwnReportAccessGroup,
+  updateOwnReportAccessGroup,
+  removeOwnReportAccessGroup,
 };

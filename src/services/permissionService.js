@@ -18,10 +18,19 @@ const DEFAULT_PERMISSIONS = {
   partnerAdminConnectionId: null,
   partnerAdminConnectionName: null,
   isPartnerAdmin: false,
+  // M20 (v3.81): 4 quyen con cua rieng man hinh "Quan tri doi tac" - 1 tab KHONG duoc tick se AN
+  // khoi menu cua doi tac do VA bi chan o API (xem requirePartnerAdmin.js#requirePartnerAdminFeature).
+  // Mac dinh true CA 4 (giu dung hanh vi "thay du 4 tab" tu truoc khi co quyen con nay).
+  partnerAdminCanManageAccounts: true,
+  partnerAdminCanManageOrg: true,
+  partnerAdminCanViewAuditLog: true,
+  partnerAdminCanViewScanLog: true,
 };
 
-/** Admin (Users.status = 1) luon co du moi quyen, khong phu thuoc bang nay - khong can/khong the
- * la "quan tri gioi han" (ho da la quan tri DAY DU). */
+/** Admin (Users.status = 1) luon co du moi quyen TINH NANG UNG DUNG (6 quyen dau), khong phu
+ * thuoc bang nay - khong can/khong the la "quan tri gioi han" cap do nay (ho da la quan tri DAY
+ * DU). M20 (v3.81): RIENG 5 quyen AdminCanXxx (man hinh "Quan tri") moi doc THAT tu DB cho tai
+ * khoan Quan tri - xem resolvePermissions() - default moi mang true neu chua co dong du lieu. */
 const ADMIN_PERMISSIONS = {
   canRedeemVoucher: true,
   canViewReconciliation: true,
@@ -32,7 +41,17 @@ const ADMIN_PERMISSIONS = {
   partnerAdminConnectionId: null,
   partnerAdminConnectionName: null,
   isPartnerAdmin: false,
+  adminCanManageUnits: true,
+  adminCanManageConnections: true,
+  adminCanManageUsers: true,
+  adminCanViewAdminLog: true,
+  adminCanManageEmailSettings: true,
 };
+
+const FEATURE_COLUMNS_SELECT = `
+  p.PartnerAdminCanManageAccounts, p.PartnerAdminCanManageOrg, p.PartnerAdminCanViewAuditLog, p.PartnerAdminCanViewScanLog,
+  p.AdminCanManageUnits, p.AdminCanManageConnections, p.AdminCanManageUsers, p.AdminCanViewAdminLog, p.AdminCanManageEmailSettings
+`;
 
 async function getPermissions(userId) {
   const pool = await getPool();
@@ -42,7 +61,7 @@ async function getPermissions(userId) {
     .query(`
       SELECT p.CanRedeemVoucher, p.CanViewReconciliation, p.CanViewSummary, p.CanViewUsedVouchers,
              p.CanViewBusinessGuide, p.CanViewSystemGuide, p.PartnerAdminConnectionId,
-             c.Name AS PartnerAdminConnectionName
+             c.Name AS PartnerAdminConnectionName, ${FEATURE_COLUMNS_SELECT}
       FROM dbo.VoucherAppPermissions p
       LEFT JOIN dbo.ApiConnections c ON c.Id = p.PartnerAdminConnectionId
       WHERE p.UserId = @userId
@@ -62,12 +81,47 @@ async function getPermissions(userId) {
     partnerAdminConnectionId: row.PartnerAdminConnectionName ? row.PartnerAdminConnectionId : null,
     partnerAdminConnectionName: row.PartnerAdminConnectionName || null,
     isPartnerAdmin: !!row.PartnerAdminConnectionName,
+    partnerAdminCanManageAccounts: !!row.PartnerAdminCanManageAccounts,
+    partnerAdminCanManageOrg: !!row.PartnerAdminCanManageOrg,
+    partnerAdminCanViewAuditLog: !!row.PartnerAdminCanViewAuditLog,
+    partnerAdminCanViewScanLog: !!row.PartnerAdminCanViewScanLog,
   };
 }
 
-/** Quyen thuc te cua 1 tai khoan, da tinh ca truong hop admin (luon full quyen). */
+/** Rieng 5 quyen man hinh "Quan tri" (AdminCanXxx) cua 1 tai khoan Quan tri DAY DU - dung boi
+ * requireRole.js#requireAdminFeature (chan API) va authService.js#issueSession (qua
+ * resolvePermissions). Tach rieng khoi getPermissions() vi getPermissions() tra DEFAULT_PERMISSIONS
+ * (quyen nhan vien thuong) khi chua co dong du lieu - KHONG dung duoc cho tai khoan Quan tri (can
+ * default TOAN BO true, khong phai chi 2 quyen dau nhu DEFAULT_PERMISSIONS). */
+async function getAdminFeaturePermissions(userId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .query(`SELECT ${FEATURE_COLUMNS_SELECT} FROM dbo.VoucherAppPermissions p WHERE p.UserId = @userId`);
+  const row = result.recordset[0];
+  if (!row) {
+    return {
+      adminCanManageUnits: true,
+      adminCanManageConnections: true,
+      adminCanManageUsers: true,
+      adminCanViewAdminLog: true,
+      adminCanManageEmailSettings: true,
+    };
+  }
+  return {
+    adminCanManageUnits: !!row.AdminCanManageUnits,
+    adminCanManageConnections: !!row.AdminCanManageConnections,
+    adminCanManageUsers: !!row.AdminCanManageUsers,
+    adminCanViewAdminLog: !!row.AdminCanViewAdminLog,
+    adminCanManageEmailSettings: !!row.AdminCanManageEmailSettings,
+  };
+}
+
+/** Quyen thuc te cua 1 tai khoan, da tinh ca truong hop admin (luon full quyen UNG DUNG, rieng 5
+ * quyen man hinh "Quan tri" doc THAT tu DB - xem ghi chu M20 o ADMIN_PERMISSIONS). */
 async function resolvePermissions({ userId, role }) {
-  if (Number(role) === 1) return { ...ADMIN_PERMISSIONS };
+  if (Number(role) === 1) return { ...ADMIN_PERMISSIONS, ...(await getAdminFeaturePermissions(userId)) };
   return getPermissions(userId);
 }
 
@@ -130,6 +184,73 @@ async function setPartnerAdminConnection(userId, connectionId, updatedBy) {
     `);
 }
 
+/**
+ * Doi 4 quyen con cua rieng man hinh "Quan tri doi tac" (tung tab) cho 1 tai khoan - goi tu
+ * user.controller.js#updatePartnerAdmin CUNG LUC voi setPartnerAdminConnection() (ca 2 deu
+ * MERGE tren CUNG 1 dong VoucherAppPermissions nen khong xung dot). Tach rieng ham (khong gop
+ * chung 1 cau MERGE) de co the tai su dung doc lap neu can sau nay.
+ */
+async function setPartnerAdminTabPermissions(userId, perms, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('canManageAccounts', sql.Bit, perms.canManageAccounts ? 1 : 0)
+    .input('canManageOrg', sql.Bit, perms.canManageOrg ? 1 : 0)
+    .input('canViewAuditLog', sql.Bit, perms.canViewAuditLog ? 1 : 0)
+    .input('canViewScanLog', sql.Bit, perms.canViewScanLog ? 1 : 0)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET
+        PartnerAdminCanManageAccounts = @canManageAccounts, PartnerAdminCanManageOrg = @canManageOrg,
+        PartnerAdminCanViewAuditLog = @canViewAuditLog, PartnerAdminCanViewScanLog = @canViewScanLog,
+        UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, PartnerAdminCanManageAccounts, PartnerAdminCanManageOrg,
+         PartnerAdminCanViewAuditLog, PartnerAdminCanViewScanLog, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 0, 0, 1, 0, @canManageAccounts, @canManageOrg,
+                @canViewAuditLog, @canViewScanLog, @updatedBy, GETDATE());
+    `);
+}
+
+/**
+ * Doi 5 quyen man hinh "Quan tri" (AdminCanXxx) cho 1 tai khoan Quan tri DAY DU - goi tu
+ * user.controller.js#updateAdminFeaturePermissions (man hinh "Tai khoan", chi tai khoan Quan tri
+ * khac moi sua duoc, KHONG tu sua duoc chinh minh - xem ghi chu o controller, tranh tu khoa het
+ * quyen vao lai man "Tai khoan" de mo lai cho chinh minh).
+ */
+async function setAdminFeaturePermissions(userId, perms, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('canManageUnits', sql.Bit, perms.canManageUnits ? 1 : 0)
+    .input('canManageConnections', sql.Bit, perms.canManageConnections ? 1 : 0)
+    .input('canManageUsers', sql.Bit, perms.canManageUsers ? 1 : 0)
+    .input('canViewAdminLog', sql.Bit, perms.canViewAdminLog ? 1 : 0)
+    .input('canManageEmailSettings', sql.Bit, perms.canManageEmailSettings ? 1 : 0)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET
+        AdminCanManageUnits = @canManageUnits, AdminCanManageConnections = @canManageConnections,
+        AdminCanManageUsers = @canManageUsers, AdminCanViewAdminLog = @canViewAdminLog,
+        AdminCanManageEmailSettings = @canManageEmailSettings, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, AdminCanManageUnits, AdminCanManageConnections,
+         AdminCanManageUsers, AdminCanViewAdminLog, AdminCanManageEmailSettings, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 1, 1, 1, 1, @canManageUnits, @canManageConnections,
+                @canManageUsers, @canViewAdminLog, @canManageEmailSettings, @updatedBy, GETDATE());
+    `);
+}
+
 /** Tao dong quyen MAC DINH cho 1 tai khoan vua tao (ghi ro rang thay vi de trong/ngam dinh,
  * de admin thay va sua ngay tu dau neu can). */
 async function createDefaultPermissions(userId, createdBy) {
@@ -170,9 +291,12 @@ module.exports = {
   DEFAULT_PERMISSIONS,
   ADMIN_PERMISSIONS,
   getPermissions,
+  getAdminFeaturePermissions,
   resolvePermissions,
   setPermissions,
   setPartnerAdminConnection,
+  setPartnerAdminTabPermissions,
+  setAdminFeaturePermissions,
   createDefaultPermissions,
   setCreatedByPartnerConnection,
   listCreatedByPartnerConnection,

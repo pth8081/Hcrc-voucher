@@ -93,14 +93,26 @@ async function create(data) {
   }, 'Ma cong ty (CompanyCode)');
 }
 
+/**
+ * update() nhan them 2 THAM SO KHAC NHAU de gan "doi tac" cho 1 cong ty, dung o 2 man hinh khac
+ * nhau (v3.81):
+ *  - `createdByPartnerConnectionId` (co the undefined = KHONG doi, hoac gia tri/null = doi) - chi
+ *    man hinh quan tri day du (units.html, xem company.controller.js#update) duoc gui truong nay,
+ *    dung de HCRC gan/doi/go "thuoc doi tac nao" cho 1 cong ty (demo diem 4 - doi tac se tu thay
+ *    cong ty nay trong man "Quan tri doi tac" cua ho ngay sau khi gan).
+ *  - Man hinh "Quan tri doi tac" (partnerAdminService.js#updateOwnCompany) KHONG BAO GIO duoc
+ *    gui truong nay (chi sua duoc thong tin cong ty cua chinh ho, khong tu doi duoc "chu so
+ *    huu") - update() don gian BO QUA, khong dong gi den cot nay khi gia tri la `undefined`.
+ */
 async function update(id, data) {
   const pool = await getPool();
   // Dot ra soat sau phat hien: truoc day thieu CompanyCode trong SET - sua "ma cong ty" tren
   // giao dien bao thanh cong nhung du lieu that KHONG doi (chi cac truong khac duoc luu). Bat
   // loi vi pham UNIQUE (doi ma trung voi 1 cong ty khac) va doi thanh 1 thong bao 409 de hieu.
+  const setPartnerClause = data.createdByPartnerConnectionId !== undefined ? ', CreatedByPartnerConnectionId = @createdByPartnerConnectionId' : '';
   await runWithUniqueConstraintMessage(
-    () =>
-      pool
+    () => {
+      const request = pool
         .request()
         .input('id', sql.Int, id)
         .input('companyCode', sql.NVarChar(50), data.companyCode)
@@ -112,8 +124,11 @@ async function update(id, data) {
         .input('taxCode', sql.NVarChar(50), data.taxCode || null)
         .input('bankAccount', sql.NVarChar(100), data.bankAccount || null)
         .input('bankName', sql.NVarChar(200), data.bankName || null)
-        .input('status', sql.Bit, data.status === undefined ? 1 : data.status)
-        .query(`
+        .input('status', sql.Bit, data.status === undefined ? 1 : data.status);
+      if (data.createdByPartnerConnectionId !== undefined) {
+        request.input('createdByPartnerConnectionId', sql.Int, data.createdByPartnerConnectionId || null);
+      }
+      return request.query(`
           UPDATE dbo.RedemptionCompanies SET
             CompanyCode = @companyCode,
             CompanyName = @companyName,
@@ -126,8 +141,10 @@ async function update(id, data) {
             BankName = @bankName,
             Status = @status,
             UpdatedDate = GETDATE()
+            ${setPartnerClause}
           WHERE Id = @id
-        `),
+        `);
+    },
     'Ma cong ty (CompanyCode)'
   );
 }

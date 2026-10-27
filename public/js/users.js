@@ -51,27 +51,60 @@ const PERM_FIELDS = [
 ];
 const showDeletedCheckbox = document.getElementById('showDeletedCheckbox');
 const userSearchInput = document.getElementById('userSearchInput');
+const filterCompanyInput = document.getElementById('filterCompany');
+const filterRedemptionUnitInput = document.getElementById('filterRedemptionUnit');
 
 /** Loc danh sach tai khoan NGAY TRONG TRINH DUYET (du lieu da tai het ve), khong goi lai API -
  * danh sach tai khoan thuong khong qua lon nen loc phia client la du nhanh, don gian hon han
  * phai them tham so tim kiem o backend. So khop khong phan biet hoa/thuong tren ca ten dang
  * nhap (tr.dataset.username) va ho ten (doc truc tiep tu o input, vi ho ten la 1 o co the sua
- * duoc, khong phai van ban tinh). */
+ * duoc, khong phai van ban tinh).
+ *
+ * v3.81 (diem 5/6): ket hop THEM 2 bo loc Cong ty/Diem thu hoi (AND voi o tim kiem, khong doi
+ * nhau) - doc tu `tr.dataset.companyId`/`tr.dataset.unitId` da gan san luc renderUsers() (xem
+ * findUnitForUser()). Chon Cong ty nhung KHONG chon rieng 1 Diem thu hoi cu the = hien TOAN BO
+ * tai khoan cua cong ty do (moi diem thu hoi), dung yeu cau nguoi dung.
+ */
 function applyUserSearchFilter() {
   const term = userSearchInput.value.trim().toLowerCase();
+  const companyFilter = filterCompanyInput.value;
+  const unitFilter = filterRedemptionUnitInput.value;
   document.querySelectorAll('#usersBody tr[data-user-id]').forEach((tr) => {
-    if (!term) {
-      tr.classList.remove('row-filtered-out');
-      return;
-    }
     const username = (tr.dataset.username || '').toLowerCase();
     const fullNameInput = tr.querySelector('.edit-fullname');
     const fullName = fullNameInput ? fullNameInput.value.toLowerCase() : '';
-    const match = username.includes(term) || fullName.includes(term);
-    tr.classList.toggle('row-filtered-out', !match);
+    const matchTerm = !term || username.includes(term) || fullName.includes(term);
+    const matchCompany = !companyFilter || tr.dataset.companyId === companyFilter;
+    const matchUnit = !unitFilter || tr.dataset.unitId === unitFilter;
+    tr.classList.toggle('row-filtered-out', !(matchTerm && matchCompany && matchUnit));
   });
 }
 userSearchInput.addEventListener('input', applyUserSearchFilter);
+
+/** O chon "Cong ty" cho bo loc (khac voi o chon "Cong ty" luc tao tai khoan moi, xem
+ * renderNewCompanyOptions()) - doi Cong ty se nap lai o "Diem thu hoi" chi gom dung diem thu hoi
+ * cua cong ty do (giong het cach lam cua refreshNewRedemptionUnitOptions), roi loc lai ngay. */
+function renderFilterCompanyOptions() {
+  const current = filterCompanyInput.value;
+  filterCompanyInput.innerHTML =
+    '<option value="">Tất cả công ty</option>' +
+    companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
+  filterCompanyInput.value = current;
+}
+
+function refreshFilterUnitOptions() {
+  const companyId = filterCompanyInput.value;
+  const current = filterRedemptionUnitInput.value;
+  const list = companyId ? redemptionUnitsCache.filter((u) => String(u.CompanyId) === String(companyId)) : redemptionUnitsCache;
+  filterRedemptionUnitInput.innerHTML =
+    '<option value="">Tất cả điểm thu hồi</option>' + list.map((u) => `<option value="${u.Id}">${unitLabel(u)}</option>`).join('');
+  if (list.some((u) => String(u.Id) === current)) filterRedemptionUnitInput.value = current;
+}
+filterCompanyInput.addEventListener('change', () => {
+  refreshFilterUnitOptions();
+  applyUserSearchFilter();
+});
+filterRedemptionUnitInput.addEventListener('change', applyUserSearchFilter);
 
 async function load() {
   try {
@@ -89,6 +122,8 @@ async function load() {
     voucherConnectionsCache = connections;
     usersCache = users;
     renderNewCompanyOptions();
+    renderFilterCompanyOptions();
+    refreshFilterUnitOptions();
     renderUsers(users);
     applyUserSearchFilter();
     renderReportFilterOptions();
@@ -221,18 +256,46 @@ function permCheckbox(field, checked, isAdmin) {
   return `<input type="checkbox" class="perm-${field}" ${checked ? 'checked' : ''} ${isAdmin ? 'disabled' : ''} />`;
 }
 
+/** "canManageUnits" -> "adminCanManageUnits" / "canManageAccounts" -> "partnerAdminCanManageAccounts" -
+ * cac checkbox dung ten TRUNG VOI body server mong doi (vd PUT /users/:id/admin-features nhan
+ * thang `canManageUnits`), nhung doc trang thai BAN DAU tu `u.permissions` (permissionService.js)
+ * lai dung ten DAY DU co tien to ("adminCanManageUnits"/"partnerAdminCanManageAccounts") - ham
+ * nay chuyen doi 1 chieu de hien checked dung ngay tu dau, tranh go trung 2 lan ten quyen. */
+function prefixedPermKey(prefix, key) {
+  return prefix + key[0].toUpperCase() + key.slice(1);
+}
+
+/** 4 quyen con cua man hinh "Quan tri doi tac" (tung tab) - xem permissionService.js. */
+const PARTNER_ADMIN_TAB_FIELDS = [
+  { key: 'canManageAccounts', label: 'Quản lý tài khoản' },
+  { key: 'canManageOrg', label: 'Công ty & Điểm tiêu' },
+  { key: 'canViewAuditLog', label: 'Nhật ký quản trị' },
+  { key: 'canViewScanLog', label: 'Hoạt động quét/thu hồi' },
+];
+
+/** 5 quyen man hinh "Quan tri" (tung man con) - xem permissionService.js. */
+const ADMIN_FEATURE_FIELDS = [
+  { key: 'canManageUnits', label: 'Đơn vị thu hồi' },
+  { key: 'canManageConnections', label: 'Kết nối API' },
+  { key: 'canManageUsers', label: 'Tài khoản' },
+  { key: 'canViewAdminLog', label: 'Nhật ký hệ thống' },
+  { key: 'canManageEmailSettings', label: 'Thiết lập email' },
+];
+
 function renderUsers(users) {
   const groupOptions = accessGroupsCache
     .map((g) => `<option value="${g.Id}">${escapeHtmlLayout(g.GroupName)}</option>`)
     .join('');
+  const currentUserId = (getUser() || {}).userId;
 
   usersBody.innerHTML = users
     .map((u) => {
       const isAdmin = Number(u.role) === 1;
       const perms = u.permissions || {};
       const deleted = !!u.isDeleted;
+      const unit = findUnitForUser(u);
       return `
-      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" class="${deleted ? 'row-deleted' : ''}">
+      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" data-company-id="${unit ? unit.CompanyId : ''}" data-unit-id="${unit ? unit.Id : ''}" class="${deleted ? 'row-deleted' : ''}">
         <td data-label="Tên đăng nhập">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">ĐÃ XÓA</span>' : ''}</td>
         <td data-label="Họ tên"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
         <td data-label="Vai trò">${isAdmin ? 'Quản trị' : 'Nhân viên'}</td>
@@ -277,6 +340,26 @@ function renderUsers(users) {
             <option value="">-- Không --</option>
             ${voucherConnectionsCache.map((c) => `<option value="${c.id}">${escapeHtmlLayout(c.name)}</option>`).join('')}
           </select>
+          ${!isAdmin ? `
+          <div class="perm-grid mt-6">
+            ${PARTNER_ADMIN_TAB_FIELDS.map(
+              (f) => `
+              <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="${f.key}" ${perms[prefixedPermKey('partnerAdmin', f.key)] !== false ? 'checked' : ''} /> ${f.label}</label>`
+            ).join('')}
+          </div>
+          <p class="hint" style="margin:4px 0 0;">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ.</p>` : ''}
+        </td>
+        <td data-label="Quyền quản trị hệ thống">
+          ${isAdmin ? (
+            u.userId === currentUserId
+              ? '<p class="hint m-0">Không tự sửa được quyền của chính mình - nhờ 1 Quản trị khác sửa hộ.</p>'
+              : `<div class="perm-grid">
+                  ${ADMIN_FEATURE_FIELDS.map(
+                    (f) => `
+                    <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="${f.key}" ${perms[prefixedPermKey('admin', f.key)] !== false ? 'checked' : ''} /> ${f.label}</label>`
+                  ).join('')}
+                </div>`
+          ) : '<span class="text-muted">-</span>'}
         </td>
         <td data-label="Mật khẩu mới"><input type="password" class="edit-password" placeholder="Để trống = giữ nguyên" autocomplete="new-password" /></td>
         <td data-label="Hành động">
@@ -393,6 +476,15 @@ async function saveUser(tr) {
   const connectionIds = Array.from(tr.querySelectorAll('.voucher-system-checkbox:checked')).map((el) => Number(el.dataset.id));
   const partnerAdminConnectionRaw = tr.querySelector('.partner-admin-connection').value;
   const partnerAdminConnectionId = partnerAdminConnectionRaw ? Number(partnerAdminConnectionRaw) : null;
+  const partnerAdminTabPerms = {};
+  tr.querySelectorAll('.partner-admin-tab-perm').forEach((el) => {
+    partnerAdminTabPerms[el.dataset.perm] = el.checked;
+  });
+  const adminFeaturePermEls = tr.querySelectorAll('.admin-feature-perm');
+  const adminFeaturePerms = {};
+  adminFeaturePermEls.forEach((el) => {
+    adminFeaturePerms[el.dataset.perm] = el.checked;
+  });
 
   const saveBtn = tr.querySelector('.save-btn');
   saveBtn.disabled = true;
@@ -444,10 +536,22 @@ async function saveUser(tr) {
       label: 'Quản trị đối tác',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/partner-admin`, {
         method: 'PUT',
-        body: JSON.stringify({ connectionId: partnerAdminConnectionId, username }),
+        body: JSON.stringify({ connectionId: partnerAdminConnectionId, ...partnerAdminTabPerms, username }),
       }),
     },
   ];
+  // Chi gui job nay khi dong co render ra 5 checkbox (tai khoan Quan tri VA khong phai chinh
+  // minh dang dang nhap - xem renderUsers()) - tranh goi API thua (va API cung se tu choi 400
+  // neu co gang goi cho chinh minh).
+  if (adminFeaturePermEls.length) {
+    jobs.push({
+      label: 'Quyền quản trị hệ thống',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/admin-features`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...adminFeaturePerms, username }),
+      }),
+    });
+  }
 
   try {
     const results = await Promise.allSettled(jobs.map((j) => j.run()));

@@ -1284,6 +1284,72 @@ Du lieu: `sql/038_add_created_by_partner_connection_company.sql`. API: xem 7 don
 muc 5 (`PUT .../profile`, `PUT .../permissions`, `PUT .../location`, `GET/POST .../companies`,
 `GET/POST .../units`).
 
+### 4m. Phan quyen chi tiet theo TUNG man hinh con + mo rong "Quan tri doi tac" (v3.81)
+
+Theo yeu cau: *"chuc nang nao khong duoc phan quyen thi khong hien ra tren menu"* - ap dung cho
+CA 2 tang quan tri hien co, cong voi 4 mo rong khac cho man hinh `/partner-admin.html`.
+
+**1. Phan quyen chi tiet man hinh "Quan tri doi tac" (4 tab):** `VoucherAppPermissions` them 4
+cot `PartnerAdminCanManageAccounts`/`...CanManageOrg`/`...CanViewAuditLog`/`...CanViewScanLog`
+(moi cot DEFAULT 1 - khong doi hanh vi tai khoan dang co). HCRC tick/bo tick tung muc ngay o cot
+"Quan tri doi tac" cua man hinh "Tai khoan" (cung luc chon he thong). Tab khong duoc tick se **an
+hoan toan khoi menu** cua doi tac do (`public/js/partner-admin.js#applyTabPermissions`) VA bi
+chan o API (`requirePartnerAdminFeature()`, `src/middleware/requirePartnerAdmin.js`) - khong chi
+an giao dien.
+
+**2. Phan quyen chi tiet man hinh "Quan tri" cua tai khoan Quan tri DAY DU (5 man):** cung bang
+them 5 cot `AdminCanManageUnits`/`...Connections`/`...Users`/`...ViewAdminLog`/`...EmailSettings`
+(DEFAULT 1). Tai khoan Quan tri TRUOC DAY luon co du ca 5 man (`Don vi thu hoi`/`Ket noi
+API`/`Tai khoan`/`Nhat ky he thong`/`Thiet lap email`), khong phan biet duoc. Tu ban nay, 1 tai
+khoan Quan tri **khac** (khong tu sua duoc cho chinh minh - tranh tu khoa het quyen vao lai "Tai
+khoan") co the gioi han 1 tai khoan Quan tri chi con 1 vai man (vd ke toan chi can "Tai khoan" +
+"Nhat ky he thong"). An menu qua `layout.js#ADMIN_NAV_ITEMS`, chan API qua
+`requireRole.js#requireAdminFeature()` thay the `requireAdmin()` tren 5 nhom route tuong ung. Cac
+GET du lieu dung lam dropdown o man "Tai khoan" (cong ty/diem tieu/ket noi/nhom quyen bao cao) van
+mo cho MOI tai khoan Quan tri bat ke co quyen man do hay khong - chi THEM/SUA/XOA that moi doi hoi
+quyen rieng, tranh gay hong cac man khac dang dung chung du lieu nay.
+
+**3. Tao tai khoan nhan vien gan Cong ty + Diem tieu NGAY luc tao:** form "Tao tai khoan" cua man
+"Quan tri doi tac" them 2 o chon **Cong ty -> Diem tieu** (cascading, giong het man "Tai khoan"
+cua HCRC) - hien ca cong ty do CHINH doi tac tao lan cong ty do HCRC tao va GAN RIENG cho ho (diem
+4 ben duoi). Gan luon diem tieu khi tao (`partnerAdminService.js#createScopedUser`), khong can vao
+"Sua" sau nua.
+
+**4. HCRC gan 1 cong ty cho doi tac su dung:** form "Them cong ty" cua `/units.html` them o chon
+**"Thuoc doi tac (tuy chon)"** (danh sach ket noi Core API hien co). Chon 1 doi tac -> cong ty do
+**tu hien ra** trong man "Quan tri doi tac" cua ho (dung chung dieu kien `CreatedByPartnerConnectionId`
+da co tu v3.76, `sql/038`), ho quan ly cong ty do **nhu cua chinh minh** (sua/xoa/tu tao them diem
+tieu) - khong phan biet rieng "ai tao ban dau" (du lieu khong luu thong tin do). `companyService.js#update()`
+nhan them tham so `createdByPartnerConnectionId` (chi man quan tri day du duoc gui truong nay).
+
+**5. Doi tac toan quyen sua/xoa Cong ty & Diem tieu cua ho:** tab "Cong ty & Diem tieu" them nut
+**Sua/Xoa** cho ca cong ty lan diem tieu (truoc day chi tao duoc, khong sua/xoa duoc) -
+`partnerAdminService.js#updateOwnCompany/removeOwnCompany/updateOwnUnit/removeOwnUnit`, deu bat
+buoc `companyService.isOwnedByConnection()` truoc khi thao tac, tai dung dieu kien chan trung
+dia diem xuyen cong ty va chan xoa khi con diem tieu/nhan vien dang gan (409) co san tu
+`companyService.js`/`redemptionUnitService.js`.
+
+**6. Doi tac tu tao "Nhom quyen xem bao cao" rieng:** tab moi **"Nhom quyen xem bao cao"** tren
+`/partner-admin.html`, giong het tinh nang co san cua HCRC (muc 13) nhung GIOI HAN trong cong ty
+cua chinh doi tac do - `sql/040_add_created_by_partner_connection_access_group.sql` them cot
+`ReportAccessGroups.CreatedByPartnerConnectionId`. **Diem bao mat quan trong nhat**: pham vi
+`ScopeType='ALL'` cua 1 nhom quyen **co chu la doi tac** KHONG duoc hieu la "toan bo moi cong ty
+trong he thong" (nhu ALL cua HCRC) - se lo du lieu HCRC/doi tac khac cho 1 nhan vien dang lam cho
+1 doi tac - ma duoc tinh lai thanh "toan bo cong ty THUOC DUNG doi tac do"
+(`reportAccessService.js#resolveVisibleLocationCodes`, re nhanh rieng khi `group.createdByPartnerConnectionId`
+khac null). Gan nhom quyen cho nhan vien ngay trong panel "Sua tai khoan" (them o moi, cung dieu
+kien `exclusiveToThisSystem` nhu o chon Diem tieu - muc 4l).
+
+**7. Tim kiem + loc theo Cong ty/Diem thu hoi:** them vao ca 2 man "Tai khoan" (HCRC) va "Quan tri
+doi tac" - ket hop duoc o tim ten dang nhap/ho ten voi 2 bo loc, loc hoan toan phia trinh duyet.
+Chon Cong ty nhung KHONG chon rieng 1 Diem thu hoi/tieu cu the = hien toan bo tai khoan cua cong
+ty do (moi diem).
+
+Du lieu: `sql/040_add_created_by_partner_connection_access_group.sql`,
+`sql/041_add_feature_permissions.sql`. API: xem cac dong moi trong bang muc 5
+(`PUT .../admin-features`, `PUT .../report-access-group`, `GET/POST/PUT/DELETE .../companies`,
+`.../units`, `.../report-access-groups`).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -1300,8 +1366,8 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/redemption-units` | Them diem tieu, bat buoc gan `companyId` (can quyen admin) |
 | PUT | `/api/redemption-units/:id` | Cap nhat diem tieu (can quyen admin) |
 | GET | `/api/companies` | Danh sach cong ty |
-| POST | `/api/companies` | Them cong ty (can quyen admin) |
-| PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
+| POST | `/api/companies` | Them cong ty (can quyen admin) - `createdByPartnerConnectionId` tuy chon de gan cho 1 doi tac — muc 4m |
+| PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) - `createdByPartnerConnectionId` tuy chon (gui = doi, khong gui = giu nguyen) — muc 4m |
 | GET | `/api/vouchers/systems` | Danh sach he thong voucher de chon (id/name/isActive) — muc 4e |
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) - `{ voucherCode, scanMethod, connectionId? }` |
 | POST | `/api/vouchers/redeem` | Xac nhan thu hoi 1 ma (goi Core API + luu VOUCHER_SYNC) - `{ voucherCode, scanMethod, connectionId? }` - **giao dien web khong con goi endpoint nay tu v3.78**, chi con dung redeem-batch ben duoi (ke ca 1 ma) |
@@ -1331,20 +1397,26 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | POST | `/api/users` | (can quyen admin) Tao tai khoan moi — muc 15a |
 | PUT | `/api/users/:userId/permissions` | (can quyen admin) Doi 4 quyen tinh nang cua 1 tai khoan nhan vien — muc 15b |
 | PUT | `/api/users/:userId/schedule` | (can quyen admin) Dat/sua `ActiveFrom`/`ActiveUntil` cua 1 tai khoan |
-| PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" — `{ connectionId }` — muc 4j |
-| GET | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
-| POST | `/api/partner-admin/users` | (can quyen "Quan tri doi tac") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri — muc 4j |
-| PUT | `/api/partner-admin/users/:userId/active` | (can quyen "Quan tri doi tac") Khoa/mo khoa 1 tai khoan trong pham vi (CHI tai khoan dung DUY NHAT he thong cua ho) — `{ isDeleted }` — muc 4j |
-| PUT | `/api/partner-admin/users/:userId/remove-connection` | (can quyen "Quan tri doi tac") Go DUNG he thong cua chinh ho khoi 1 tai khoan dang dung chung — muc 4j |
-| GET | `/api/partner-admin/audit-log(/export)` | (can quyen "Quan tri doi tac") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j |
-| GET | `/api/partner-admin/scan-log(/export)` | (can quyen "Quan tri doi tac") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j |
-| PUT | `/api/partner-admin/users/:userId/profile` | (can quyen "Quan tri doi tac") Doi ho ten/dat lai mat khau 1 tai khoan trong pham vi — `{ fullName, password? }` — muc 4l |
-| PUT | `/api/partner-admin/users/:userId/permissions` | (can quyen "Quan tri doi tac") Doi 6 quyen tinh nang 1 tai khoan trong pham vi (loc bo moi truong khac qua whitelist) — muc 4l |
-| PUT | `/api/partner-admin/users/:userId/location` | (can quyen "Quan tri doi tac") Doi diem tieu — CHI tai khoan doc quyen 1 he thong cua ho (`exclusiveToThisSystem=true`) — `{ redemptionUnitId }` — muc 4l |
-| GET | `/api/partner-admin/companies` | (can quyen "Quan tri doi tac") Danh sach cong ty DO CHINH ho tao — muc 4l |
-| POST | `/api/partner-admin/companies` | (can quyen "Quan tri doi tac") Tao cong ty moi, tu dong gan quyen so huu cho ho — `{ companyCode, companyName }` — muc 4l |
-| GET | `/api/partner-admin/units` | (can quyen "Quan tri doi tac") Danh sach diem tieu thuoc cac cong ty DO CHINH ho tao — muc 4l |
-| POST | `/api/partner-admin/units` | (can quyen "Quan tri doi tac") Tao diem tieu moi cho 1 cong ty cua ho — `{ locationName, companyId }` — muc 4l |
+| PUT | `/api/users/:userId/partner-admin` | (can quyen admin) Gan/go quyen "Quan tri doi tac" - `{ connectionId, canManageAccounts?, canManageOrg?, canViewAuditLog?, canViewScanLog? }` (4 co tuy chon, mac dinh true) — muc 4j/4m |
+| PUT | `/api/users/:userId/admin-features` | (can quyen admin, KHONG tu sua duoc chinh minh) Doi 5 quyen man hinh "Quan tri" cua 1 tai khoan Quan tri khac — `{ canManageUnits, canManageConnections, canManageUsers, canViewAdminLog, canManageEmailSettings }` — muc 4m |
+| GET | `/api/partner-admin/users` | (can quyen con "Quan ly tai khoan") Danh sach tai khoan CHI dung he thong duoc quan tri — muc 4j |
+| POST | `/api/partner-admin/users` | (can quyen con "Quan ly tai khoan") Tao tai khoan moi, tu dong gan dung he thong duoc quan tri - `redemptionUnitId` tuy chon de gan diem tieu ngay — muc 4j/4m |
+| PUT | `/api/partner-admin/users/:userId/active` | (can quyen con "Quan ly tai khoan") Khoa/mo khoa 1 tai khoan trong pham vi (CHI tai khoan dung DUY NHAT he thong cua ho) — `{ isDeleted }` — muc 4j |
+| PUT | `/api/partner-admin/users/:userId/remove-connection` | (can quyen con "Quan ly tai khoan") Go DUNG he thong cua chinh ho khoi 1 tai khoan dang dung chung — muc 4j |
+| GET | `/api/partner-admin/audit-log(/export)` | (can quyen con "Nhat ky quan tri") Nhat ky quan tri LOC theo pham vi cua ho — muc 4j/4m |
+| GET | `/api/partner-admin/scan-log(/export)` | (can quyen con "Hoat dong quet/thu hoi") Hoat dong quet/thu hoi LOC theo dung he thong cua ho — muc 4j/4m |
+| PUT | `/api/partner-admin/users/:userId/profile` | (can quyen con "Quan ly tai khoan") Doi ho ten/dat lai mat khau 1 tai khoan trong pham vi — `{ fullName, password? }` — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/permissions` | (can quyen con "Quan ly tai khoan") Doi 6 quyen tinh nang 1 tai khoan trong pham vi (loc bo moi truong khac qua whitelist) — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/location` | (can quyen con "Quan ly tai khoan") Doi diem tieu — CHI tai khoan doc quyen 1 he thong cua ho (`exclusiveToThisSystem=true`) — `{ redemptionUnitId }` — muc 4l |
+| PUT | `/api/partner-admin/users/:userId/report-access-group` | (can quyen con "Quan ly tai khoan") Doi nhom quyen xem bao cao — CHI tai khoan doc quyen 1 he thong cua ho — `{ reportAccessGroupId }` — muc 4m |
+| GET | `/api/partner-admin/companies` | (can quyen con "Quan ly tai khoan" HOAC "Cong ty & Diem tieu") Danh sach cong ty thuoc pham vi ho (tu tao hoac HCRC gan) — muc 4l/4m |
+| POST | `/api/partner-admin/companies` | (can quyen con "Cong ty & Diem tieu") Tao cong ty moi, tu dong gan quyen so huu cho ho — `{ companyCode, companyName }` — muc 4l |
+| PUT/DELETE | `/api/partner-admin/companies/:id` | (can quyen con "Cong ty & Diem tieu") Sua/xoa 1 cong ty thuoc pham vi ho — muc 4m |
+| GET | `/api/partner-admin/units` | (can quyen con "Quan ly tai khoan" HOAC "Cong ty & Diem tieu") Danh sach diem tieu thuoc pham vi ho — muc 4l/4m |
+| POST | `/api/partner-admin/units` | (can quyen con "Cong ty & Diem tieu") Tao diem tieu moi cho 1 cong ty cua ho — `{ locationName, companyId }` — muc 4l |
+| PUT/DELETE | `/api/partner-admin/units/:id` | (can quyen con "Cong ty & Diem tieu") Sua/xoa 1 diem tieu thuoc pham vi ho — muc 4m |
+| GET | `/api/partner-admin/report-access-groups` | (can quyen con "Quan ly tai khoan" HOAC "Cong ty & Diem tieu") Danh sach nhom quyen xem bao cao DO CHINH ho tao — muc 4m |
+| POST/PUT/DELETE | `/api/partner-admin/report-access-groups[/:id]` | (can quyen con "Cong ty & Diem tieu") Tao/sua/xoa nhom quyen xem bao cao cua ho — `{ groupName, scopeType, companyIds }` — muc 4m |
 | POST | `/api/auth/webauthn/login-options` | (cong khai) Lay challenge de dang nhap bang van tay/Face ID |
 | POST | `/api/auth/webauthn/login-verify` | (cong khai) Xac minh phan hoi tu thiet bi, tra ve JWT neu dung |
 | POST | `/api/auth/webauthn/register-options` | Lay challenge de dang ky passkey moi cho tai khoan dang dang nhap |
@@ -2342,7 +2414,21 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.80)**: them o **"Số hóa đơn"** (tuy chon) tren man hinh Quet voucher - cho
+Ban **moi nhat (v3.81)**: phan quyen CHI TIET theo tung man hinh con - cho ca man "Quan tri doi
+tac" (4 tab) lan man "Quan tri" cua tai khoan Quan tri day du (5 man con) - muc nao khong duoc
+cap thi **an hoan toan khoi menu** va bi chan o API, khong chi hinh thuc an giao dien nhu truoc.
+Cong them 4 mo rong cho "Quan tri doi tac": (1) tao tai khoan nhan vien gan **Cong ty + Diem
+tieu** ngay luc tao (truoc phai tao xong moi vao "Sua"); (2) HCRC gan 1 cong ty cho doi tac su
+dung ngay (o chon moi "Thuoc doi tac" tren `/units.html`); (3) doi tac **toan quyen sua/xoa**
+Cong ty & Diem tieu cua ho (truoc chi tao duoc); (4) doi tac tu tao **"Nhom quyen xem bao cao"**
+rieng (gioi han dung trong cong ty cua ho - diem bao mat quan trong: pham vi "Toan bo" cua nhom
+nay CHI tinh cong ty cua dung doi tac do, khac han "Toan bo" cua HCRC). Them o tim kiem + loc
+theo Cong ty/Diem thu hoi cho ca 2 man "Tai khoan" va "Quan tri doi tac". Du lieu:
+`sql/040_add_created_by_partner_connection_access_group.sql`,
+`sql/041_add_feature_permissions.sql` (9 cot quyen moi, DEFAULT 1 - khong doi hanh vi tai khoan
+dang co san). Xem muc 4m.
+
+Ban truoc do (v3.80): them o **"Số hóa đơn"** (tuy chon) tren man hinh Quet voucher - cho
 phep nhan vien ghi lai so hoa don cua he thong ban hang RIENG (app khong tich hop/khong dong bo
 gi voi he thong do) ngay luc thu hoi, de tra cuu lai sau. 1 so hoa don ap dung cho ca danh sach
 dang cho (1 hoa don thuong gop nhieu voucher). Luu vao bang app rieng
