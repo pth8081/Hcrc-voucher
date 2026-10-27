@@ -74,6 +74,28 @@ async function getAllowedConnectionIdsForLocation(locationCode) {
   return [...new Set(restrictionResult.recordset.map((r) => r.ConnectionId))];
 }
 
+/** Danh sach LocationCode (da trim) cua MOI tai khoan dang hoat dong duoc gan RO RANG 1 he thong
+ * (connectionId) cu the trong UserVoucherSystems - dung boi reportAccessService.js de tinh pham
+ * vi bao cao cua 1 doi tac (xem resolveVisibleLocationCodes()): GOM CA tai khoan do CHINH doi tac
+ * do tao (luon bi ep dung connectionId nay - xem partnerAdminService.js#createScopedUser) LAN tai
+ * khoan "dung chung" do HCRC tao nhung duoc CAP THEM quyen dung he thong nay (vd 1 nhan vien HCRC
+ * duoc gan them Fuji de quet duoc ca 2 he thong 1 lan dang nhap) - voucher ho quet qua he thong
+ * nay van duoc tinh vao bao cao cua doi tac, du ban than ho khong thuoc "cong ty cua doi tac". */
+async function getLocationCodesForConnection(connectionId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('connectionId', sql.Int, connectionId)
+    .query(`
+      SELECT DISTINCT LTRIM(RTRIM(u.Locations_Detail)) AS LocationCode
+      FROM dbo.Users u
+      INNER JOIN dbo.UserVoucherSystems s ON s.UserId = u.UserID
+      WHERE s.ConnectionId = @connectionId
+        AND u.Locations_Detail IS NOT NULL AND LTRIM(RTRIM(u.Locations_Detail)) <> ''
+    `);
+  return result.recordset.map((r) => r.LocationCode);
+}
+
 async function isConnectionAllowedForUser(userId, connectionId) {
   const allowed = await getAllowedConnectionIds(userId);
   if (allowed === null) return true;
@@ -150,6 +172,7 @@ module.exports = {
   UNTAGGED_CONNECTION_NAME,
   getAllowedConnectionIds,
   getAllowedConnectionIdsForLocation,
+  getLocationCodesForConnection,
   isConnectionAllowedForUser,
   listUserAccess,
   setAllowedConnections,

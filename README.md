@@ -1335,20 +1335,39 @@ cua chinh doi tac do - `sql/040_add_created_by_partner_connection_access_group.s
 `ReportAccessGroups.CreatedByPartnerConnectionId`. **Diem bao mat quan trong nhat**: pham vi
 `ScopeType='ALL'` cua 1 nhom quyen **co chu la doi tac** KHONG duoc hieu la "toan bo moi cong ty
 trong he thong" (nhu ALL cua HCRC) - se lo du lieu HCRC/doi tac khac cho 1 nhan vien dang lam cho
-1 doi tac - ma duoc tinh lai thanh "toan bo cong ty THUOC DUNG doi tac do"
-(`reportAccessService.js#resolveVisibleLocationCodes`, re nhanh rieng khi `group.createdByPartnerConnectionId`
-khac null). Gan nhom quyen cho nhan vien ngay trong panel "Sua tai khoan" (them o moi, cung dieu
-kien `exclusiveToThisSystem` nhu o chon Diem tieu - muc 4l).
+1 doi tac - ma duoc tinh lai thanh "toan bo du lieu THUOC DUNG he thong cua doi tac do" (xem diem
+8 ben duoi ve chinh xac "toan bo" nghia la gi). Gan nhom quyen cho nhan vien ngay trong panel "Sua
+tai khoan" (them o moi, cung dieu kien `exclusiveToThisSystem` nhu o chon Diem tieu - muc 4l).
 
 **7. Tim kiem + loc theo Cong ty/Diem thu hoi:** them vao ca 2 man "Tai khoan" (HCRC) va "Quan tri
 doi tac" - ket hop duoc o tim ten dang nhap/ho ten voi 2 bo loc, loc hoan toan phia trinh duyet.
 Chon Cong ty nhung KHONG chon rieng 1 Diem thu hoi/tieu cu the = hien toan bo tai khoan cua cong
 ty do (moi diem).
 
+**8. Tai khoan "Quan tri doi tac" MAC DINH xem duoc TOAN BO du lieu he thong cua ho (v3.82):**
+truoc ban nay, 1 tai khoan "Quan tri doi tac" CHUA duoc gan Nhom quyen xem bao cao nao (diem 6)
+mac dinh CHI xem duoc dung diem tieu cua chinh minh (giong nhan vien thuong) - phai tu tao 1 nhom
+quyen ALL roi tu gan cho chinh minh moi xem duoc het du lieu cua minh, du ho la nguoi QUAN TRI he
+thong do. Tu ban nay, tai khoan "Quan tri doi tac" chua co nhom quyen rieng se TU DONG duoc xem
+TOAN BO du lieu thuoc he thong cua ho (giong vai tro Quan tri day du cua HCRC nhung gioi han dung
+1 he thong), khong can thiet lap gi them - `reportAccessService.js#resolveVisibleLocationCodes`.
+
+**"Toan bo" o day duoc tinh CHINH XAC hon ban dau (v3.81), theo yeu cau**: khong chi gom cac Cong
+ty DO CHINH doi tac tao/duoc gan (nhu v3.81), ma con gom CA dia diem cua **bat ky tai khoan nao
+(ke ca do HCRC tao)** dang duoc gan RO RANG dung he thong cua doi tac do trong "He thong voucher
+duoc dung" (vd 1 nhan vien HCRC duoc cap them quyen dung Fuji de quet duoc ca 2 he thong 1 lan
+dang nhap - muc 4e) - voucher ho quet qua he thong Fuji VAN duoc tinh vao bao cao cua doi tac
+Fuji, du ban than tai khoan/dia diem do khong thuoc "cong ty cua doi tac". Ap dung DONG THOI cho
+ca muc 8 (mac dinh) lan nhom quyen ALL tu tao o muc 6 - CUNG 1 ham tinh
+(`reportAccessService.js#getAllLocationCodesForPartnerConnection`), hop (UNION) 2 nguon: (a) dia
+diem cua Diem tieu thuoc cac Cong ty doi tac so huu, (b) dia diem cua moi tai khoan duoc gan RO
+RANG he thong do trong `UserVoucherSystems` (du khong thuoc cong ty nao cua doi tac).
+
 Du lieu: `sql/040_add_created_by_partner_connection_access_group.sql`,
 `sql/041_add_feature_permissions.sql`. API: xem cac dong moi trong bang muc 5
 (`PUT .../admin-features`, `PUT .../report-access-group`, `GET/POST/PUT/DELETE .../companies`,
-`.../units`, `.../report-access-groups`).
+`.../units`, `.../report-access-groups`). Khong co migration CSDL moi cho diem 8 (chi doi logic
+tinh toan trong `reportAccessService.js`/`userVoucherSystemService.js`).
 
 ## 5. API cua app nay (danh cho web/mobile UI)
 
@@ -2414,7 +2433,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.82)**: bo sung canh bao cho form "Tao tai khoan" cua man "Quan tri doi tac"
+Ban **moi nhat (v3.83)**: tai khoan "Quan tri doi tac" **MAC DINH xem duoc TOAN BO du lieu he
+thong cua ho** trong bao cao (truoc phai tu tao Nhom quyen xem bao cao ALL roi tu gan cho chinh
+minh moi xem het). Tinh "Toan bo" cung duoc sua CHINH XAC hon: gom CA du lieu cua tai khoan do
+HCRC tao nhung duoc cap them quyen dung he thong cua doi tac (vd 1 nhan vien HCRC duoc cap them
+Fuji de quet duoc ca 2 he thong) - truoc day cac giao dich nay bi "lot luoi" khoi bao cao cua doi
+tac du dung he thong cua ho. Khong co migration CSDL moi, chi sua logic tinh toan trong
+`reportAccessService.js`. Xem muc 4m (diem 8).
+
+Ban truoc do (v3.82): bo sung canh bao cho form "Tao tai khoan" cua man "Quan tri doi tac"
 (v3.81) - chon 1 Cong ty **chua co Diem tieu nao** (vd HCRC vua tao/gan Cong ty cho doi tac,
 chua kip tao Diem tieu) thi tai khoan **KHONG gan duoc vao dung cong ty do** neu bo trong o Diem
 tieu (he thong gan tai khoan qua Diem tieu, khong gan thang vao Cong ty). Them dong canh bao ro +
