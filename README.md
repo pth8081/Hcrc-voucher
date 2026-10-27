@@ -2414,7 +2414,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.81)**: phan quyen CHI TIET theo tung man hinh con - cho ca man "Quan tri doi
+Ban **moi nhat (v3.82)**: bo sung canh bao cho form "Tao tai khoan" cua man "Quan tri doi tac"
+(v3.81) - chon 1 Cong ty **chua co Diem tieu nao** (vd HCRC vua tao/gan Cong ty cho doi tac,
+chua kip tao Diem tieu) thi tai khoan **KHONG gan duoc vao dung cong ty do** neu bo trong o Diem
+tieu (he thong gan tai khoan qua Diem tieu, khong gan thang vao Cong ty). Them dong canh bao ro +
+nut **"Tao diem tieu ngay"** nhay thang sang tab "Cong ty & Diem tieu", chon san dung cong ty
+dang dang - tranh doi tac bi ket khong hieu vi sao tao tai khoan xong van khong thay gan dung
+cong ty. Khong co migration CSDL moi, khong doi logic backend. Xem muc 4m.
+
+Ban truoc do (v3.81): phan quyen CHI TIET theo tung man hinh con - cho ca man "Quan tri doi
 tac" (4 tab) lan man "Quan tri" cua tai khoan Quan tri day du (5 man con) - muc nao khong duoc
 cap thi **an hoan toan khoi menu** va bi chan o API, khong chi hinh thuc an giao dien nhu truoc.
 Cong them 4 mo rong cho "Quan tri doi tac": (1) tao tai khoan nhan vien gan **Cong ty + Diem
