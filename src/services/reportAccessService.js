@@ -1,5 +1,7 @@
 const { sql, getPool } = require('../config/db');
 const companyService = require('./companyService');
+const userVoucherSystemService = require('./userVoucherSystemService');
+const permissionService = require('./permissionService');
 
 /**
  * Phan quyen xem bao cao THEO CONG TY - tach biet hoan toan voi Users.status (vai tro quan
@@ -50,6 +52,27 @@ async function getLocationCodesForCompanies(companyIds) {
 }
 
 /**
+ * Danh sach dia diem "toan bo he thong" cua 1 doi tac (connectionId) - dung cho CA 2 cho can
+ * "ALL cua doi tac" o duoi (mac dinh tai khoan Quan tri doi tac, VA nhom quyen ALL do doi tac tu
+ * tao). Hop (UNION) 2 nguon de khong bo sot truong hop nao:
+ *  1. Dia diem cua moi Diem tieu thuoc cac Cong ty DO DOI TAC NAY so huu (CreatedByPartnerConnectionId) -
+ *     nguon chinh, dung cho cong ty/diem tieu da khai bao du chua co ai tung quet qua.
+ *  2. Dia diem cua MOI tai khoan (ke ca do HCRC tao) dang duoc gan RO RANG dung he thong nay
+ *     trong UserVoucherSystems (`userVoucherSystemService.js#getLocationCodesForConnection`) -
+ *     dam bao 1 tai khoan "dung chung" (vd nhan vien HCRC duoc cap them quyen dung Fuji de quet
+ *     duoc ca 2 he thong 1 lan dang nhap) van duoc tinh vao bao cao cua doi tac, du ban than tai
+ *     khoan/dia diem do khong thuoc "cong ty cua doi tac" - dung yeu cau nguoi dung.
+ */
+async function getAllLocationCodesForPartnerConnection(connectionId) {
+  const ownCompanies = await companyService.listByConnection(connectionId);
+  const [codesFromCompanies, codesFromAccounts] = await Promise.all([
+    getLocationCodesForCompanies(ownCompanies.map((c) => c.Id)),
+    userVoucherSystemService.getLocationCodesForConnection(connectionId),
+  ]);
+  return Array.from(new Set([...codesFromCompanies, ...codesFromAccounts]));
+}
+
+/**
  * Tinh pham vi dia diem 1 tai khoan duoc xem trong bao cao.
  * Tra ve { scope: 'all' } (khong loc gi ca) hoac { scope: 'own'|'specific', codes: string[] }.
  *
@@ -57,6 +80,11 @@ async function getLocationCodesForCompanies(companyIds) {
  * MAC DINH duoc xem TOAN BO bao cao, giong hanh vi truoc khi co tinh nang phan quyen nay - nhom
  * quyen o day chi de HAN CHE lai 1 admin cu the neu can (gan nhom SPECIFIC cho admin do), khong
  * phai buoc admin phai duoc cap quyen moi xem duoc.
+ *
+ * M20 (v3.82, theo yeu cau): tai khoan "Quan tri doi tac" (isPartnerAdmin) CHUA duoc gan Nhom
+ * quyen xem bao cao rieng nao thi MAC DINH xem duoc TOAN BO du lieu thuoc he thong cua ho (giong
+ * vai tro admin HCRC nhung gioi han dung he thong do) - khong bat phai tu tao 1 nhom quyen ALL
+ * roi tu gan cho chinh minh moi xem duoc het.
  */
 async function resolveVisibleLocationCodes({ userId, ownLocationsDetail, role }) {
   const ownCode = ownLocationsDetail ? String(ownLocationsDetail).trim() : null;
@@ -66,24 +94,26 @@ async function resolveVisibleLocationCodes({ userId, ownLocationsDetail, role })
     if (Number(role) === 1) {
       return { scope: 'all', codes: null };
     }
+    const permissions = await permissionService.getPermissions(userId);
+    if (permissions.isPartnerAdmin && permissions.partnerAdminConnectionId) {
+      const codes = Array.from(new Set([ownCode, ...(await getAllLocationCodesForPartnerConnection(permissions.partnerAdminConnectionId))].filter(Boolean)));
+      return { scope: 'specific', codes };
+    }
     // Tai khoan chua duoc gan dia diem (LocationsDetail rong) VA khong o trong nhom quyen nao:
     // se luon thay bao cao trong, khong the phan biet voi "hom nay khong co giao dich" tren giao
     // dien - danh dau ro de controller/frontend bao dung nguyen nhan thay vi de trong lang.
     return { scope: 'own', codes: ownCode ? [ownCode] : [], unassigned: !ownCode };
   }
 
-  // M20 (v3.81, QUAN TRONG - bao mat): nhom quyen CO CHU (CreatedByPartnerConnectionId khac
-  // NULL, tao qua man hinh "Quan tri doi tac" - xem partnerAdminService.js) thi ScopeType='ALL'
-  // KHONG DUOC hieu nhu ALL cua HCRC (bo qua loc hoan toan, tra ve { scope: 'all' }) - lam vay se
-  // lo du lieu VOUCHER_SYNC cua HCRC va MOI doi tac khac cho 1 nhan vien chi dang lam cho 1 doi
-  // tac. Phai tinh lai thanh danh sach dia diem cua DUNG cac cong ty THUOC VE doi tac do (dung
-  // companyService.listByConnection - CUNG dieu kien "chu so huu" ma man "Quan tri doi tac" dang
-  // dung de gioi han doi tac tu tao/xem cong ty cua chinh ho).
+  // M20 (v3.81/v3.82, QUAN TRONG - bao mat): nhom quyen CO CHU (CreatedByPartnerConnectionId
+  // khac NULL, tao qua man hinh "Quan tri doi tac" - xem partnerAdminService.js) thi ScopeType=
+  // 'ALL' KHONG DUOC hieu nhu ALL cua HCRC (bo qua loc hoan toan, tra ve { scope: 'all' }) - lam
+  // vay se lo du lieu VOUCHER_SYNC cua HCRC va MOI doi tac khac neu nhom nay vo tinh (hoac co y,
+  // vd admin gan nham) duoc gan cho 1 tai khoan KHONG bi gioi han he thong. Phai tinh lai thanh
+  // danh sach dia diem "toan bo he thong" cua DUNG doi tac do (getAllLocationCodesForPartnerConnection).
   if (group.scopeType === 'ALL') {
     if (group.createdByPartnerConnectionId) {
-      const ownCompanies = await companyService.listByConnection(group.createdByPartnerConnectionId);
-      const codesFromCompanies = await getLocationCodesForCompanies(ownCompanies.map((c) => c.Id));
-      const codes = Array.from(new Set([ownCode, ...codesFromCompanies].filter(Boolean)));
+      const codes = Array.from(new Set([ownCode, ...(await getAllLocationCodesForPartnerConnection(group.createdByPartnerConnectionId))].filter(Boolean)));
       return { scope: 'specific', codes };
     }
     return { scope: 'all', codes: null };
