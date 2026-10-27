@@ -63,7 +63,7 @@ async function redeem(req, res, next) {
  */
 async function redeemBatch(req, res, next) {
   try {
-    const { voucherCodes, scanMethod, connectionId } = req.body;
+    const { voucherCodes, scanMethod, connectionId, invoiceNumber } = req.body;
     if (!Array.isArray(voucherCodes) || !voucherCodes.length) {
       return res.status(400).json({ success: false, message: 'Thieu danh sach voucherCodes' });
     }
@@ -75,6 +75,7 @@ async function redeemBatch(req, res, next) {
       voucherCodes,
       scanMethod: scanMethod || 'MANUAL',
       connectionId: connectionId ? Number(connectionId) : null,
+      invoiceNumber,
       user: req.user,
       clientIp: req.ip,
     });

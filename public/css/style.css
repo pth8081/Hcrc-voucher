@@ -414,6 +414,17 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 }
 .batch-mini-x:hover { background: var(--danger-light); }
 
+/* So hoa don (v3.80, tuy chon) - danh cho he thong ban hang RIENG cua doi tac */
+.invoice-field { margin: 14px 0 2px; }
+.invoice-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.invoice-field input { margin: 0; }
+.invoice-confirm-line { margin-top: -6px; }
+.invoice-result-line {
+  background: var(--ink-100); border-radius: var(--radius-sm); padding: 10px 14px;
+  font-size: 13.5px; color: var(--ink-700); margin: -4px 0 14px;
+}
+.invoice-result-line strong { color: var(--ink-900); }
+
 .batch-result-row { padding: 12px 0; border-bottom: 1px solid var(--ink-100); }
 .batch-result-row:last-child { border-bottom: none; }
 .batch-result-row-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }

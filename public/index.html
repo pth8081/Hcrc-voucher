@@ -68,6 +68,14 @@
       <p class="hint">Quét tiếp nếu khách còn voucher khác, hoặc bấm ✕ để bỏ bớt voucher khách không lấy nữa.</p>
       <div id="batchList"></div>
       <div id="batchTotal" class="batch-total hidden"></div>
+
+      <!-- So hoa don (v3.80, tuy chon) - thuoc he thong ban hang RIENG cua doi tac, app nay chi
+           luu lai theo yeu cau de doi chieu sau nay, khong tich hop/dong bo gi voi he thong do -->
+      <div class="invoice-field">
+        <label for="invoiceNumber">Số hóa đơn (tùy chọn)</label>
+        <input id="invoiceNumber" type="text" placeholder="VD: HD00123 — để đối chiếu với hệ thống bán hàng của bạn" maxlength="50" />
+      </div>
+
       <div class="flex gap-10 mt-16">
         <button id="batchRedeemAllBtn" class="btn-success flex-1" disabled>Xác nhận thu hồi</button>
         <button id="batchClearBtn" class="btn-secondary">Xóa hết</button>
@@ -77,6 +85,7 @@
     <div id="batchResultCard" class="card hidden">
       <h3>Kết quả thu hồi</h3>
       <div id="batchSummaryGrid" class="summary-grid"></div>
+      <div id="invoiceResultLine" class="invoice-result-line hidden"></div>
       <div id="batchResultList"></div>
       <div id="batchGrandTotal" class="grand-total"></div>
       <button id="batchContinueBtn" class="btn-secondary mt-16 flex-1">Quét voucher mới</button>
@@ -87,9 +96,9 @@
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Giờ</th><th>Mã voucher</th><th>Hệ thống</th><th>Mệnh giá</th><th>TRANS_NUM</th><th>Đồng bộ</th></tr>
+          <tr><th>Giờ</th><th>Mã voucher</th><th>Hệ thống</th><th>Mệnh giá</th><th>Số hóa đơn</th><th>TRANS_NUM</th><th>Đồng bộ</th></tr>
         </thead>
-        <tbody id="recentBody"><tr><td colspan="6" class="text-muted">Chưa có giao dịch</td></tr></tbody>
+        <tbody id="recentBody"><tr><td colspan="7" class="text-muted">Chưa có giao dịch</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -103,6 +112,9 @@
         Tổng cộng <strong id="confirmCount"></strong> voucher — tổng mệnh giá
         <strong id="confirmAmount"></strong> — hệ thống
         <strong id="confirmSystem"></strong>. Sau khi xác nhận sẽ KHÔNG thể hoàn tác.
+      </p>
+      <p class="confirm-sub invoice-confirm-line hidden" id="confirmInvoiceLine">
+        Số hóa đơn: <strong id="confirmInvoiceNumber"></strong>
       </p>
       <div class="confirm-actions">
         <button id="confirmRedeemYesBtn" class="btn-success">Có, thu hồi</button>

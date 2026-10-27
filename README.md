@@ -1304,13 +1304,14 @@ Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authoriza
 | PUT | `/api/companies/:id` | Cap nhat cong ty (can quyen admin) |
 | GET | `/api/vouchers/systems` | Danh sach he thong voucher de chon (id/name/isActive) — muc 4e |
 | POST | `/api/vouchers/check` | Quet/kiem tra voucher qua Core API (khong doi trang thai) - `{ voucherCode, scanMethod, connectionId? }` |
-| POST | `/api/vouchers/redeem` | Xac nhan thu hoi (goi Core API + luu VOUCHER_SYNC) - `{ voucherCode, scanMethod, connectionId? }` |
+| POST | `/api/vouchers/redeem` | Xac nhan thu hoi 1 ma (goi Core API + luu VOUCHER_SYNC) - `{ voucherCode, scanMethod, connectionId? }` - **giao dien web khong con goi endpoint nay tu v3.78**, chi con dung redeem-batch ben duoi (ke ca 1 ma) |
+| POST | `/api/vouchers/redeem-batch` | Xac nhan thu hoi 1 hoac nhieu ma cung luc (toi da 20) - `{ voucherCodes[], scanMethod, connectionId?, invoiceNumber? }` — muc 18/18a |
 | GET | `/api/reports/daily?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao doi soat theo KHOANG ngay (nhom theo dia diem tai khoan), toi da 366 ngay |
 | GET | `/api/reports/daily/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat bao cao doi soat (2 sheet: Tong hop theo dia diem + Chi tiet giao dich) ra file Excel (.xlsx) |
 | GET | `/api/reports/summary?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Bao cao tong hop theo khoang ngay (nhom Cong ty -> Diem tieu) — muc 12 |
 | GET | `/api/reports/summary/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat bao cao tong hop (2 sheet: Tong hop theo cong ty-diem + Chi tiet giao dich) ra file Excel (.xlsx) |
-| GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su) — muc 12c |
-| GET | `/api/reports/used-vouchers/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
+| GET | `/api/reports/used-vouchers?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=&invoiceNumber=` | Danh sach PHANG toan bo voucher da su dung (2 tham so ngay tuy chon, de trong = toan bo lich su; `invoiceNumber` tuy chon, tim gan dung) — muc 12c |
+| GET | `/api/reports/used-vouchers/export?fromDate=&toDate=&companyId=&redemptionUnitId=&userId=&invoiceNumber=` | Xuat cung danh sach tren ra file Excel (.xlsx) — muc 12c |
 | GET | `/api/reports/filters/companies` | Danh sach cong ty de hien thi o loc "Cong ty thu" (da scope theo quyen xem bao cao) — muc 12d |
 | GET | `/api/reports/filters/redemption-units?companyId=` | Danh sach diem thu hoi de hien thi o loc "Diem thu hoi" (tuy chon loc theo cong ty) — muc 12d |
 | GET | `/api/reports/filters/redeemers` | Danh sach tai khoan da tung thu hoi voucher, hien thi o loc "Tai khoan thu hoi" — muc 12d |
@@ -1836,6 +1837,8 @@ lieu ra ngoai:
   (`src/services/usedVoucherReportService.js`), khong can bang du lieu rieng.
 - Ap dung **dung phan quyen xem theo cong ty** nhu 2 bao cao con lai (muc 13) — 1 tai khoan mac
   dinh chi thay/xuat duoc voucher cua cong ty minh, tru khi duoc cap quyen xem cheo/toan bo.
+- Co them cot **"So hoa don"** + 1 o **tim theo so hoa don** (LIKE gan dung, khong can go chinh
+  xac tuyet doi) — xem muc 18a.
 
 ### 12d. Loc theo Cong ty / Diem thu hoi / Tai khoan thu hoi
 
@@ -2302,6 +2305,33 @@ Du lieu/API: `src/services/voucherService.js#redeemVoucherBatch` (xu ly tuan tu,
 `src/controllers/voucher.controller.js`) - **duy nhat 1 endpoint** giao dien web con goi de thu
 hoi, ke ca danh sach 1 ma (tu v3.78). Khong co migration CSDL moi.
 
+### 18a. So hoa don (tuy chon, v3.80)
+
+Tren danh sach cho thu hoi (muc 18), them 1 o **"So hoa don"** - **TUY CHON**, thuoc he thong
+ban hang RIENG cua doi tac (vd nha hang/cua hang dang dung POS khac) - app nay **khong tich
+hop/khong dong bo gi** voi he thong do, chi **luu lai dung so nguoi dung tu go vao** de doi
+chieu/tra cuu lai sau nay. De trong van thu hoi binh thuong nhu truoc.
+
+- **1 so hoa don ap dung cho CA danh sach dang cho** (khong phai tung voucher rieng) - vi thuc te
+  1 hoa don thuong thanh toan gop nhieu voucher cung luc. Hop thoai xac nhan + man ket qua deu
+  hien ro so hoa don da nhap (neu co).
+- **Luu vao bang app rieng**, khong dong den `VOUCHER_SYNC` (bang Core cu, khong duoc doi cau
+  truc): `sql/039_create_voucher_redemption_invoices.sql` tao bang
+  `dbo.VoucherRedemptionInvoices (TransNum, InvoiceNumber, CreatedDate)`, khoa theo `TransNum`
+  (giong cach lam cua `VoucherRedemptionConnections`, sql/027) - **moi voucher trong CUNG 1 luot
+  xac nhan co TransNum RIENG** (sinh moi cho tung ma), nen se co **nhieu dong** cung 1
+  InvoiceNumber neu luot do gom nhieu voucher - khong can bang nhom rieng, JOIN truc tiep theo
+  TransNum la du cho bao cao.
+- Hien them trong bao cao **"Voucher da su dung"** (muc 12c) - cot "So hoa don" + o tim kiem
+  (LIKE gan dung) + cot trong file Excel xuat ra.
+- Khong anh huong gi toi 2 bao cao cong don (Doi soat, Tong hop) - chi ap dung cho bao cao
+  danh sach phang tung giao dich.
+
+Du lieu/API: `sql/039_create_voucher_redemption_invoices.sql`. `POST /api/vouchers/redeem-batch`
+nhan them tham so `invoiceNumber` (tuy chon, `src/services/voucherService.js#sanitizeInvoiceNumber`
+- trim + cat toi da 50 ky tu, rong/chi khoang trang -> coi nhu khong dien). `GET
+/api/reports/used-vouchers[/export]` nhan them tham so `invoiceNumber` (tuy chon, tim gan dung).
+
 ## 19. Lich su phien ban (Changelog)
 
 So **version** o `package.json` duoc **tang len o MOI lan merge thay doi code** (xem "Kiem tra
@@ -2312,7 +2342,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.79)**: sua loi that o production - thu hoi voucher cua 1 doi tac (vd Fuji)
+Ban **moi nhat (v3.80)**: them o **"Số hóa đơn"** (tuy chon) tren man hinh Quet voucher - cho
+phep nhan vien ghi lai so hoa don cua he thong ban hang RIENG (app khong tich hop/khong dong bo
+gi voi he thong do) ngay luc thu hoi, de tra cuu lai sau. 1 so hoa don ap dung cho ca danh sach
+dang cho (1 hoa don thuong gop nhieu voucher). Luu vao bang app rieng
+(`sql/039_create_voucher_redemption_invoices.sql`), khong dong den `VOUCHER_SYNC`. Bao cao
+"Voucher da su dung" (12c) them cot + o tim theo so hoa don + cot trong file Excel xuat ra. Xem
+muc 18a.
+
+Ban truoc do (v3.79): sua loi that o production - thu hoi voucher cua 1 doi tac (vd Fuji)
 bi loi SQL **"String or binary data would be truncated"** khong ghi duoc vao `VOUCHER_SYNC`.
 Nguyen nhan: ma quet cua doi tac co dang **"C" + serial** (vd `CE21000044090`, 13 ky tu), trong
 khi cot that `VOUCHER_SYNC.Voucher_Code` (bang Core cu, khong duoc doi cau truc) chi rong **12

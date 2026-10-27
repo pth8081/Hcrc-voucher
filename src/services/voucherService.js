@@ -338,7 +338,7 @@ async function redeemVoucher({ voucherCode, user, scanMethod, clientIp, connecti
  * chu cua no), nen goi long nhau se bi chinh no tu choi vi nhin tu goc SQL Server la 2 "session"
  * khac nhau dang tranh chap cung 1 khoa, du cung 1 tai khoan/1 request logic).
  */
-async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId }) {
+async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId: requestedConnectionId, invoiceNumber }) {
   {
     const connectionId = await withDiagnostic('xac dinh he thong voucher duoc phep dung', () =>
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
@@ -418,7 +418,7 @@ async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, conne
 
     let outcome;
     try {
-      outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId });
+      outcome = await redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId, invoiceNumber });
     } catch (err) {
       // C1: neu Core DA XAC NHAN thu hoi thanh cong (khong phai do Core loi ket noi - truong hop
       // do da duoc gan pendingSync=true va van ghi DB binh thuong) nhung buoc ghi VOUCHER_SYNC
@@ -569,13 +569,25 @@ const MAX_BATCH_SIZE = 20;
  * hop le lien tiep trong lo), CAC MA CON LAI dung xu ly ngay (khong goi Core nua), danh dau ro
  * "SKIPPED" kem ly do - tranh tiep tuc goi Core khi da biet chac se bi tu choi.
  */
-async function redeemVoucherBatch({ voucherCodes, user, scanMethod, clientIp, connectionId }) {
+// So hoa don (v3.80): TUY CHON, thuoc he thong ban hang RIENG cua doi tac (app nay khong tich
+// hop gi voi he thong do, chi luu lai THEO YEU CAU nguoi dung de doi chieu sau nay) - dung
+// CHUNG 1 gia tri cho CA LO (1 khach thanh toan gop nhieu voucher = 1 hoa don). Gioi han do dai
+// khop dung cot VoucherRedemptionInvoices.InvoiceNumber (nvarchar(50), sql/039).
+const MAX_INVOICE_NUMBER_LEN = 50;
+function sanitizeInvoiceNumber(raw) {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  return trimmed ? trimmed.slice(0, MAX_INVOICE_NUMBER_LEN) : null;
+}
+
+async function redeemVoucherBatch({ voucherCodes, user, scanMethod, clientIp, connectionId, invoiceNumber: rawInvoiceNumber }) {
   if (!Array.isArray(voucherCodes) || !voucherCodes.length) {
     const err = new Error('Danh sach ma voucher rong');
     err.statusCode = 400;
     err.publicMessage = 'Chua co voucher nao trong danh sach de thu hoi.';
     throw err;
   }
+  const invoiceNumber = sanitizeInvoiceNumber(rawInvoiceNumber);
 
   // Loai trung (giu dung ma QUET DAU TIEN, bo cac lan quet trung lap sau do trong cung 1 lo) +
   // chan toi da MAX_BATCH_SIZE ma - KHONG bao loi khi vuot qua, chi lay dung MAX_BATCH_SIZE ma
@@ -620,7 +632,7 @@ async function redeemVoucherBatch({ voucherCodes, user, scanMethod, clientIp, co
       }
 
       try {
-        const outcome = await redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId });
+        const outcome = await redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, connectionId, invoiceNumber });
         results.push({ voucherCode, ...outcome });
       } catch (err) {
         // Boc loi tung ma rieng le (ke ca loi CRITICAL "Core da xac nhan nhung ghi DB that bai" -
@@ -721,7 +733,7 @@ function truncateForSync(value, fieldKey, { voucherCode, transNum, allowNull = f
  * loi ket noi Core), loi nem ra duoc gan them err.coreConfirmedSuccess=true de ham goi (C1)
  * biet day la 1 giao dich CO THAT can canh bao khan, khong phai loi thong thuong.
  */
-async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId }) {
+async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, connectionId, invoiceNumber }) {
   const pool = await getPool();
   // Location_DetailName: tra ten theo LocationCode (Locations_Detail co cot ma ro rang de
   // doi chieu). Location_GroupName KHONG dien duoc tuong tu vi Locations_Group khong co cot
@@ -837,6 +849,20 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, c
           INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName)
           VALUES (@transNum, @connectionId, @connectionName)
         `);
+
+      // So hoa don (v3.80, TUY CHON): CUNG transaction voi 2 INSERT o tren, de nhat quan - chi
+      // ghi khi nguoi dung THAT SU co dien (xem sanitizeInvoiceNumber() - null = khong dien gi).
+      // Bang rieng cua app, khong dung cham VOUCHER_SYNC (xem sql/039).
+      if (invoiceNumber) {
+        await transaction
+          .request()
+          .input('transNum', sql.Char(18), transNum)
+          .input('invoiceNumber', sql.NVarChar(MAX_INVOICE_NUMBER_LEN), invoiceNumber)
+          .query(`
+            INSERT INTO dbo.VoucherRedemptionInvoices (TransNum, InvoiceNumber)
+            VALUES (@transNum, @invoiceNumber)
+          `);
+      }
     } catch (insertErr) {
       // C1: Core CO THE da xac nhan that su (khong phai qua nhanh "pendingSync" do loi ket
       // noi) nhung ghi DB van that bai - danh dau ro de ham goi biet day la giao dich CO THAT.
