@@ -212,6 +212,7 @@ async function usedVouchers(req, res, next) {
       ...parseExtraFilters(req.query),
       connectionIds,
       includeUntaggedConnections,
+      invoiceNumber: req.query.invoiceNumber ? String(req.query.invoiceNumber).trim().slice(0, 50) : null,
       maxRows: maxRows + 1,
     });
     const truncated = rows.length > maxRows;
@@ -240,6 +241,7 @@ async function usedVouchersExport(req, res, next) {
       ...parseExtraFilters(req.query),
       connectionIds,
       includeUntaggedConnections,
+      invoiceNumber: req.query.invoiceNumber ? String(req.query.invoiceNumber).trim().slice(0, 50) : null,
       maxRows: usedVoucherReportService.MAX_EXPORT_ROWS,
     });
     const buffer = await usedVoucherReportService.buildExcelBuffer(rows);

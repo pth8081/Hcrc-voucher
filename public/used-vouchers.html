@@ -52,6 +52,10 @@
           <label>Hệ thống voucher</label>
           <select id="filterSystem"><option value="">Đang tải...</option></select>
         </div>
+        <div class="field">
+          <label>Số hóa đơn</label>
+          <input id="filterInvoice" type="text" placeholder="Tìm theo số hóa đơn..." maxlength="50" />
+        </div>
         <button id="loadBtn" class="btn-primary">Xem danh sách</button>
         <button id="exportBtn" class="btn-secondary">Xuất Excel</button>
       </div>
@@ -63,10 +67,10 @@
         <thead>
           <tr>
             <th>Ngày tiêu</th><th>Mã giao dịch</th><th>Mã voucher</th><th>Người tiêu</th>
-            <th>Công ty</th><th>Điểm tiêu</th><th>Hệ thống</th><th>Số tiền</th><th>Đồng bộ</th>
+            <th>Công ty</th><th>Điểm tiêu</th><th>Hệ thống</th><th>Số tiền</th><th>Số hóa đơn</th><th>Đồng bộ</th>
           </tr>
         </thead>
-        <tbody id="reportBody"><tr><td colspan="9" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="reportBody"><tr><td colspan="10" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

@@ -3,6 +3,7 @@ renderTopbar('used-vouchers');
 
 const fromDateInput = document.getElementById('fromDate');
 const toDateInput = document.getElementById('toDate');
+const filterInvoiceInput = document.getElementById('filterInvoice');
 const reportBody = document.getElementById('reportBody');
 const exportBtn = document.getElementById('exportBtn');
 
@@ -15,6 +16,7 @@ function buildQuery() {
   const params = new URLSearchParams();
   if (fromDateInput.value) params.set('fromDate', fromDateInput.value);
   if (toDateInput.value) params.set('toDate', toDateInput.value);
+  if (filterInvoiceInput.value.trim()) params.set('invoiceNumber', filterInvoiceInput.value.trim());
   const filters = getReportFilterParams();
   Object.entries(filters).forEach(([key, value]) => params.set(key, value));
   return params.toString();
@@ -22,7 +24,7 @@ function buildQuery() {
 
 async function loadReport() {
   try {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Đang tải...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="10" class="text-muted">Đang tải...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
     render(data.rows, data.unassignedLocation);
     if (data.truncated) {
@@ -30,17 +32,17 @@ async function loadReport() {
     }
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="9" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="10" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
   }
 }
 
 function render(rows, unassignedLocation) {
   if (unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="10" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    reportBody.innerHTML = '<tr><td colspan="9" class="text-muted">Không có voucher nào trong khoảng đã chọn</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="10" class="text-muted">Không có voucher nào trong khoảng đã chọn</td></tr>';
     return;
   }
 
@@ -56,6 +58,7 @@ function render(rows, unassignedLocation) {
         <td data-label="Điểm tiêu">${escapeHtml(row.pointName)}</td>
         <td data-label="Hệ thống">${escapeHtml(row.connectionName || '-')}</td>
         <td data-label="Số tiền">${fmtMoney(row.valueAmt)}</td>
+        <td data-label="Số hóa đơn">${row.invoiceNumber ? escapeHtml(row.invoiceNumber) : '<span class="text-muted">-</span>'}</td>
         <td data-label="Đồng bộ">${row.synced ? 'Đã đồng bộ' : '<span class="text-muted">Chờ đồng bộ</span>'}</td>
       </tr>`
     )

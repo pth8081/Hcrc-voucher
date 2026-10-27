@@ -93,6 +93,19 @@ nào, hệ thống tự gom vào 1 danh sách chờ, bạn xác nhận thu hồi
     </div>
   </li>
 </ol>
+<p><strong>Ghi số hóa đơn (tùy chọn):</strong> ngay trên danh sách chờ thu hồi, có 1 ô
+<strong>"Số hóa đơn"</strong> - điền số hóa đơn từ hệ thống bán hàng RIÊNG của nhà hàng/cửa hàng
+(app này không tích hợp/không đồng bộ gì với hệ thống bán hàng đó, chỉ lưu lại số bạn tự gõ vào
+để sau này tra cứu lại). Không bắt buộc - để trống vẫn thu hồi bình thường. 1 số hóa đơn áp dụng
+cho CẢ danh sách đang chờ (vì thường 1 hóa đơn thanh toán gộp nhiều voucher cùng lúc).</p>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/12-nhap-so-hoa-don.png" alt="Ô nhập số hóa đơn tùy chọn ngay trên danh sách chờ thu hồi" />
+  <p class="cap">Điền số hóa đơn (tùy chọn) trước khi xác nhận thu hồi</p>
+</div>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/13-ketqua-co-hoa-don.png" alt="Màn kết quả xác nhận đã lưu theo số hóa đơn, tra cứu lại được trong báo cáo Voucher đã sử dụng" />
+  <p class="cap">Kết quả hiện rõ đã lưu theo số hóa đơn nào</p>
+</div>
 <p class="hint"><strong>Lưu ý quan trọng</strong>: 1 voucher trong danh sách bị lỗi lúc xác nhận
 (ví dụ vừa bị quầy khác thu hồi trước, hoặc mất mạng đúng lúc xử lý mã đó) <strong>CHỈ làm mã đó
 thất bại</strong>, KHÔNG ảnh hưởng các voucher khác trong cùng đợt - vì vậy "Tổng THỰC THU" hiển
@@ -155,6 +168,14 @@ mục đích khác nhau:</p>
 </div>
 <p class="hint">Cột "Đồng bộ" trong bảng giao dịch gần đây cho biết 1 giao dịch đã được hệ thống
 trung tâm xác nhận (ĐÃ ĐỒNG BỘ) hay vẫn đang chờ gửi lại (CHỜ ĐỒNG BỘ) - xem lại mục 2 ở trên.</p>
+<p>Riêng màn <strong>"Voucher đã sử dụng"</strong> có thêm cột <strong>"Số hóa đơn"</strong> (lấy
+từ ô bạn điền lúc thu hồi, xem mục 2) và 1 ô <strong>tìm theo số hóa đơn</strong> ở bộ lọc - gõ
+1 phần hoặc đầy đủ số hóa đơn để tìm lại đúng các voucher đã thu hồi cho hóa đơn đó. Cột này cũng
+có trong file Excel xuất ra.</p>
+<div class="guide-figure">
+  <img class="guide-screenshot" src="/images/guide-business/14-baocao-co-cot-hoadon.png" alt="Màn Voucher đã sử dụng có thêm cột Số hóa đơn và ô tìm theo số hóa đơn" />
+  <p class="cap">Báo cáo "Voucher đã sử dụng" - thêm cột và ô tìm theo số hóa đơn</p>
+</div>
 
 <h2>5. Nhận báo cáo qua email tự động</h2>
 <p>Nếu tài khoản của bạn xem được ít nhất 1 trong 3 loại báo cáo ở mục 5, bạn có thể tự tạo 1

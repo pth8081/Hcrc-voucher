@@ -29,7 +29,7 @@ const MAX_LIST_ROWS = 3000;
  * companyId/redemptionUnitId/userId = null -> KHONG loc them (xem reportService.js, cung 1 bo
  * loc tai khoan/cong ty/diem thu hoi dung chung cho ca 3 bao cao).
  */
-async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections, maxRows }) {
+async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, companyId, redemptionUnitId, userId, connectionIds, includeUntaggedConnections, invoiceNumber, maxRows }) {
   const pool = await getPool();
   const request = pool.request();
 
@@ -89,11 +89,18 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     }
   }
 
+  // So hoa don (v3.80, TUY CHON) - tim GAN DUNG (LIKE %...%), vi nhan vien co the chi nho mot
+  // phan so hoa don luc tra cuu lai, khong phai tim chinh xac tuyet doi nhu cac bo loc khac.
+  if (invoiceNumber) {
+    request.input('invoiceNumber', sql.NVarChar(50), `%${invoiceNumber}%`);
+    extraFilter += ' AND vri.InvoiceNumber LIKE @invoiceNumber';
+  }
+
   const result = await request.query(`
     SELECT ${topClause}
       vs.Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
-      ru.PartnerName, rc.CompanyName, vrc.ConnectionName
+      ru.PartnerName, rc.CompanyName, vrc.ConnectionName, vri.InvoiceNumber
     FROM dbo.VOUCHER_SYNC vs
     LEFT JOIN (
       -- M8: xem ghi chu chi tiet o summaryReportService.js (cung 1 loi, cung cach sua) - uu tien
@@ -108,6 +115,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
     LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
     LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
+    LEFT JOIN dbo.VoucherRedemptionInvoices vri ON vri.TransNum = vs.TRANS_NUM
     WHERE 1 = 1${dateFilter}${locationFilter}${extraFilter}
     ORDER BY vs.Created_Date DESC
   `);
@@ -122,6 +130,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     companyName: row.CompanyName || UNASSIGNED_COMPANY,
     pointName: row.PartnerName || row.Location_DetailName || row.Locations_Detail || UNASSIGNED_POINT,
     connectionName: row.ConnectionName || null,
+    invoiceNumber: row.InvoiceNumber || null,
     valueAmt: Number(row.VALUE_AMT || 0),
     synced: row.Sync === 'Y',
   }));
@@ -156,6 +165,7 @@ async function buildExcelBuffer(rows) {
     { header: 'He thong', key: 'connectionName', width: 16 },
     { header: 'Ma dia diem', key: 'locationsDetail', width: 14 },
     { header: 'So tien', key: 'valueAmt', width: 14 },
+    { header: 'So hoa don', key: 'invoiceNumber', width: 18 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
   ];
   sheet.getRow(1).font = { bold: true };
@@ -171,6 +181,7 @@ async function buildExcelBuffer(rows) {
       pointName: sanitizeExcelText(row.pointName),
       connectionName: sanitizeExcelText(row.connectionName || '-'),
       locationsDetail: sanitizeExcelText(row.locationsDetail),
+      invoiceNumber: sanitizeExcelText(row.invoiceNumber || '-'),
       createdDate: row.createdDate ? new Date(row.createdDate) : null,
       syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',
     });

@@ -17,6 +17,8 @@ const confirmRedeemTitle = document.getElementById('confirmRedeemTitle');
 const confirmCount = document.getElementById('confirmCount');
 const confirmAmount = document.getElementById('confirmAmount');
 const confirmSystem = document.getElementById('confirmSystem');
+const confirmInvoiceLine = document.getElementById('confirmInvoiceLine');
+const confirmInvoiceNumber = document.getElementById('confirmInvoiceNumber');
 const confirmRedeemYesBtn = document.getElementById('confirmRedeemYesBtn');
 const confirmRedeemNoBtn = document.getElementById('confirmRedeemNoBtn');
 
@@ -31,10 +33,12 @@ const confirmRedeemNoBtn = document.getElementById('confirmRedeemNoBtn');
 const batchListCard = document.getElementById('batchListCard');
 const batchList = document.getElementById('batchList');
 const batchTotal = document.getElementById('batchTotal');
+const invoiceNumberInput = document.getElementById('invoiceNumber');
 const batchRedeemAllBtn = document.getElementById('batchRedeemAllBtn');
 const batchClearBtn = document.getElementById('batchClearBtn');
 const batchResultCard = document.getElementById('batchResultCard');
 const batchSummaryGrid = document.getElementById('batchSummaryGrid');
+const invoiceResultLine = document.getElementById('invoiceResultLine');
 const batchResultList = document.getElementById('batchResultList');
 const batchGrandTotal = document.getElementById('batchGrandTotal');
 const batchContinueBtn = document.getElementById('batchContinueBtn');
@@ -71,6 +75,7 @@ batchRedeemAllBtn.addEventListener('click', openRedeemConfirm);
 batchContinueBtn.addEventListener('click', () => {
   batchItems = [];
   renderBatchList();
+  invoiceNumberInput.value = '';
   batchResultCard.classList.add('hidden');
   focusInput();
 });
@@ -239,6 +244,7 @@ function clearBatchList() {
   if (!confirm('Xóa toàn bộ danh sách đang chờ thu hồi?')) return;
   batchItems = [];
   renderBatchList();
+  invoiceNumberInput.value = '';
   batchListCard.classList.add('hidden');
   focusInput();
 }
@@ -296,6 +302,15 @@ function openRedeemConfirm() {
   confirmCount.textContent = n;
   confirmAmount.textContent = fmtMoney(total);
   confirmSystem.textContent = selectedConnectionName || 'mặc định';
+
+  const invoice = invoiceNumberInput.value.trim();
+  if (invoice) {
+    confirmInvoiceNumber.textContent = invoice;
+    confirmInvoiceLine.classList.remove('hidden');
+  } else {
+    confirmInvoiceLine.classList.add('hidden');
+  }
+
   confirmRedeemOverlay.classList.remove('hidden');
 }
 
@@ -312,14 +327,15 @@ confirmRedeemNoBtn.addEventListener('click', () => {
 
 async function confirmRedeem() {
   const codes = batchItems.map((it) => it.voucherCode);
+  const invoiceNumber = invoiceNumberInput.value.trim() || null;
   batchRedeemAllBtn.disabled = true;
   batchClearBtn.disabled = true;
   try {
     const results = await apiFetch('/vouchers/redeem-batch', {
       method: 'POST',
-      body: JSON.stringify({ voucherCodes: codes, scanMethod: lastScanMethod, connectionId: selectedConnectionId }),
+      body: JSON.stringify({ voucherCodes: codes, scanMethod: lastScanMethod, connectionId: selectedConnectionId, invoiceNumber }),
     });
-    renderBatchResult(results);
+    renderBatchResult(results, invoiceNumber);
     results.forEach((r) => {
       if (r.success) {
         addRecentRow({
@@ -329,10 +345,12 @@ async function confirmRedeem() {
           valueAmt: r.valueAmt,
           transNum: r.transNum,
           pendingSync: r.pendingSync,
+          invoiceNumber,
         });
       }
     });
     batchItems = [];
+    invoiceNumberInput.value = '';
     batchListCard.classList.add('hidden');
   } catch (err) {
     showToast(err.message);
@@ -345,7 +363,7 @@ async function confirmRedeem() {
 /** Ket qua thu hoi hang loat: moi ma co ket qua RIENG (thanh cong/cho dong bo/that bai), tong
  * "THUC THU" o cuoi chi tinh ma thanh cong + dang cho dong bo (KHONG tinh ma that bai) - xem
  * ghi chu voucherService.js#redeemVoucherBatch ve ly do khong the "tat ca hoac khong gi ca". */
-function renderBatchResult(results) {
+function renderBatchResult(results, invoiceNumber) {
   batchResultCard.classList.remove('hidden');
   const success = results.filter((r) => r.success && !r.pendingSync);
   const pending = results.filter((r) => r.success && r.pendingSync);
@@ -356,6 +374,13 @@ function renderBatchResult(results) {
     <div class="summary-tile tile-pending"><div class="num">${pending.length}</div><div class="lbl">Trong đó chờ đồng bộ</div></div>
     <div class="summary-tile tile-fail"><div class="num">${fail.length}</div><div class="lbl">Thất bại</div></div>
   `;
+
+  if (invoiceNumber && (success.length || pending.length)) {
+    invoiceResultLine.classList.remove('hidden');
+    invoiceResultLine.innerHTML = `Đã lưu theo số hóa đơn: <strong>${escapeHtml(invoiceNumber)}</strong> — bạn tra cứu lại được trong báo cáo "Voucher đã sử dụng".`;
+  } else {
+    invoiceResultLine.classList.add('hidden');
+  }
 
   batchResultList.innerHTML = results
     .map((r) => {
@@ -393,6 +418,7 @@ function addRecentRow(row) {
         <td data-label="Mã voucher">${escapeHtml(r.voucherCode)}</td>
         <td data-label="Hệ thống">${escapeHtml(r.connectionName || '-')}</td>
         <td data-label="Mệnh giá">${fmtMoney(r.valueAmt)}</td>
+        <td data-label="Số hóa đơn">${r.invoiceNumber ? escapeHtml(r.invoiceNumber) : '-'}</td>
         <td data-label="TRANS_NUM">${escapeHtml(r.transNum || '-')}</td>
         <td data-label="Đồng bộ">${r.pendingSync ? '<span class="status-badge status-other">CHỜ ĐỒNG BỘ</span>' : '<span class="status-badge status-unused">ĐÃ ĐỒNG BỘ</span>'}</td>
       </tr>`
