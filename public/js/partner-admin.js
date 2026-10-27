@@ -99,20 +99,37 @@ function applyTabPermissions() {
 }
 applyTabPermissions();
 
+/** Dung chung boi ca click tab THAT lan nut "Tao diem tieu ngay" (xem noUnitHint) - tach rieng
+ * ham nay de 2 noi goi cung logic chuyen tab, khong lap code. */
+function activateTab(tabKey) {
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabKey));
+  document.getElementById('tabUsers').classList.toggle('hidden', tabKey !== 'users');
+  document.getElementById('tabOrg').classList.toggle('hidden', tabKey !== 'org');
+  document.getElementById('tabReportAccess').classList.toggle('hidden', tabKey !== 'reportAccess');
+  document.getElementById('tabAudit').classList.toggle('hidden', tabKey !== 'audit');
+  document.getElementById('tabScan').classList.toggle('hidden', tabKey !== 'scan');
+  if (tabKey === 'org' && !orgLoaded) loadOrg();
+  if (tabKey === 'reportAccess' && !groupsLoaded) loadGroups();
+  if (tabKey === 'audit' && !auditLoaded) loadAudit();
+  if (tabKey === 'scan' && !scanLoaded) loadScan();
+}
+
 document.querySelectorAll('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tabUsers').classList.toggle('hidden', btn.dataset.tab !== 'users');
-    document.getElementById('tabOrg').classList.toggle('hidden', btn.dataset.tab !== 'org');
-    document.getElementById('tabReportAccess').classList.toggle('hidden', btn.dataset.tab !== 'reportAccess');
-    document.getElementById('tabAudit').classList.toggle('hidden', btn.dataset.tab !== 'audit');
-    document.getElementById('tabScan').classList.toggle('hidden', btn.dataset.tab !== 'scan');
-    if (btn.dataset.tab === 'org' && !orgLoaded) loadOrg();
-    if (btn.dataset.tab === 'reportAccess' && !groupsLoaded) loadGroups();
-    if (btn.dataset.tab === 'audit' && !auditLoaded) loadAudit();
-    if (btn.dataset.tab === 'scan' && !scanLoaded) loadScan();
-  });
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+
+/** Nut "Tao diem tieu ngay" trong canh bao noUnitHint (xem refreshNewUserUnitOptions) - nhay
+ * thang sang tab "Cong ty & Diem tieu", chon san DUNG cong ty dang dang do o form "Tao tai
+ * khoan", con lai chi can go Ten diem tieu roi bam "Tao diem tieu". */
+document.getElementById('goCreateUnitBtn').addEventListener('click', () => {
+  const companyId = newUserCompany.value;
+  activateTab('org');
+  if (companyId) {
+    // orgLoaded co the vua duoc bat o activateTab() (lan dau mo tab) - doi 1 nhip de
+    // newLocationCompany kip co options (loadOrg la async) truoc khi gan gia tri.
+    setTimeout(() => { newLocationCompany.value = companyId; }, 150);
+  }
+  document.getElementById('newLocationName').focus();
 });
 
 function detailText(raw) {
@@ -263,15 +280,23 @@ function unitOptionsForCompany(companyId) {
 const newUserSearchInput = document.getElementById('userSearchInput');
 const filterCompanySelect = document.getElementById('filterCompany');
 const filterUnitSelect = document.getElementById('filterUnit');
+const noUnitHint = document.getElementById('noUnitHint');
 
+/** Cong ty duoc chon nhung CHUA co Diem tieu nao (vd HCRC vua tao/gan Cong ty cho doi tac, chua
+ * kip tao Diem tieu) - tai khoan KHONG the gan vao dung cong ty do neu khong chon duoc Diem tieu
+ * (he thong gan tai khoan qua Diem tieu, khong gan thang vao Cong ty - xem README muc 4m). Hien
+ * canh bao ro + nut nhay nhanh sang tab "Cong ty & Diem tieu" thay vi de doi tac bi ket khong
+ * hieu vi sao, tranh lap lai chinh van de nguoi dung da bao cao. */
 function refreshNewUserUnitOptions() {
   const companyId = newUserCompany.value;
   if (!companyId) {
     newUserUnit.innerHTML = '<option value="">-- Chọn công ty trước --</option>';
+    noUnitHint.classList.add('hidden');
     return;
   }
   const opts = unitOptionsForCompany(companyId);
   newUserUnit.innerHTML = opts ? `<option value="">-- Không gán điểm tiêu --</option>${opts}` : '<option value="">-- Công ty này chưa có điểm tiêu nào --</option>';
+  noUnitHint.classList.toggle('hidden', !!opts);
 }
 newUserCompany.addEventListener('change', refreshNewUserUnitOptions);
 
@@ -603,6 +628,11 @@ async function loadOrg() {
       : '<option value="">Chưa có công ty - tạo công ty trước</option>';
     renderCompanySelectOptions(newUserCompany, '-- Chưa gán công ty --');
     renderCompanySelectOptions(filterCompanySelect, 'Tất cả công ty của bạn');
+    // Dong bo lai ca o "Diem tieu" cua form "Tao tai khoan" + bo loc - vua tao/xoa 1 diem tieu o
+    // tab nay (vd qua nut "Tao diem tieu ngay" trong noUnitHint) phai thay ngay khi quay lai tab
+    // "Quan ly tai khoan", khong can doi cong ty qua lai moi lam moi duoc.
+    refreshNewUserUnitOptions();
+    refreshFilterUnitOptions();
     renderOrg();
   } catch (err) {
     showToast(err.message);
