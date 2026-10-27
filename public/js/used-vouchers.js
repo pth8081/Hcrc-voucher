@@ -7,6 +7,13 @@ const filterInvoiceInput = document.getElementById('filterInvoice');
 const reportBody = document.getElementById('reportBody');
 const exportBtn = document.getElementById('exportBtn');
 
+// v3.84: mac dinh "hom nay -> hom nay" (dong bo voi 2 bao cao con lai) - truoc day de trong ca 2
+// o (mac dinh xem TOAN BO lich su) theo yeu cau nguoi dung. Van xoa trong duoc 2 o nay de xem lai
+// toan bo lich su nhu cu, chi doi GIA TRI MAC DINH luc vao trang.
+const today = new Date().toISOString().slice(0, 10);
+fromDateInput.value = today;
+toDateInput.value = today;
+
 document.getElementById('loadBtn').addEventListener('click', loadReport);
 exportBtn.addEventListener('click', exportExcel);
 initReportFilters();

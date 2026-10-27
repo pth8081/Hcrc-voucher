@@ -135,6 +135,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
   const summary = await request.query(`
     SELECT
       vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
+      MAX(rc.CompanyName) AS CompanyName,
       COUNT(*) AS VoucherCount,
       SUM(vs.VALUE_AMT) AS TotalAmount
     FROM dbo.VOUCHER_SYNC vs
@@ -162,6 +163,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     SELECT ${topClause}
       vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
+      rc.CompanyName,
       vs.VALUE_AMT, vs.Sync, vrc.ConnectionName
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
@@ -262,6 +264,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
 
   const summarySheet = workbook.addWorksheet('Tong hop theo dia diem');
   summarySheet.columns = [
+    { header: 'Cong ty', key: 'companyName', width: 24 },
     { header: 'Nhom dia diem', key: 'groupName', width: 22 },
     { header: 'Dia diem', key: 'pointName', width: 28 },
     { header: 'So luong', key: 'voucherCount', width: 14 },
@@ -270,6 +273,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
   summarySheet.getRow(1).font = { bold: true };
   summary.forEach((row) => {
     summarySheet.addRow({
+      companyName: sanitizeExcelText(row.CompanyName || '-'),
       groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
       pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
       voucherCount: row.VoucherCount,
@@ -285,6 +289,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     { header: 'Ma voucher', key: 'voucherCode', width: 18 },
     { header: 'Serial', key: 'voucherSerial', width: 18 },
     { header: 'Nguoi thu hoi', key: 'userName', width: 24 },
+    { header: 'Cong ty', key: 'companyName', width: 24 },
     { header: 'Nhom dia diem', key: 'groupName', width: 22 },
     { header: 'Dia diem', key: 'pointName', width: 28 },
     { header: 'He thong', key: 'connectionName', width: 16 },
@@ -299,6 +304,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
       voucherCode: sanitizeExcelText(row.Voucher_Code),
       voucherSerial: sanitizeExcelText(row.Voucher_Serial),
       userName: sanitizeExcelText(row.User_Name),
+      companyName: sanitizeExcelText(row.CompanyName || '-'),
       groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
       pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
       connectionName: sanitizeExcelText(row.ConnectionName || '-'),

@@ -10,6 +10,13 @@ const DEFAULT_PERMISSIONS = {
   canViewUsedVouchers: false,
   canViewBusinessGuide: true,
   canViewSystemGuide: false,
+  // v3.84: quyen tinh nang thu 7, TACH RIENG khoi 3 quyen xem bao cao (canViewReconciliation/
+  // ...Summary/...UsedVouchers) - truoc day co 1 trong 3 quyen do la TU DONG thay duoc muc "Lich
+  // gui email bao cao", khong co cong tac rieng. Mac dinh TAT (false) cho tai khoan moi/chua tung
+  // dung - theo yeu cau nguoi dung: nguoi THIET LAP lich gui email phai la Quan tri doi tac/Quan
+  // tri day du, hoac 1 nhan vien duoc cap RIENG quyen nay (xem sql/042, setPartnerAdminConnection()
+  // o duoi - tu dong BAT quyen nay ngay khi 1 tai khoan duoc gan "Quan tri doi tac").
+  canManageEmailSchedules: false,
   // M16: quan tri GIOI HAN theo 1 he thong voucher cu the (vd cap cho doi tac Fuji 1 tai khoan tu
   // xem/tao/khoa cac tai khoan CHI dung Fuji cua chinh ho - xem partnerAdminService.js). null =
   // tai khoan thuong; isPartnerAdmin/partnerAdminConnectionName la 2 gia tri SUY RA (khong luu
@@ -38,6 +45,7 @@ const ADMIN_PERMISSIONS = {
   canViewUsedVouchers: true,
   canViewBusinessGuide: true,
   canViewSystemGuide: true,
+  canManageEmailSchedules: true,
   partnerAdminConnectionId: null,
   partnerAdminConnectionName: null,
   isPartnerAdmin: false,
@@ -60,7 +68,7 @@ async function getPermissions(userId) {
     .input('userId', sql.Int, userId)
     .query(`
       SELECT p.CanRedeemVoucher, p.CanViewReconciliation, p.CanViewSummary, p.CanViewUsedVouchers,
-             p.CanViewBusinessGuide, p.CanViewSystemGuide, p.PartnerAdminConnectionId,
+             p.CanViewBusinessGuide, p.CanViewSystemGuide, p.CanManageEmailSchedules, p.PartnerAdminConnectionId,
              c.Name AS PartnerAdminConnectionName, ${FEATURE_COLUMNS_SELECT}
       FROM dbo.VoucherAppPermissions p
       LEFT JOIN dbo.ApiConnections c ON c.Id = p.PartnerAdminConnectionId
@@ -75,6 +83,7 @@ async function getPermissions(userId) {
     canViewUsedVouchers: !!row.CanViewUsedVouchers,
     canViewBusinessGuide: !!row.CanViewBusinessGuide,
     canViewSystemGuide: !!row.CanViewSystemGuide,
+    canManageEmailSchedules: !!row.CanManageEmailSchedules,
     // Ket noi da bi xoa (khong con trong ApiConnections) sau khi duoc gan lam partner-admin: coi
     // nhu KHONG con la partner-admin nua (an toan hon la giu quyen "treo" vao 1 he thong khong
     // con ton tai) - LEFT JOIN tra ve PartnerAdminConnectionName = NULL trong truong hop nay.
@@ -136,6 +145,7 @@ async function setPermissions(userId, perms, updatedBy) {
     .input('canUsed', sql.Bit, perms.canViewUsedVouchers ? 1 : 0)
     .input('canBusinessGuide', sql.Bit, perms.canViewBusinessGuide ? 1 : 0)
     .input('canSystemGuide', sql.Bit, perms.canViewSystemGuide ? 1 : 0)
+    .input('canEmailSchedules', sql.Bit, perms.canManageEmailSchedules ? 1 : 0)
     .input('updatedBy', sql.NVarChar(100), updatedBy || null)
     .query(`
       MERGE dbo.VoucherAppPermissions AS target
@@ -145,12 +155,39 @@ async function setPermissions(userId, perms, updatedBy) {
         CanRedeemVoucher = @canRedeem, CanViewReconciliation = @canRecon,
         CanViewSummary = @canSummary, CanViewUsedVouchers = @canUsed,
         CanViewBusinessGuide = @canBusinessGuide, CanViewSystemGuide = @canSystemGuide,
+        CanManageEmailSchedules = @canEmailSchedules,
         UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
       WHEN NOT MATCHED THEN INSERT
         (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
-         CanViewBusinessGuide, CanViewSystemGuide, UpdatedBy, UpdatedDate)
+         CanViewBusinessGuide, CanViewSystemGuide, CanManageEmailSchedules, UpdatedBy, UpdatedDate)
         VALUES (@userId, @canRedeem, @canRecon, @canSummary, @canUsed,
-                @canBusinessGuide, @canSystemGuide, @updatedBy, GETDATE());
+                @canBusinessGuide, @canSystemGuide, @canEmailSchedules, @updatedBy, GETDATE());
+    `);
+}
+
+/**
+ * Tu dong CAP (khong bao gio GO) quyen "Lich gui email bao cao" (v3.84) cho 1 tai khoan NGAY KHI
+ * duoc gan "Quan tri doi tac" - goi tu user.controller.js#updatePartnerAdmin, CHI khi GAN
+ * (connectionId truthy), KHONG BAO GIO khi GO (giu nguyen gia tri hien co, dung nguyen tac "chi
+ * CAP THEM, khong tu dong THU HOI" - giong cach UserVoucherSystems duoc xu ly o cung ham do).
+ * Tach rieng (khong dung chung MERGE voi setPermissions()) de KHONG vo tinh ghi de 6 quyen tinh
+ * nang khac dang co san cua tai khoan khi chi dang gan quyen "Quan tri doi tac".
+ */
+async function grantEmailScheduleAccess(userId, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET CanManageEmailSchedules = 1, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, CanManageEmailSchedules, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 0, 0, 1, 0, 1, @updatedBy, GETDATE());
     `);
 }
 
@@ -294,6 +331,7 @@ module.exports = {
   getAdminFeaturePermissions,
   resolvePermissions,
   setPermissions,
+  grantEmailScheduleAccess,
   setPartnerAdminConnection,
   setPartnerAdminTabPermissions,
   setAdminFeaturePermissions,

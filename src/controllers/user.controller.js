@@ -304,6 +304,10 @@ async function updatePartnerAdmin(req, res, next) {
     await permissionService.setPartnerAdminTabPermissions(userId, tabPerms, req.user.username);
     if (normalized) {
       await userVoucherSystemService.setAllowedConnections(userId, [normalized]);
+      // v3.84: duoc gan "Quan tri doi tac" thi TU DONG co san quyen "Lich gui email bao cao" -
+      // khong bat phai di tick rieng ngay sau do. CHI cap khi GAN (khong bao gio go khi THU HOI
+      // quyen "Quan tri doi tac" - xem ghi chu o grantEmailScheduleAccess()).
+      await permissionService.grantEmailScheduleAccess(userId, req.user.username);
     }
     await auditLogService.log({
       actorUsername: req.user.username,

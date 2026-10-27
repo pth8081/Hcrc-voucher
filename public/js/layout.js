@@ -38,10 +38,12 @@ const NAV_ITEMS = [
   // nay (permissions.isPartnerAdmin luon false - xem permissionService.js#ADMIN_PERMISSIONS) nen
   // muc nay tu an voi ho, khong trung lap voi man hinh "Tai khoan" day du da co san.
   { key: 'partner-admin', href: '/partner-admin.html', label: 'Quản trị đối tác', icon: NAV_ICONS.users, permission: 'isPartnerAdmin' },
-  // Mo cho bat ky tai khoan nao xem duoc IT NHAT 1 trong 3 bao cao (giong dieu kien
-  // requireFeature o routes/emailSchedule.routes.js) - "permission" o day la MANG (OR), khac voi
-  // cac muc khac chi nhan 1 chuoi, xem logic loc o renderTopbar() ben duoi.
-  { key: 'email-schedules', href: '/email-schedules.html', label: 'Lịch gửi email báo cáo', icon: NAV_ICONS.email, permission: ['canViewReconciliation', 'canViewSummary', 'canViewUsedVouchers'] },
+  // v3.84: quyen RIENG (khong con la "chi can xem 1 trong 3 bao cao" nhu truoc) - mac dinh TAT
+  // cho nhan vien thuong, tu dong BAT cho Quan tri doi tac/Quan tri day du - xem permissionService.js.
+  // Server (emailSchedule.routes.js) con doi hoi THEM dieu kien co quyen xem bao cao, nhung o day
+  // chi can kiem tra DUNG quyen nay la du de quyet dinh an/hien menu (truong hop co quyen nay ma
+  // khong co quyen bao cao nao la hiem, HCRC/doi tac se cap ca 2 cung luc trong thuc te).
+  { key: 'email-schedules', href: '/email-schedules.html', label: 'Lịch gửi email báo cáo', icon: NAV_ICONS.email, permission: 'canManageEmailSchedules' },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];
 

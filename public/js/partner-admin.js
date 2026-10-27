@@ -501,6 +501,7 @@ function renderEditPanel(u) {
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewUsedVouchers" ${u.permissions && u.permissions.canViewUsedVouchers ? 'checked' : ''} /> Voucher đã sử dụng</label>
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewBusinessGuide" ${u.permissions && u.permissions.canViewBusinessGuide ? 'checked' : ''} /> Hướng dẫn nghiệp vụ</label>
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewSystemGuide" ${u.permissions && u.permissions.canViewSystemGuide ? 'checked' : ''} /> Hướng dẫn hệ thống</label>
+      <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canManageEmailSchedules" ${u.permissions && u.permissions.canManageEmailSchedules ? 'checked' : ''} /> Lịch gửi email báo cáo</label>
     </div>
 
     ${locationField}

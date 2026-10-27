@@ -199,9 +199,10 @@ async function updateScopedUserProfile(userId, connectionId, { fullName, passwor
 }
 
 /**
- * Doi quyen tinh nang (6 quyen) cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.76).
+ * Doi quyen tinh nang (7 quyen, them "Lich gui email bao cao" o v3.84) cho 1 tai khoan DA THUOC
+ * pham vi connectionId nay (v3.76).
  *
- * QUAN TRONG (chong leo thang dac quyen): ham nay CHI BUILD lai object perms tu DUNG 6 truong
+ * QUAN TRONG (chong leo thang dac quyen): ham nay CHI BUILD lai object perms tu DUNG 7 truong
  * ro rang liet ke duoi day - KHONG BAO GIO nhan/ghi truong `partnerAdminConnectionId` (quyen
  * "Quan tri doi tac") qua duong nay, du nguoi goi co co tinh gui kem truong do trong body hay
  * khong - tranh 1 doi tac tu cap quyen "Quan tri doi tac" cho 1 tai khoan khac (tao them 1 "doi
@@ -217,6 +218,7 @@ async function updateScopedUserPermissions(userId, connectionId, perms, updatedB
     canViewUsedVouchers: !!perms.canViewUsedVouchers,
     canViewBusinessGuide: !!perms.canViewBusinessGuide,
     canViewSystemGuide: !!perms.canViewSystemGuide,
+    canManageEmailSchedules: !!perms.canManageEmailSchedules,
   };
   await permissionService.setPermissions(userId, safePerms, updatedBy);
   return safePerms;
