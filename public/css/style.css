@@ -605,7 +605,12 @@ tbody tr:hover { background: var(--ink-100); }
 
 /* ===== Utility classes =====
    Thay the cho style="..." inline (bat buoc de bat CSP khong co unsafe-inline). */
-.container-wide { max-width: 960px; }
+/* v3.87: nang tu 960px - cac trang nhieu du lieu (bao cao, danh sach tai khoan/don vi/doi tac...)
+   van bi go hep so voi man hinh desktop rong thuc te (1440px+), khien bang nhieu cot bi vo dong
+   chu xau du thua khong gian 2 ben. Khong dung media query vi max-width tu nhien chi gioi han
+   khi co du cho - man hinh hep van 100% - 2*20px (padding cua .container) nhu truoc, khong doi
+   gi tren dien thoai/tablet. */
+.container-wide { max-width: 1180px; }
 .flex { display: flex; }
 .flex-1 { flex: 1; }
 .flex-wrap { flex-wrap: wrap; }

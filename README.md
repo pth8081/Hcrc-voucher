@@ -2506,7 +2506,24 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.86)**: man hinh "Quan tri doi tac" (`/partner-admin.html`), tab "Cong ty &
+Ban **moi nhat (v3.87)**: cai thien UI/UX tren man hinh DESKTOP (dien thoai khong doi gi) - rieng
+cho cac trang nhieu du lieu (bao cao, Tai khoan, Don vi thu hoi, Quan tri doi tac, Nhat ky he
+thong, Lich gui email, Bao mat). **(1)** Khung noi dung (`.container-wide`) nang tu 960px len
+1180px - truoc do bang nhieu cot (vd Bao cao doi soat) bi **vo dong chu xau** du man hinh con
+thua nhieu khong gian 2 ben; **(2)** 5 trang truoc do dung `.container` thuong (760px, cham
+hon ca ban cu) duoc doi sang `.container-wide`: `report.html`, `units.html`,
+`partner-admin.html`, `email-schedules.html`, `security.html`; **(3)** Bang "Danh sach tai
+khoan" (`users.html`) tren desktop (≥860px) - dong **CHUA bam "Sua"** gon lai thanh **1 dong
+ngang** (ten/ho ten/vai tro/trang thai/nut hanh dong canh nhau) thay vi xep the doc + 4 nut
+full-width nhu truoc (tung chiem ~470px chieu cao/tai khoan, phai cuon rat nhieu moi xem het
+1 danh sach ngan) - bam "Sua" van mo dung khung chi tiet day du nhu cu, khong mat chuc nang
+gi. Duoi 860px (dien thoai/tablet dung) va dong DA mo rong deu **giu nguyen 100%** nhu truoc.
+Luu y ky thuat: `flex-basis: auto` (co dinh kich thuoc theo noi dung) khong tinh dung kich
+thuoc cho 2 cot Trang thai/Hanh dong trong truong hop nay (loi rendering flexbox that su gap
+phai luc lam, da doi sang flex-basis co dinh (170px/300px) de tranh - xem ghi chu trong
+`public/css/users.css`). Khong co migration CSDL moi (chi CSS/HTML).
+
+Ban truoc do (v3.86): man hinh "Quan tri doi tac" (`/partner-admin.html`), tab "Cong ty &
 Diem tieu" (muc 4m, diem 3/5): **(1)** them o **Dia chi (tuy chon)** cho ca form "Tao cong ty
 moi" lan "Tao diem tieu moi" (+ hien ngay trong danh sach "Cong ty & diem tieu cua ban" - dia
 chi cong ty hien canh ten, dia chi diem tieu hien o tooltip). Cot `Address` da co san tu dau tren
