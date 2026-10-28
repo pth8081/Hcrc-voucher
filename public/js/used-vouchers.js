@@ -31,7 +31,7 @@ function buildQuery() {
 
 async function loadReport() {
   try {
-    reportBody.innerHTML = '<tr><td colspan="10" class="text-muted">Đang tải...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="11" class="text-muted">Đang tải...</td></tr>';
     const data = await apiFetch(`/reports/used-vouchers?${buildQuery()}`);
     render(data.rows, data.unassignedLocation);
     if (data.truncated) {
@@ -39,17 +39,17 @@ async function loadReport() {
     }
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="10" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="11" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
   }
 }
 
 function render(rows, unassignedLocation) {
   if (unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="10" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="11" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    reportBody.innerHTML = '<tr><td colspan="10" class="text-muted">Không có voucher nào trong khoảng đã chọn</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="11" class="text-muted">Không có voucher nào trong khoảng đã chọn</td></tr>';
     return;
   }
 
@@ -62,6 +62,7 @@ function render(rows, unassignedLocation) {
         <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}</td>
         <td data-label="Người tiêu">${escapeHtml(row.userName || '-')}</td>
         <td data-label="Công ty">${escapeHtml(row.companyName)}</td>
+        <td data-label="Địa điểm">${escapeHtml(row.locationName)}</td>
         <td data-label="Điểm tiêu">${escapeHtml(row.pointName)}</td>
         <td data-label="Hệ thống">${escapeHtml(row.connectionName || '-')}</td>
         <td data-label="Số tiền">${fmtMoney(row.valueAmt)}</td>

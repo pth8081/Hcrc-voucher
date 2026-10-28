@@ -144,6 +144,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
     SELECT
       vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
       MAX(rc.CompanyName) AS CompanyName,
+      MAX(ru.PartnerName) AS UnitName,
       COUNT(*) AS VoucherCount,
       SUM(vs.VALUE_AMT) AS TotalAmount
     FROM dbo.VOUCHER_SYNC vs
@@ -175,7 +176,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
       vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code,
       DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
-      rc.CompanyName,
+      rc.CompanyName, ru.PartnerName AS UnitName,
       vs.VALUE_AMT, vs.Sync, vrc.ConnectionName, vri.InvoiceNumber
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
@@ -280,6 +281,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     { header: 'Cong ty', key: 'companyName', width: 24 },
     { header: 'Nhom dia diem', key: 'groupName', width: 22 },
     { header: 'Dia diem', key: 'pointName', width: 28 },
+    { header: 'Diem tieu', key: 'unitName', width: 28 },
     { header: 'So luong', key: 'voucherCount', width: 14 },
     { header: 'Tong tien', key: 'totalAmount', width: 16 },
   ];
@@ -289,6 +291,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
       companyName: sanitizeExcelText(row.CompanyName || '-'),
       groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
       pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
+      unitName: sanitizeExcelText(row.UnitName || row.Location_DetailName || row.Locations_Detail),
       voucherCount: row.VoucherCount,
       totalAmount: Number(row.TotalAmount || 0),
     });
@@ -305,6 +308,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     { header: 'Cong ty', key: 'companyName', width: 24 },
     { header: 'Nhom dia diem', key: 'groupName', width: 22 },
     { header: 'Dia diem', key: 'pointName', width: 28 },
+    { header: 'Diem tieu', key: 'unitName', width: 28 },
     { header: 'He thong', key: 'connectionName', width: 16 },
     { header: 'Menh gia', key: 'valueAmt', width: 14 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
@@ -321,6 +325,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
       companyName: sanitizeExcelText(row.CompanyName || '-'),
       groupName: sanitizeExcelText(row.Location_GroupName || row.Locations_Group),
       pointName: sanitizeExcelText(row.Location_DetailName || row.Locations_Detail),
+      unitName: sanitizeExcelText(row.UnitName || row.Location_DetailName || row.Locations_Detail),
       connectionName: sanitizeExcelText(row.ConnectionName || '-'),
       valueAmt: Number(row.VALUE_AMT || 0),
       syncedLabel: row.Sync === 'Y' ? 'Da dong bo' : 'Cho dong bo',

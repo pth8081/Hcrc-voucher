@@ -124,8 +124,9 @@ function buildHierarchy(rows) {
     const company = companyMap.get(companyKey);
 
     const pointName = row.PartnerName || row.Location_DetailName || row.Locations_Detail || UNASSIGNED_POINT;
+    const locationName = row.Location_DetailName || row.Locations_Detail || '-';
     if (!company.pointMap.has(pointName)) {
-      company.pointMap.set(pointName, { pointName, rows: [], count: 0, amount: 0 });
+      company.pointMap.set(pointName, { pointName, locationName, rows: [], count: 0, amount: 0 });
     }
     const point = company.pointMap.get(pointName);
 
@@ -181,6 +182,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
   const summarySheet = workbook.addWorksheet('Tong hop theo cong ty-diem');
   summarySheet.columns = [
     { header: 'Cong ty', key: 'companyName', width: 28 },
+    { header: 'Dia diem', key: 'locationName', width: 28 },
     { header: 'Diem tieu', key: 'pointName', width: 28 },
     { header: 'So voucher', key: 'count', width: 14 },
     { header: 'Menh gia', key: 'amount', width: 16 },
@@ -189,6 +191,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
   companies.forEach((company) => {
     summarySheet.addRow({
       companyName: sanitizeExcelText(company.companyName),
+      locationName: '',
       pointName: '',
       count: company.count,
       amount: company.amount,
@@ -196,6 +199,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
     company.points.forEach((point) => {
       summarySheet.addRow({
         companyName: '',
+        locationName: sanitizeExcelText(point.locationName),
         pointName: sanitizeExcelText(point.pointName),
         count: point.count,
         amount: point.amount,
@@ -204,6 +208,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
   });
   const summaryTotalRow = summarySheet.addRow({
     companyName: 'TONG TOAN BO CONG TY',
+    locationName: '',
     pointName: '',
     count: grandTotal.count,
     amount: grandTotal.amount,
@@ -214,6 +219,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
   const detailSheet = workbook.addWorksheet('Chi tiet giao dich');
   detailSheet.columns = [
     { header: 'Cong ty', key: 'companyName', width: 28 },
+    { header: 'Dia diem', key: 'locationName', width: 28 },
     { header: 'Diem tieu', key: 'pointName', width: 28 },
     { header: 'Ngay tieu', key: 'createdDate', width: 20 },
     { header: 'Nguoi tieu', key: 'userName', width: 24 },
@@ -230,6 +236,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
       point.rows.forEach((row) => {
         detailSheet.addRow({
           companyName: sanitizeExcelText(company.companyName),
+          locationName: sanitizeExcelText(point.locationName),
           pointName: sanitizeExcelText(point.pointName),
           createdDate: row.createdDate ? new Date(row.createdDate) : null,
           userName: sanitizeExcelText(row.userName),
