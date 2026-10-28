@@ -224,13 +224,17 @@ async function verifyAuthentication({ flowId, response }) {
 // Truy van / quan tri credential
 // =====================================================================
 
+// v3.89: DATEADD(HOUR, -7, ...) sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham
+// GETDATE() gio VN la UTC luc doc ve) - xem ghi chu chi tiet o scanLogService.js.
 async function listCredentialsByUser(userId) {
   const pool = await getPool();
   const result = await pool
     .request()
     .input('userId', sql.Int, userId)
     .query(`
-      SELECT Id, CredentialId, DeviceLabel, DeviceType, CreatedDate, LastUsedDate, Transports
+      SELECT Id, CredentialId, DeviceLabel, DeviceType,
+        DATEADD(HOUR, -7, CreatedDate) AS CreatedDate, DATEADD(HOUR, -7, LastUsedDate) AS LastUsedDate,
+        Transports
       FROM dbo.WebAuthnCredentials
       WHERE UserId = @userId
       ORDER BY CreatedDate DESC
