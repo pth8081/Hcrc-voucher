@@ -98,6 +98,90 @@
   display: flex;
 }
 
+/* v3.87: tren desktop (>=860px), dong THU GON (chua bam "Sua") hien gon THANH 1 DONG NGANG thay
+   vi xep the + 4 nut full-width nhu truoc - giam manh chieu cao danh sach (tu ~470px/tai khoan
+   xuong con ~1 dong), xem duoc nhieu tai khoan hon ma khong phai cuon. Dong DA MO RONG
+   (.row-expanded, sau khi bam "Sua") GIU NGUYEN dang the xep doc nhu truoc - dang sua chi tiet
+   (nhieu truong: quyen, diem tieu, nhom bao cao...) thi xep doc van hop ly hon. Duoi 860px
+   (dien thoai/tablet dung) KHONG doi gi so voi truoc - van xep the nhu cu. */
+@media (min-width: 860px) {
+  #usersBody tr:not(.row-expanded) {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 9px 16px;
+  }
+
+  /* QUAN TRONG: CHI nham dung 5 cot da duoc hien (data-label/class y het quy tac "display:flex"
+     khong co media-query o tren) - KHONG dung selector chung "td" o day, vi no se co CUNG DO CU
+     THE voi quy tac "display:none" mac dinh (`#usersBody tr:not(.row-expanded) td`) va thang
+     theo thu tu nguon, vo tinh lam HIEN LAI ca 15 cot dang le phai an (da gap loi nay luc test -
+     moi cot an lo ra rong hang nghin px vi flex-basis:auto tren noi dung select/input rong). */
+  #usersBody tr:not(.row-expanded) td[data-label="Tên đăng nhập"],
+  #usersBody tr:not(.row-expanded) td[data-label="Họ tên"],
+  #usersBody tr:not(.row-expanded) td[data-label="Vai trò"],
+  #usersBody tr:not(.row-expanded) td.state-cell,
+  #usersBody tr:not(.row-expanded) td[data-label="Hành động"] {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+    white-space: nowrap;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Tên đăng nhập"]::before,
+  #usersBody tr:not(.row-expanded) td[data-label="Họ tên"]::before,
+  #usersBody tr:not(.row-expanded) td[data-label="Vai trò"]::before,
+  #usersBody tr:not(.row-expanded) td.state-cell::before,
+  #usersBody tr:not(.row-expanded) td[data-label="Hành động"]::before {
+    content: none;
+  }
+
+  #usersBody tr:not(.row-expanded) td[data-label="Tên đăng nhập"] {
+    flex: 0 0 140px;
+    font-weight: 700;
+    font-size: 13.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Họ tên"] {
+    flex: 1 1 160px;
+    min-width: 120px;
+    white-space: normal;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Họ tên"] input {
+    margin: 0;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Vai trò"] {
+    flex: 0 0 72px;
+    font-size: 13px;
+    color: var(--ink-700);
+  }
+  /* flex-basis "auto" (co dinh kich thuoc theo noi dung) khong tinh dung cho 2 o nay - trinh
+     duyet tra ve chieu rong qua lon (loi flexbox that su gap khi test, xem ghi chu tren) - dung
+     con so co dinh thay vi auto de tranh han loi nay, an toan hon va cung giu cot deu nhau giua
+     cac dong thay vi nhay theo do dai noi dung tung dong. */
+  #usersBody tr:not(.row-expanded) td.state-cell {
+    flex: 0 0 170px;
+  }
+  #usersBody tr:not(.row-expanded) td[data-label="Hành động"] {
+    flex: 0 0 300px;
+    margin-left: auto;
+  }
+  #usersBody tr:not(.row-expanded) .actions-cell {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  #usersBody tr:not(.row-expanded) .actions-cell button {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+}
+
 /* Bo loc tren tab "Bao cao phan quyen he thong" - cung cach trinh bay voi bo loc bao cao
    (summary-report.css) nhung khai bao rieng o day de khong phai nap them 1 stylesheet khac
    chi vi 1 vai dong CSS. */
