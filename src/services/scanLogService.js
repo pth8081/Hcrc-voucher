@@ -16,6 +16,22 @@ const MAX_EXPORT_ROWS = 50000;
  * duoc xem cheo sang he thong khac. Man hinh admin day du (adminLog.controller.js) KHONG truyen
  * tham so nay nen khong bi loc gi them, giu dung hanh vi cu.
  */
+// VoucherScanLogs.LocationsDetail chi luu MA dia diem (khong phai ten) luc ghi log - JOIN sang
+// Locations_Detail de doc ra TEN hien thi thay vi ma. Dung lai dung kieu dedup (1 ma co the trung
+// o nhieu dong Locations_Detail cu) nhu LOCATION_MAPPING_JOIN cua reportService.js, uu tien ten
+// Diem tieu (RedemptionUnits.PartnerName) hon ten dia diem goc neu co, giong usedVoucherReportService.
+const LOCATION_NAME_JOIN = `
+  LEFT JOIN (
+    SELECT id, LTRIM(RTRIM(LocationCode)) AS LocationCode, LocationName,
+      ROW_NUMBER() OVER (
+        PARTITION BY LTRIM(RTRIM(LocationCode))
+        ORDER BY CASE WHEN EXISTS (SELECT 1 FROM dbo.RedemptionUnits ru0 WHERE ru0.LocationDetailId = d.id) THEN 0 ELSE 1 END, id
+      ) AS rn
+    FROM dbo.Locations_Detail d
+  ) ld ON ld.LocationCode = LTRIM(RTRIM(sl.LocationsDetail)) AND ld.rn = 1
+  LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
+`;
+
 async function list({ fromDate, toDate, limit, connectionName }) {
   const pool = await getPool();
   // Dot ra soat sau phat hien: truoc day chi gioi han CAN TREN (Math.min) - 1 gia tri am (vd
@@ -27,24 +43,27 @@ async function list({ fromDate, toDate, limit, connectionName }) {
   let filter = '1 = 1';
   if (fromDate) {
     request.input('fromDate', sql.Date, fromDate);
-    filter += ' AND CAST(CreatedDate AS DATE) >= @fromDate';
+    filter += ' AND CAST(sl.CreatedDate AS DATE) >= @fromDate';
   }
   if (toDate) {
     request.input('toDate', sql.Date, toDate);
-    filter += ' AND CAST(CreatedDate AS DATE) <= @toDate';
+    filter += ' AND CAST(sl.CreatedDate AS DATE) <= @toDate';
   }
   if (connectionName) {
     request.input('connectionName', sql.NVarChar(100), connectionName);
-    filter += ' AND ConnectionName = @connectionName';
+    filter += ' AND sl.ConnectionName = @connectionName';
   }
 
   const result = await request.query(`
     SELECT TOP (@limit)
-      Id, UserId, UserName, LocationsDetail, VoucherCode, ScanMethod, Action,
-      ResultStatus, ValueAmt, CoreApiHttpStatus, CoreApiMessage, ClientIp, CreatedDate
-    FROM dbo.VoucherScanLogs
+      sl.Id, sl.UserId, sl.UserName, sl.LocationsDetail,
+      COALESCE(ru.PartnerName, ld.LocationName, sl.LocationsDetail) AS LocationDisplayName,
+      sl.VoucherCode, sl.ScanMethod, sl.Action,
+      sl.ResultStatus, sl.ValueAmt, sl.CoreApiHttpStatus, sl.CoreApiMessage, sl.ClientIp, sl.CreatedDate
+    FROM dbo.VoucherScanLogs sl
+    ${LOCATION_NAME_JOIN}
     WHERE ${filter}
-    ORDER BY CreatedDate DESC
+    ORDER BY sl.CreatedDate DESC
   `);
   return result.recordset;
 }
@@ -79,7 +98,7 @@ async function buildExcelBuffer(rows) {
     sheet.addRow({
       createdDate: row.CreatedDate ? new Date(row.CreatedDate) : null,
       userName: sanitizeExcelText(row.UserName),
-      locationsDetail: sanitizeExcelText(row.LocationsDetail),
+      locationsDetail: sanitizeExcelText(row.LocationDisplayName || row.LocationsDetail),
       voucherCode: sanitizeExcelText(row.VoucherCode),
       scanMethod: sanitizeExcelText(row.ScanMethod),
       action: sanitizeExcelText(row.Action),

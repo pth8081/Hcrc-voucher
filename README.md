@@ -2496,7 +2496,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.84)**: 2 thay doi doc lap. **(1)** Them quyen tinh nang thu 7
+Ban **moi nhat (v3.85)**: sua loi hien thi - tab "Nhat ky he thong" (muc 15c, ca man HCRC day du
+lan tab "Hoat dong quet/thu hoi" cua "Quan tri doi tac") cot "Dia diem" dang hien **MA dia diem**
+(vd "13") thay vi **TEN dia diem** - do `VoucherScanLogs.LocationsDetail` chi luu MA luc ghi log,
+man hinh/Excel xuat ra lai hien thang truong nay ra. Da sua: JOIN sang `Locations_Detail` luc doc
+(uu tien ten Diem tieu neu co, roi moi toi ten dia diem goc) - ap dung ca man hinh LAN xuat Excel,
+khong can migration CSDL moi (chi doi truy van doc, khong dong database). Xem
+`src/services/scanLogService.js#LOCATION_NAME_JOIN`.
+
+Ban truoc do (v3.84): 2 thay doi doc lap. **(1)** Them quyen tinh nang thu 7
 **"Lich gui email bao cao"** (`CanManageEmailSchedules`, DEFAULT 0) - truoc day BAT KY tai khoan
 nao xem duoc >=1 bao cao deu tu tao/sua duoc lich gui email tu dong, nay CHI "Quan tri doi tac"
 (tu dong co san) hoac tai khoan duoc cap rieng moi thay/thao tac duoc man hinh nay; lich dang

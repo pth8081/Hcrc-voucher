@@ -110,7 +110,7 @@ async function loadScan() {
         <tr>
           <td data-label="Thời gian">${fmtDate(r.CreatedDate)}</td>
           <td data-label="Người quét">${escapeHtml(r.UserName || '-')}</td>
-          <td data-label="Địa điểm">${escapeHtml(r.LocationsDetail || '-')}</td>
+          <td data-label="Địa điểm">${escapeHtml(r.LocationDisplayName || r.LocationsDetail || '-')}</td>
           <td data-label="Mã voucher">${escapeHtml(r.VoucherCode)}</td>
           <td data-label="Cách quét">${escapeHtml(r.ScanMethod)}</td>
           <td data-label="Hành động">${escapeHtml(r.Action)}</td>
