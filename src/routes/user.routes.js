@@ -16,6 +16,7 @@ router.put('/:userId/permissions', controller.updatePermissions);
 router.put('/:userId/schedule', controller.updateSchedule);
 router.put('/:userId/report-access', controller.updateReportAccess);
 router.put('/:userId/location', controller.updateLocation);
+router.put('/:userId/company', controller.updateCompany);
 router.put('/:userId/voucher-systems', controller.updateVoucherSystems);
 router.put('/:userId/profile', controller.updateProfile);
 router.put('/:userId/delete-status', controller.updateDeleteStatus);

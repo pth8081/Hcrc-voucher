@@ -13,9 +13,9 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName, redemptionUnitId } = req.body;
+    const { username, password, fullName, redemptionUnitId, companyId } = req.body;
     const created = await partnerAdminService.createScopedUser(
-      { username, password, fullName, redemptionUnitId },
+      { username, password, fullName, redemptionUnitId, companyId },
       req.partnerAdminConnectionId,
       req.user.username
     );
@@ -23,9 +23,30 @@ async function create(req, res, next) {
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_USER',
       targetUsername: created.username,
-      detail: { before: null, after: { connectionName: req.partnerAdminConnectionName, redemptionUnitId: redemptionUnitId || null } },
+      detail: { before: null, after: { connectionName: req.partnerAdminConnectionName, redemptionUnitId: redemptionUnitId || null, companyId: companyId || null } },
     });
     res.json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * v3.94 (xem sql/043): gan/doi "Cong ty" + bat/tat "Tai khoan doi tac" cho 1 tai khoan DA THUOC
+ * pham vi cua doi tac nay.
+ */
+async function updateUserCompany(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const { companyId, isPartnerAccount, username } = req.body;
+    await partnerAdminService.updateScopedUserCompany(userId, req.partnerAdminConnectionId, { companyId, isPartnerAccount }, req.user.username);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'PARTNER_ADMIN_UPDATE_USER_COMPANY',
+      targetUsername: username || String(userId),
+      detail: { before: null, after: { companyId: companyId || null, isPartnerAccount: !!isPartnerAccount } },
+    });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -156,13 +177,13 @@ async function listCompanies(req, res, next) {
 
 async function createCompany(req, res, next) {
   try {
-    const { companyCode, companyName, address } = req.body;
-    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName, address }, req.partnerAdminConnectionId);
+    const { companyCode, companyName, address, companyType } = req.body;
+    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName, address, companyType }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_COMPANY',
       targetUsername: companyName,
-      detail: { before: null, after: { id, companyCode } },
+      detail: { before: null, after: { id, companyCode, companyType: companyType || 'REDEMPTION' } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -173,15 +194,27 @@ async function createCompany(req, res, next) {
 async function updateCompany(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const { companyCode, companyName, address } = req.body;
-    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName, address }, req.partnerAdminConnectionId);
+    const { companyCode, companyName, address, companyType } = req.body;
+    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName, address, companyType }, req.partnerAdminConnectionId, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_UPDATE_COMPANY',
       targetUsername: companyName,
-      detail: { before: null, after: { id, companyCode } },
+      detail: { before: null, after: { id, companyCode, companyType: companyType || undefined } },
     });
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Xem truoc so Diem tieu/tai khoan se bi anh huong NEU chuyen 1 cong ty cua doi tac nay sang
+ * "Cong ty doi tac" - dung cho hop thoai xac nhan o partner-admin.js. */
+async function companyConvertPreview(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const preview = await partnerAdminService.getOwnCompanyConvertPreview(id, req.partnerAdminConnectionId);
+    res.json({ success: true, data: preview });
   } catch (err) {
     next(err);
   }
@@ -410,10 +443,12 @@ module.exports = {
   updateUserPermissions,
   updateUserLocation,
   updateUserReportAccessGroup,
+  updateUserCompany,
   listCompanies,
   createCompany,
   updateCompany,
   removeCompany,
+  companyConvertPreview,
   listUnits,
   createUnit,
   updateUnit,

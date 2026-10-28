@@ -15,6 +15,7 @@ router.put('/users/:userId/profile', requirePartnerAdminFeature('canManageAccoun
 router.put('/users/:userId/permissions', requirePartnerAdminFeature('canManageAccounts'), controller.updateUserPermissions);
 router.put('/users/:userId/location', requirePartnerAdminFeature('canManageAccounts'), controller.updateUserLocation);
 router.put('/users/:userId/report-access-group', requirePartnerAdminFeature('canManageAccounts'), controller.updateUserReportAccessGroup);
+router.put('/users/:userId/company', requirePartnerAdminFeature('canManageAccounts'), controller.updateUserCompany);
 
 // Tab "Cong ty & Diem tieu" - GET mo them cho tab "Quan ly tai khoan" (dropdown Cong ty/Diem tieu
 // luc tao/sua tai khoan, xem controller.create/updateUserLocation) - THEM/SUA/XOA that can dung
@@ -22,6 +23,7 @@ router.put('/users/:userId/report-access-group', requirePartnerAdminFeature('can
 router.get('/companies', requirePartnerAdminFeature(['canManageAccounts', 'canManageOrg']), controller.listCompanies);
 router.post('/companies', requirePartnerAdminFeature('canManageOrg'), controller.createCompany);
 router.put('/companies/:id', requirePartnerAdminFeature('canManageOrg'), controller.updateCompany);
+router.get('/companies/:id/convert-preview', requirePartnerAdminFeature('canManageOrg'), controller.companyConvertPreview);
 router.delete('/companies/:id', requirePartnerAdminFeature('canManageOrg'), controller.removeCompany);
 
 router.get('/units', requirePartnerAdminFeature(['canManageAccounts', 'canManageOrg']), controller.listUnits);

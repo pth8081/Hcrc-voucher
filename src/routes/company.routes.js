@@ -10,6 +10,7 @@ router.use(authenticate, requireAdmin);
 // phan quyen he thong) - chi rieng THEM/SUA/XOA (quan tri THAT su) moi can quyen rieng man hinh
 // "Don vi thu hoi" (xem requireRole.js#requireAdminFeature).
 router.get('/', controller.list);
+router.get('/:id/convert-preview', controller.convertPreview);
 router.post('/', requireAdminFeature('adminCanManageUnits'), controller.create);
 router.put('/:id', requireAdminFeature('adminCanManageUnits'), controller.update);
 router.delete('/:id', requireAdminFeature('adminCanManageUnits'), controller.remove);

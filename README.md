@@ -2523,7 +2523,32 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.93)**: them man hinh moi **"Quan ly doi tac"** (`/partner-overview.html`,
+Ban **moi nhat (v3.94)**: them khai niem **"Loai cong ty"** va **"Loai tai khoan"** (sql/043),
+theo yeu cau nguoi dung - phan biet **Cong ty thu hoi** (mac dinh, giu nguyen hanh vi cu: co the
+tao Diem tieu, tai khoan gan vao dung duoc chuc nang thu hoi) voi **Cong ty doi tac** (loai MOI -
+chi luu thong tin cong ty, KHONG duoc gan Diem tieu nao, tai khoan gan vao MAC DINH mat chuc nang
+thu hoi). Luu y: chu "doi tac" o day la 1 nghia KHAC voi "doi tac" = ApiConnections (he thong
+voucher Fuji/BRGmart...) da dung tu truoc - 2 khai niem doc lap, chi trung ten theo dung yeu cau.
+Cac buoc chan chinh: (1) **Chuyen 1 cong ty DANG co Diem tieu/tai khoan sang "Cong ty doi tac"**
+(man "Don vi thu hoi" cua HCRC VA "Quan tri doi tac" cua chinh doi tac) - hien hop thoai xac nhan
+truoc (goi `GET /companies/:id/convert-preview` hoac ban tuong duong cua doi tac, dem CA tai
+khoan gan qua Locations_Detail KIEU CU lan qua CompanyId TRUC TIEP kieu moi), roi TU DONG go lien
+ket (KHONG xoa) toan bo Diem tieu khoi cong ty do va ep `CanRedeemVoucher = 0` + tu dong doi tai
+khoan lien quan thanh "Tai khoan doi tac" - du lieu da thu hoi truoc do van giu nguyen trong lich
+su. (2) **Chan tao/gan Diem tieu vao 1 "Cong ty doi tac"** (ca khi tao moi lan doi Cong ty cua 1
+Diem tieu da co, `redemptionUnitService.js`). (3) **Tai khoan chi duoc BAT "Tai khoan doi tac" khi
+DA thuoc 1 Cong ty DA LA "Cong ty doi tac"** - neu chua, bao loi 400 ro rang huong dan admin chuyen
+cong ty truoc (`companyService.js#assertCanBePartnerAccount`, dung chung o man "Tai khoan" VA
+"Quan tri doi tac") - BAT thanh cong se ep `CanRedeemVoucher = 0` va go Diem tieu/dia diem hien co.
+(4) **"Cong ty doi tac" khong con hien trong danh sach cap quyen xem cheo bao cao** (Nhom quyen
+xem bao cao) - rieng bo loc "Cong ty thu" tren 3 bao cao da TU DONG khong hien loai cong ty nay
+(JOIN qua Diem tieu, loai nay khong bao gio co). Them cot moi: `RedemptionCompanies.CompanyType`,
+`VoucherAppPermissions.CompanyId` (luu TRUC TIEP "cong ty cua tai khoan" - truoc day chi la gia
+tri SUY RA qua Locations_Detail, khong du cho tai khoan thuoc Cong ty doi tac vi loai nay khong co
+Diem tieu de suy ra) va `VoucherAppPermissions.IsPartnerAccount`. Khong doi gi du lieu/hanh vi cua
+cac tai khoan/cong ty hien co (moi cong ty/tai khoan cu mac dinh van la REDEMPTION/khong doi tac).
+
+Ban truoc do (v3.93): them man hinh moi **"Quan ly doi tac"** (`/partner-overview.html`,
 chi Quan tri HCRC) - tong quan TOAN BO doi tac (ApiConnections) dang ket noi, tu dong liet ke du
 bao nhieu doi tac dang co, moi doi tac hien dang the thu gon/mo rong: trang thai (Dang hoat
 dong/Da khoa), so cong ty/diem tieu/tai khoan, va khi mo rong xem chi tiet Cong ty -> Diem tieu
