@@ -96,9 +96,12 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     extraFilter += ' AND vri.InvoiceNumber LIKE @invoiceNumber';
   }
 
+  // v3.89: DATEADD(HOUR, -7, ...) sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham
+  // GETDATE() gio VN la UTC luc doc ve) - xem ghi chu chi tiet o scanLogService.js. Khong dong
+  // den WHERE/ORDER ben duoi (van loc/sap xep theo Created_Date GOC, dung nhu truoc).
   const result = await request.query(`
     SELECT ${topClause}
-      vs.Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
+      DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
       ru.PartnerName, rc.CompanyName, vrc.ConnectionName, vri.InvoiceNumber
     FROM dbo.VOUCHER_SYNC vs

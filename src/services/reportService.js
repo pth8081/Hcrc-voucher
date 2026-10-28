@@ -159,9 +159,13 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
   const topClause = maxDetailRows ? 'TOP (@maxDetailRows)' : '';
   if (maxDetailRows) detailRequest.input('maxDetailRows', sql.Int, maxDetailRows);
 
+  // v3.89: DATEADD(HOUR, -7, ...) sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham
+  // GETDATE() gio VN la UTC luc doc ve) - xem ghi chu chi tiet o scanLogService.js. Khong dong
+  // den WHERE/ORDER phia duoi (van loc/sap xep theo Created_Date GOC, dung nhu truoc).
   const details = await detailRequest.query(`
     SELECT ${topClause}
-      vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code, vs.Created_Date,
+      vs.Id, vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code,
+      DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
       rc.CompanyName,
       vs.VALUE_AMT, vs.Sync, vrc.ConnectionName

@@ -59,7 +59,14 @@ function rowToDto(row) {
     createdByUserId: row.CreatedByUserId,
     createdByUsername: row.CreatedByUsername,
     createdDate: row.CreatedDate,
-    lastSentDate: row.LastSentDate,
+    // v3.89: LastSentDate duoc markSent() ghi bang nowVn() (gio VN "dang qua UTC-getters" -
+    // xem ghi chu o isDueNow()), nen khi doc lai qua driver mssql/tedious (useUTC:true mac dinh)
+    // UTC-getters cua gia tri doc duoc VAN DUNG LA gio VN that - nhung JSON gui ve FE lai mang
+    // nhan "Z" (UTC) sai, khien fmtDate() o email-schedules.js cong nham +7h luc hien ra man
+    // hinh. CHI sua O DAY (tang hien thi) - KHONG dong vao cot DB/isDueNow() ben tren, vi logic
+    // chong gui trung dang so sanh dung nhau (ca 2 cung dang quy uoc "gio VN qua UTC-getters"),
+    // sua o do se lam lech lai dung loi da tung kiem thu phat hien truoc do (xem ghi chu isDueNow()).
+    lastSentDate: row.LastSentDate ? new Date(row.LastSentDate.getTime() - 7 * 60 * 60 * 1000) : null,
     lastSentStatus: row.LastSentStatus,
     lastSentMessage: row.LastSentMessage,
   };

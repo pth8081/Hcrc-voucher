@@ -43,7 +43,9 @@ async function getStatus(userId) {
   const result = await pool
     .request()
     .input('userId', sql.Int, userId)
-    .query('SELECT Enabled, EnabledDate, LastUsedDate FROM dbo.AdminTwoFactor WHERE UserId = @userId');
+    // v3.89: DATEADD(HOUR, -7, ...) sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham
+    // GETDATE() gio VN la UTC luc doc ve) - xem ghi chu chi tiet o scanLogService.js.
+    .query('SELECT Enabled, DATEADD(HOUR, -7, EnabledDate) AS EnabledDate, DATEADD(HOUR, -7, LastUsedDate) AS LastUsedDate FROM dbo.AdminTwoFactor WHERE UserId = @userId');
   const row = result.recordset[0];
   return {
     enabled: !!(row && row.Enabled),
@@ -193,10 +195,13 @@ async function adminResetOther(targetUserId, resetByUsername) {
 /** Danh sach toan bo tai khoan quan tri kem trang thai 2FA - phuc vu man hinh "Bao mat". */
 async function listAdminStatus() {
   const pool = await getPool();
+  // v3.89: DATEADD(HOUR, -7, ...) sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham
+  // GETDATE() gio VN la UTC luc doc ve) - xem ghi chu chi tiet o scanLogService.js. ResetDate
+  // khong sua (chua hien o man hinh nao, chi fetch cho du du lieu).
   const result = await pool.request().query(`
     SELECT u.UserID AS userId, u.Username AS username, u.FullName AS fullName,
-           ISNULL(t.Enabled, 0) AS twoFactorEnabled, t.EnabledDate AS enabledDate,
-           t.LastUsedDate AS lastUsedDate, t.ResetByUsername AS resetByUsername, t.ResetDate AS resetDate
+           ISNULL(t.Enabled, 0) AS twoFactorEnabled, DATEADD(HOUR, -7, t.EnabledDate) AS enabledDate,
+           DATEADD(HOUR, -7, t.LastUsedDate) AS lastUsedDate, t.ResetByUsername AS resetByUsername, t.ResetDate AS resetDate
     FROM dbo.Users u
     LEFT JOIN dbo.AdminTwoFactor t ON t.UserId = u.UserID
     WHERE u.status = 1

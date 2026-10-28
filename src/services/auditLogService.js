@@ -78,8 +78,12 @@ async function list({ fromDate, toDate, limit, usernames }) {
     }
   }
 
+  // v3.89: sua loi gio hien thi lech 7 gio (mssql/tedious hieu nham GETDATE() gio VN la UTC luc
+  // doc ve) - xem ghi chu chi tiet o scanLogService.js. Khong dong den cau loc theo ngay phia tren
+  // (van dung CreatedDate goc, dung nhu truoc).
   const result = await request.query(`
-    SELECT TOP (@limit) Id, ActorUsername, Action, TargetUsername, Detail, CreatedDate
+    SELECT TOP (@limit) Id, ActorUsername, Action, TargetUsername, Detail,
+      DATEADD(HOUR, -7, CreatedDate) AS CreatedDate
     FROM dbo.AdminAuditLog
     WHERE ${filter}
     ORDER BY CreatedDate DESC

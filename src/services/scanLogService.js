@@ -5,6 +5,19 @@ const { sql, getPool } = require('../config/db');
 // (1000, xem `list()`), cung quy uoc MAX_EXPORT_ROWS da dung o reportService.js.
 const MAX_EXPORT_ROWS = 50000;
 
+// v3.89 (loi gio sai da bao cao): CreatedDate ghi qua GETDATE() - tra ve gio DIA PHUONG cua may
+// chu CSDL (VN, UTC+7, dung nhu README yeu cau), KHONG kem thong tin mui gio trong kieu DATETIME.
+// Driver mssql/tedious doc gia tri nay ve JS Date mac dinh VOI "useUTC: true" (khong duoc cau
+// hinh lai o config/env.js) - TUONG NHAM cac con so gio da luu LA GIO UTC, khien JS Date tao ra
+// lech +7 gio so voi thoi diem that (vd 07:31 VN bi hieu thanh 07:31 UTC = 14:31 VN khi doi ve
+// gio trinh duyet). Sua TRUC TIEP trong SQL (tru 7 gio TRUOC KHI driver doc, xem DATEADD(HOUR,-7,...)
+// trong cau SELECT ben duoi) thay vi sua o tang JS, de 1 lan sua ap dung dung cho moi noi SELECT
+// cot nay ra man hinh/Excel - KHONG dong gi den cac cau loc theo ngay (`CAST(CreatedDate AS DATE)
+// = ...`), van dung dung gio dia phuong cua may chu nhu truoc, chi sua GIA TRI HIEN THI gio:phut:giay.
+// Ap dung dong nhat o: scanLogService.js, auditLogService.js, reportService.js,
+// summaryReportService.js, usedVoucherReportService.js (moi noi doc CreatedDate/Created_Date de
+// hien thi gio len man hinh/Excel).
+
 /**
  * Doc lai VoucherScanLogs (ghi MOI lan quet/kiem tra/thu hoi, ca thanh cong lan that bai -
  * xem sql/002) de phuc vu man hinh "Nhat ky he thong" cho admin. Chi doc, khong ghi (ghi da
@@ -59,7 +72,8 @@ async function list({ fromDate, toDate, limit, connectionName }) {
       sl.Id, sl.UserId, sl.UserName, sl.LocationsDetail,
       COALESCE(ru.PartnerName, ld.LocationName, sl.LocationsDetail) AS LocationDisplayName,
       sl.VoucherCode, sl.ScanMethod, sl.Action,
-      sl.ResultStatus, sl.ValueAmt, sl.CoreApiHttpStatus, sl.CoreApiMessage, sl.ClientIp, sl.CreatedDate
+      sl.ResultStatus, sl.ValueAmt, sl.CoreApiHttpStatus, sl.CoreApiMessage, sl.ClientIp,
+      DATEADD(HOUR, -7, sl.CreatedDate) AS CreatedDate
     FROM dbo.VoucherScanLogs sl
     ${LOCATION_NAME_JOIN}
     WHERE ${filter}

@@ -232,6 +232,14 @@ DB moi, khong di chuyen/sao chep du lieu cu sang noi khac:
 > lai mui gio nay o tang code. Vi vay bat buoc may chu SQL Server phai dat dung mui gio Viet Nam
 > (UTC+7) - neu deploy len cloud/VM moi thuong mac dinh UTC, giao dich cuoi ngay se bi tinh nham
 > sang bao cao cua ngay hom sau. Kiem tra bang `SELECT GETDATE()` va so sanh voi gio VN thuc te.
+>
+> **Rieng gia tri GIO:PHUT:GIAY hien thi** (khac voi viec LOC theo ngay o tren, da dung tu truoc) -
+> xem loi da sua o v3.89 ngay duoi day: driver `mssql`/`tedious` mac dinh hieu nham gia tri
+> `GETDATE()` (gio dia phuong may chu) la gio UTC luc doc ve, lam LECH 7 GIO khi hien ra man
+> hinh/Excel du gia tri luu trong CSDL van dung. Da sua o tang truy van (khong anh huong cach
+> loc ngay), nhung neu sau nay THEM 1 cot gio moi can hien ra man hinh (vd 1 bao cao/nhat ky moi),
+> phai ap dung lai dung kieu `DATEADD(HOUR, -7, <cot>) AS <cot>` trong SELECT - xem vi du o
+> `scanLogService.js`.
 
 **Cac buoc:**
 
@@ -2506,7 +2514,29 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.88)**: sua vi du con sot "BRGmart" trong noi dung Huong dan trong app (2 cho:
+Ban **moi nhat (v3.89)**: sua loi **gio hien thi sai lech 7 gio** o Nhat ky he thong + ca 3 bao
+cao (nguoi dung bao loi kem anh chup: gio quet thuc te vao buoi chieu nhung Nhat ky hien ra gio
+dem/qua ngay khac). Nguyen nhan: `CreatedDate` ghi qua `GETDATE()` (dung gio dia phuong may chu
+CSDL, VN UTC+7, dung nhu da cau hinh) nhung driver `mssql`/`tedious` mac dinh (`useUTC: true`,
+khong duoc cau hinh lai o `config/env.js`) **hieu NHAM cac con so gio da luu LA GIO UTC** luc doc
+ve, khien JS Date lech +7 gio so voi thoi diem that (sau khi doi ve gio trinh duyet thi hien ra
+sai, co khi vo tinh nhay sang ngay khac). **Khong anh huong buoc LOC bao cao theo ngay** (van so
+sanh dung trong SQL, khong qua driver). Sua bang `DATEADD(HOUR, -7, <cot>) AS <cot>` ngay trong
+cau SELECT (hoac tru truc tiep o tang JS cho 1 truong hop dac biet - xem duoi) tai **7 noi** doc
+cot gio GETDATE()-sourced de hien thi: `scanLogService.js` (Hoat dong quet/thu hoi - ca 2 man
+HCRC va Quan tri doi tac dung chung), `auditLogService.js` (Nhat ky quan tri - dung chung tuong
+tu), `reportService.js`/`summaryReportService.js`/`usedVoucherReportService.js` (ca 3 bao cao,
+ap dung ca man hinh LAN Excel xuat ra vi dung chung 1 truy van), `twoFactorService.js` (Bao mat -
+"Kich hoat luc"/"Dung gan nhat" cua ca 2FA cua chinh minh va danh sach quan tri vien),
+`webauthnService.js` (Bao mat - "Dang ky luc"/"Dung gan nhat" cua van tay/Face ID). Rieng
+`emailScheduleService.js` (Lich gui email - "Lan gui gan nhat") **sua KHAC** (tru 7 gio o tang
+JS, CHI o ham tra ve cho giao dien, KHONG dong vao CSDL/logic so sanh chong gui trung) vi cot nay
+ghi bang `nowVn()` (quy uoc rieng tu truoc, khong phai `GETDATE()`) dang duoc dung NHAT QUAN
+giua ghi va so sanh trong `isDueNow()` - sua sai cho se lam hong logic chong gui trung da tung bi
+loi tuong tu truoc day (xem ghi chu trong code). Khong co migration CSDL moi, chi doi cau truy
+van/anh xa ket qua.
+
+Ban truoc do (v3.88): sua vi du con sot "BRGmart" trong noi dung Huong dan trong app (2 cho:
 `src/content/guideContent.js` muc "Hệ thống voucher được dùng", `public/users.html` hint cung
 ten) - doi thanh "HCRC + Fuji" cho khop voi vi du da dung nhat quan o cac phan con lai cua tai
 lieu huong dan (muc 2b "Tich hop da he thong voucher"). "BRGmart" chi la vi du minh hoa trong
