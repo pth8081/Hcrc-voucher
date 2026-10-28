@@ -1517,6 +1517,9 @@ Tra ve khi da tieu:
   ngay tuy chon, co nut **xuat Excel** — xem muc 12c.
 - `api-connection.html`: **(admin)** khai bao/kich hoat ket noi Core Voucher API va test truc tiep
   bang voucher that ngay khi cau hinh — xem chi tiet o muc 4.
+- `partner-overview.html`: **(admin)** "Quan ly doi tac" - tong quan TOAN BO doi tac dang ket
+  noi (tu dong liet ke), moi doi tac xem duoc so cong ty/diem tieu/tai khoan + mo rong xem chi
+  tiet Cong ty -> Diem tieu va danh sach Tai khoan ho tu tao - CHI DOC, khong sua/xoa gi o day.
 - `guide-business.html`: huong dan nghiep vu (quet/thu hoi, doc bao cao) hien ngay trong app —
   xem muc 16.
 - `guide-system.html`: huong dan he thong (cau hinh ket noi, quan ly tai khoan/phan quyen) hien
@@ -2520,7 +2523,27 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.92)**: them cot **"Diem tieu"** canh cot **"Dia diem"** o ca 3 bao cao (Doi
+Ban **moi nhat (v3.93)**: them man hinh moi **"Quan ly doi tac"** (`/partner-overview.html`,
+chi Quan tri HCRC) - tong quan TOAN BO doi tac (ApiConnections) dang ket noi, tu dong liet ke du
+bao nhieu doi tac dang co, moi doi tac hien dang the thu gon/mo rong: trang thai (Dang hoat
+dong/Da khoa), so cong ty/diem tieu/tai khoan, va khi mo rong xem chi tiet Cong ty -> Diem tieu
+va danh sach Tai khoan (ten dang nhap, ho ten, vai tro Quan tri doi tac/Nhan vien, trang thai -
+ke ca tai khoan da xoa mem). Dung LAI dung logic "thuoc ve doi tac nao" da co san
+(`companyService.js#listByConnection`, `redemptionUnitService.js#listByConnection`,
+`partnerAdminService.js#listScopedUsers`), khong dinh nghia lai de tranh lech voi man hinh "Quan
+tri doi tac" cua chinh doi tac. Man hinh nay CHI DOC (khong sua/xoa duoc gi) - thao tac that (khoa
+tai khoan, sua cong ty/diem tieu...) van lam o dung cac man hinh co san ("Tai khoan", "Don vi thu
+hoi"). Doi tac KHONG xem duoc man hinh nay (va cung khong xem duoc cau hinh "Ket noi API" - da
+xac nhan lai: route `GET /api/api-connections` doi hoi `role=1`, tai khoan "Quan tri doi tac" la
+tai khoan nhan vien `role=0` duoc cap quyen gioi han, chan hoan toan o tang server). API moi: `GET
+/api/partner-overview` (`requireAdmin`, khong doi hoi 1 quyen AdminCanXxx rieng vi du lieu hien
+o day deu da xem duoc tung phan rieng le o cac man hinh khac). Them muc menu "Quan ly doi tac"
+trong dropdown "Quan tri" - gan tam ca 5 quyen AdminCanXxx hien co (OR, giong muc "Lich gui email
+bao cao") de chi hien dung cho tai khoan Quan tri, tranh 1 loi da phat hien va sua ngay luc lam
+(bo trong thuoc tinh quyen se vo tinh LO muc menu ra ca cho tai khoan nhan vien thuong, du server
+van chan dung). Khong co migration CSDL moi (dung lai toan bo bang san co).
+
+Ban truoc do (v3.92): them cot **"Diem tieu"** canh cot **"Dia diem"** o ca 3 bao cao (Doi
 soat, Voucher da su dung, Tong hop) - theo yeu cau nguoi dung, truoc do moi bao cao chi hien 1
 trong 2 ten (hoac ten dia diem tho, hoac ten diem tieu doi tac tu dat tuy bao cao), khong the
 thay ca 2 cung luc. **"Dia diem"** = ten dia diem tho theo du lieu Core/legacy
