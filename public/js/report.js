@@ -25,8 +25,8 @@ function buildQuery() {
 }
 
 async function loadReport() {
-  summaryBody.innerHTML = '<tr><td colspan="4" class="text-muted">Đang tải...</td></tr>';
-  detailBody.innerHTML = '<tr><td colspan="9" class="text-muted">Đang tải...</td></tr>';
+  summaryBody.innerHTML = '<tr><td colspan="5" class="text-muted">Đang tải...</td></tr>';
+  detailBody.innerHTML = '<tr><td colspan="10" class="text-muted">Đang tải...</td></tr>';
   try {
     const data = await apiFetch(`/reports/daily?${buildQuery()}`);
     renderSummary(data.summary, data.unassignedLocation);
@@ -34,18 +34,18 @@ async function loadReport() {
   } catch (err) {
     showToast(err.message);
     const errHtml = `<td colspan="COLSPAN" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td>`;
-    summaryBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '4')}</tr>`;
-    detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '9')}</tr>`;
+    summaryBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '5')}</tr>`;
+    detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '10')}</tr>`;
   }
 }
 
 function renderSummary(rows, unassignedLocation) {
   if (unassignedLocation) {
-    summaryBody.innerHTML = '<tr><td colspan="4" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="5" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    summaryBody.innerHTML = '<tr><td colspan="4" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
+    summaryBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
   summaryBody.innerHTML = rows
@@ -54,6 +54,7 @@ function renderSummary(rows, unassignedLocation) {
       <tr>
         <td data-label="Công ty">${escapeHtml(r.CompanyName || '-')}</td>
         <td data-label="Địa điểm">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="Điểm tiêu">${escapeHtml(r.UnitName || r.Location_DetailName || r.Locations_Detail)}</td>
         <td data-label="Số lượng">${r.VoucherCount}</td>
         <td data-label="Tổng tiền">${fmtMoney(r.TotalAmount)}</td>
       </tr>`
@@ -63,11 +64,11 @@ function renderSummary(rows, unassignedLocation) {
 
 function renderDetails(rows, unassignedLocation) {
   if (unassignedLocation) {
-    detailBody.innerHTML = '<tr><td colspan="9" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="10" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    detailBody.innerHTML = '<tr><td colspan="9" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="10" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
   detailBody.innerHTML = rows
@@ -80,6 +81,7 @@ function renderDetails(rows, unassignedLocation) {
         <td data-label="Người thu hồi">${escapeHtml(r.User_Name || '-')}</td>
         <td data-label="Công ty">${escapeHtml(r.CompanyName || '-')}</td>
         <td data-label="Địa điểm">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>
+        <td data-label="Điểm tiêu">${escapeHtml(r.UnitName || r.Location_DetailName || r.Locations_Detail)}</td>
         <td data-label="Hệ thống">${escapeHtml(r.ConnectionName || '-')}</td>
         <td data-label="Mệnh giá">${fmtMoney(r.VALUE_AMT)}</td>
         <td data-label="Số hóa đơn">${r.InvoiceNumber ? escapeHtml(r.InvoiceNumber) : '<span class="text-muted">-</span>'}</td>
