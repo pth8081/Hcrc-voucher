@@ -3,6 +3,77 @@
 .summary-filters label { margin-bottom: 6px; }
 .summary-filters input, .summary-filters select { margin-bottom: 0; }
 
+/* v3.96: o "Diem thu hoi" doi tu <select> chon 1 sang dropdown tick NHIEU diem - mirror cua
+   .nav-dropdown/.nav-dropdown-panel trong style.css (nut bam mo + khung tuyet doi phia duoi),
+   dat trong cung 1 ".field" nhu cac o chon khac nen can tu lo width:100% (select mac dinh da
+   co san width:100% tu style.css, nut bam o day lam tuong tu cho dong deu). */
+.unit-multiselect { position: relative; min-width: 180px; }
+.unit-multiselect-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  margin-bottom: 0;
+  border: 1px solid var(--ink-300);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--ink-900);
+  font-size: 15px;
+  font-family: inherit;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.unit-multiselect-toggle:hover { border-color: var(--primary); }
+.unit-multiselect-toggle::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 7px; height: 7px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  margin-top: -3px;
+}
+.unit-multiselect-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 230px;
+  max-width: min(320px, 86vw);
+  max-height: 260px;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 8px;
+  z-index: 30;
+}
+.unit-multiselect-panel.open { display: flex; }
+.unit-multiselect-panel label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-900);
+  cursor: pointer;
+}
+.unit-multiselect-panel label:hover { background: var(--ink-100); }
+.unit-multiselect-panel input[type="checkbox"] { width: auto; margin-bottom: 0; flex: 0 0 auto; }
+
 tr.company-row td {
   background: var(--primary-light);
   color: var(--primary-dark);

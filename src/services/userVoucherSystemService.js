@@ -74,6 +74,21 @@ async function getAllowedConnectionIdsForLocation(locationCode) {
   return [...new Set(restrictionResult.recordset.map((r) => r.ConnectionId))];
 }
 
+/**
+ * v3.96: ban NHIEU diem cua getAllowedConnectionIdsForLocation o tren - dung khi man hinh bao
+ * cao cho tick chon NHIEU "Diem thu hoi" cung luc. Ngu nghia la HOP (union) cac he thong duoc
+ * phep cua TUNG diem: null (khong gioi han) tai BAT KY diem nao trong danh sach -> ket qua chung
+ * cung la null ngay (vi da co it nhat 1 diem khong gioi han gi, khong can thu hep lai nua);
+ * nguoc lai hop tat ca id he thong cua moi diem lai. Mang rong/null dau vao -> tra null (khong
+ * loc gi, giu nguyen hanh vi "khong chon Diem thu hoi nao" tren man hinh).
+ */
+async function getAllowedConnectionIdsForLocations(locationCodes) {
+  if (!locationCodes || !locationCodes.length) return null;
+  const results = await Promise.all(locationCodes.map((code) => getAllowedConnectionIdsForLocation(code)));
+  if (results.some((r) => r === null)) return null;
+  return [...new Set(results.flat())];
+}
+
 /** Danh sach LocationCode (da trim) cua MOI tai khoan dang hoat dong duoc gan RO RANG 1 he thong
  * (connectionId) cu the trong UserVoucherSystems - dung boi reportAccessService.js de tinh pham
  * vi bao cao cua 1 doi tac (xem resolveVisibleLocationCodes()): GOM CA tai khoan do CHINH doi tac
@@ -172,6 +187,7 @@ module.exports = {
   UNTAGGED_CONNECTION_NAME,
   getAllowedConnectionIds,
   getAllowedConnectionIdsForLocation,
+  getAllowedConnectionIdsForLocations,
   getLocationCodesForConnection,
   isConnectionAllowedForUser,
   listUserAccess,
