@@ -285,6 +285,22 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 .tab-btn:hover { color: var(--ink-900); }
 .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
 
+/* Man hinh hep (dien thoai): voi nhieu tab (vd "Quan tri doi tac" co 5 tab), ten tab bi bop
+   chu xuong 2-3 dong trong gay rat roi - thay bang 1 dong cuon ngang (vuot thanh scroll, khong
+   doi gi hanh vi click/active) thay vi de chu vo dong, giong kieu nav-tab pho bien tren mobile.
+   Khong anh huong cac man it tab da vua khit 1 dong (vd Don vi thu hoi, 3 tab) - chi phat huy
+   tac dung khi noi dung thuc su vuot qua be rong man hinh. */
+@media (max-width: 640px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; flex: 0 0 auto; }
+}
+
 /* ===== Scan page: chon he thong voucher (khi tich hop > 1 he thong, vd BRGmart/Fuji) ===== */
 .system-switch-label { font-weight: 600; font-size: 13.5px; color: var(--ink-700); margin-bottom: 8px; display: block; }
 .system-switch { display: flex; gap: 8px; flex-wrap: wrap; }

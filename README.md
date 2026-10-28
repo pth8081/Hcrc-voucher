@@ -2520,7 +2520,17 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.90)**: 2 thay doi doc lap, theo phan hoi nguoi dung. **(1)** Them cot "So hoa
+Ban **moi nhat (v3.91)**: 2 diem UI/UX nho tren DIEN THOAI, phat hien luc ra soat toan dien lai
+man hinh mobile sau cac ban truoc. **(1)** Thanh tab nhieu muc (`.tabs`/`.tab-btn`, dung chung o
+`admin-log.html`, `partner-admin.html`, `units.html`, `users.html`) tren man hinh hep bi bop chu
+xuong 2-3 dong rat roi khi co nhieu tab (vd "Quan tri doi tac" co 5 tab) - doi thanh **cuon ngang
+1 dong** (`overflow-x: auto`, giu nguyen hanh vi click/active, khong doi gi tren desktop/man hinh
+du rong). **(2)** Rut gon placeholder o tim kiem "Cong ty & Diem tieu" (`/partner-admin.html`,
+them o v3.86) tu "Tim theo ten/ma cong ty hoac ten diem tieu..." (46 ky tu, bi cat cut tren man
+hinh hep) xuong "Tim cong ty hoac diem tieu..." (29 ky tu). Khong co migration CSDL moi, khong
+anh huong chuc nang/du lieu - thuan CSS/text.
+
+Ban truoc do (v3.90): 2 thay doi doc lap, theo phan hoi nguoi dung. **(1)** Them cot "So hoa
 don" vao bang Chi tiet giao dich cua "Bao cao doi soat" va hang chi tiet cua "Bao cao tong hop"
 (ca man hinh lan Excel xuat ra) - truoc do chi "Voucher da su dung" moi co cot nay (v3.80). Xem
 muc 18a. **(2)** Sua loi **bo loc tren man hinh "Tai khoan" (`/users.html`) khong hoat dong tren
