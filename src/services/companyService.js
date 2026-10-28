@@ -22,7 +22,7 @@ async function listByConnection(connectionId) {
     .request()
     .input('connectionId', sql.Int, connectionId)
     .query(`
-      SELECT Id, CompanyCode, CompanyName, Status, CreatedDate
+      SELECT Id, CompanyCode, CompanyName, Address, Status, CreatedDate
       FROM dbo.RedemptionCompanies
       WHERE CreatedByPartnerConnectionId = @connectionId
       ORDER BY CompanyName

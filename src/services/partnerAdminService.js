@@ -295,12 +295,13 @@ async function listOwnCompanies(connectionId) {
 /** Tao 1 cong ty MOI, LUON danh dau CreatedByPartnerConnectionId = connectionId cua doi tac dang
  * tao (v3.76) - bo qua hoan toan gia tri nguoi goi co the gui len, dam bao cong ty moi tao luon
  * thuoc dung pham vi, hien ngay trong danh sach cua chinh doi tac do. */
-async function createOwnCompany({ companyCode, companyName }, connectionId) {
+async function createOwnCompany({ companyCode, companyName, address }, connectionId) {
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
   if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
   return companyService.create({
     companyCode: String(companyCode).trim(),
     companyName: String(companyName).trim(),
+    address: address ? String(address).trim() : null,
     createdByPartnerConnectionId: connectionId,
   });
 }
@@ -313,16 +314,20 @@ async function createOwnCompany({ companyCode, companyName }, connectionId) {
  * thuoc pham vi cua ho, dung yeu cau nguoi dung ("doi tac phai toan quyen quan ly") - khong phan
  * biet rieng "ai la nguoi tao ban dau", vi du lieu khong luu rieng thong tin do.
  *
- * KHONG BAO GIO nhan/ghi `createdByPartnerConnectionId` qua duong nay (chi liet ke ro 2 truong
- * duoc sua: companyCode, companyName) - tranh doi tac tu doi "chu so huu" cua chinh cong ty minh
- * dang sua (vd tu nhan cong ty do la cua doi tac khac, hoac tu "tra lai" cho HCRC).
+ * KHONG BAO GIO nhan/ghi `createdByPartnerConnectionId` qua duong nay (chi liet ke ro 3 truong
+ * duoc sua: companyCode, companyName, address) - tranh doi tac tu doi "chu so huu" cua chinh
+ * cong ty minh dang sua (vd tu nhan cong ty do la cua doi tac khac, hoac tu "tra lai" cho HCRC).
  */
-async function updateOwnCompany(id, { companyCode, companyName }, connectionId) {
+async function updateOwnCompany(id, { companyCode, companyName, address }, connectionId) {
   const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
   if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
   if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
-  await companyService.update(Number(id), { companyCode: String(companyCode).trim(), companyName: String(companyName).trim() });
+  await companyService.update(Number(id), {
+    companyCode: String(companyCode).trim(),
+    companyName: String(companyName).trim(),
+    address: address ? String(address).trim() : null,
+  });
 }
 
 /** Xoa 1 cong ty DA THUOC pham vi connectionId nay (v3.81, diem 3) - dieu kien "chu so huu" giong
@@ -348,7 +353,7 @@ async function listOwnUnits(connectionId) {
  * dung lai duoc o day qua companyService.isOwnedByConnection) - tranh doi tac gan diem tieu moi
  * vao 1 cong ty cua HCRC hoac doi tac khac.
  */
-async function createOwnUnit({ locationName, companyId }, connectionId) {
+async function createOwnUnit({ locationName, companyId, address }, connectionId) {
   const trimmedName = locationName ? String(locationName).trim() : '';
   if (!trimmedName) throw badRequest('Thieu ten diem tieu');
   if (!companyId) throw badRequest('Thieu cong ty');
@@ -366,17 +371,18 @@ async function createOwnUnit({ locationName, companyId }, connectionId) {
     companyId: Number(companyId),
     partnerCode,
     partnerName: trimmedName,
+    address: address ? String(address).trim() : null,
   });
   return { id: unitId, locationDetailId: location.id, locationCode: location.locationCode, partnerCode };
 }
 
 /**
- * Sua 1 Diem tieu DA THUOC pham vi connectionId nay (v3.81, diem 3) - chi cho sua Ten diem tieu +
- * doi Cong ty (giong dung 2 truong form "Tao diem tieu" o tren), giu nguyen moi truong khac
- * (PartnerCode, lien he, han muc...) nhu luc tao - doi tac khong can/khong thay cac truong do o
- * day. Cong ty MOI chon (neu doi) cung phai THUOC DUNG pham vi doi tac nay.
+ * Sua 1 Diem tieu DA THUOC pham vi connectionId nay (v3.81, diem 3) - cho sua Ten diem tieu +
+ * doi Cong ty + Dia chi (v3.85, giong dung cac truong form "Tao diem tieu" o tren), giu nguyen
+ * moi truong khac (PartnerCode, lien he, han muc...) nhu luc tao - doi tac khong can/khong thay
+ * cac truong do o day. Cong ty MOI chon (neu doi) cung phai THUOC DUNG pham vi doi tac nay.
  */
-async function updateOwnUnit(id, { locationName, companyId }, connectionId) {
+async function updateOwnUnit(id, { locationName, companyId, address }, connectionId) {
   const existing = await assertUnitOwnedByConnection(Number(id), connectionId);
   const trimmedName = locationName ? String(locationName).trim() : '';
   if (!trimmedName) throw badRequest('Thieu ten diem tieu');
@@ -391,7 +397,7 @@ async function updateOwnUnit(id, { locationName, companyId }, connectionId) {
     contactName: existing.ContactName,
     contactPhone: existing.ContactPhone,
     contactEmail: existing.ContactEmail,
-    address: existing.Address,
+    address: address !== undefined ? (address ? String(address).trim() : null) : existing.Address,
     taxCode: existing.TaxCode,
     bankAccount: existing.BankAccount,
     bankName: existing.BankName,

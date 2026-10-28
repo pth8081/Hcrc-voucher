@@ -11,6 +11,7 @@ const newUserCompany = document.getElementById('newUserCompany');
 const newUserUnit = document.getElementById('newUserUnit');
 
 const orgList = document.getElementById('orgList');
+const orgSearchInput = document.getElementById('orgSearchInput');
 const newLocationCompany = document.getElementById('newLocationCompany');
 const createCompanyBtn = document.getElementById('createCompanyBtn');
 const createUnitBtn = document.getElementById('createUnitBtn');
@@ -657,10 +658,17 @@ function renderOrg() {
   orgList.innerHTML = ownCompaniesCache
     .map((c) => {
       const units = ownUnitsCache.filter((u) => u.CompanyId === c.Id);
+      // v3.85 (muc 6): gom san 1 chuoi tim kiem (ma/ten cong ty + ten tung diem tieu) vao
+      // data-search, loc bang CSS hide/show o applyOrgFilter() - dung CHUNG kieu voi
+      // applyListFilter() cua tab "Quan ly tai khoan" o tren, khong re-render lai cache.
+      const searchTerm = [c.CompanyCode, c.CompanyName, ...units.map((u) => u.PartnerName)]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
       return `
-      <div class="company-card" data-company-id="${c.Id}">
+      <div class="company-card" data-company-id="${c.Id}" data-search="${escapeHtml(searchTerm)}">
         <div class="company-card-head">
-          <span class="company-name">${escapeHtml(c.CompanyName)}</span>
+          <span class="company-name">${escapeHtml(c.CompanyName)}${c.Address ? ` <span class="text-muted" style="font-size:12px; font-weight:400;">· ${escapeHtml(c.Address)}</span>` : ''}</span>
           <span style="display:flex; align-items:center; gap:8px;">
             <span class="text-muted" style="font-size:12px;">${units.length} điểm tiêu</span>
             <button type="button" class="btn-secondary edit-company-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
@@ -670,7 +678,7 @@ function renderOrg() {
         ${units
           .map(
             (u) => `
-          <span class="unit-chip">
+          <span class="unit-chip"${u.Address ? ` title="${escapeHtml(u.Address)}"` : ''}>
             ${escapeHtml(u.PartnerName)}
             <button type="button" class="edit-unit-btn" data-id="${u.Id}" title="Sửa điểm tiêu" style="border:none;background:none;cursor:pointer;margin-left:4px;">✎</button>
             <button type="button" class="delete-unit-btn" data-id="${u.Id}" title="Xóa điểm tiêu" style="border:none;background:none;cursor:pointer;color:var(--danger,#d33);">✕</button>
@@ -680,6 +688,7 @@ function renderOrg() {
       </div>`;
     })
     .join('');
+  applyOrgFilter();
 
   orgList.querySelectorAll('.edit-company-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -702,11 +711,23 @@ function renderOrg() {
   });
 }
 
+/** v3.85 (muc 6): loc "Cong ty & diem tieu cua ban" theo o tim kiem - CSS hide/show tren cac
+ * .company-card da gan san data-search luc renderOrg(), khong re-render lai tu cache. */
+function applyOrgFilter() {
+  const term = orgSearchInput.value.trim().toLowerCase();
+  orgList.querySelectorAll('.company-card').forEach((card) => {
+    const haystack = card.dataset.search || '';
+    card.classList.toggle('hidden', !!term && !haystack.includes(term));
+  });
+}
+orgSearchInput.addEventListener('input', applyOrgFilter);
+
 function populateCompanyEditForm(c) {
   editingOwnCompanyId = c.Id;
   companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
   document.getElementById('newCompanyCode').value = c.CompanyCode || '';
   document.getElementById('newCompanyName').value = c.CompanyName || '';
+  document.getElementById('newCompanyAddress').value = c.Address || '';
   createCompanyBtn.textContent = 'Cập nhật công ty';
   cancelCompanyEditBtn.classList.remove('hidden');
   createCompanyBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -717,6 +738,7 @@ function resetCompanyEditForm() {
   companyFormTitle.textContent = 'Tạo công ty mới';
   document.getElementById('newCompanyCode').value = '';
   document.getElementById('newCompanyName').value = '';
+  document.getElementById('newCompanyAddress').value = '';
   createCompanyBtn.textContent = 'Tạo công ty';
   cancelCompanyEditBtn.classList.add('hidden');
 }
@@ -741,6 +763,7 @@ function populateUnitEditForm(u) {
   unitFormTitle.textContent = `Sửa điểm tiêu: ${u.PartnerName}`;
   document.getElementById('newLocationName').value = u.PartnerName || '';
   newLocationCompany.value = String(u.CompanyId || '');
+  document.getElementById('newLocationAddress').value = u.Address || '';
   createUnitBtn.textContent = 'Cập nhật điểm tiêu';
   cancelUnitEditBtn.classList.remove('hidden');
   createUnitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -750,6 +773,7 @@ function resetUnitEditForm() {
   editingOwnUnitId = null;
   unitFormTitle.textContent = 'Tạo điểm tiêu mới';
   document.getElementById('newLocationName').value = '';
+  document.getElementById('newLocationAddress').value = '';
   createUnitBtn.textContent = 'Tạo điểm tiêu';
   cancelUnitEditBtn.classList.add('hidden');
 }
@@ -772,19 +796,21 @@ async function deleteOwnUnit(id) {
 createCompanyBtn.addEventListener('click', async () => {
   const companyCode = document.getElementById('newCompanyCode').value.trim();
   const companyName = document.getElementById('newCompanyName').value.trim();
+  const address = document.getElementById('newCompanyAddress').value.trim();
   if (!companyCode || !companyName) return showToast('Vui lòng nhập Mã công ty và Tên công ty');
 
   createCompanyBtn.disabled = true;
   try {
     if (editingOwnCompanyId) {
-      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName }) });
+      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName, address }) });
       showToast(`Đã cập nhật công ty "${companyName}"`);
       resetCompanyEditForm();
     } else {
-      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName }) });
+      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName, address }) });
       showToast(`Đã tạo công ty "${companyName}"`);
       document.getElementById('newCompanyCode').value = '';
       document.getElementById('newCompanyName').value = '';
+      document.getElementById('newCompanyAddress').value = '';
     }
     await loadOrg();
   } catch (err) {
@@ -797,19 +823,21 @@ createCompanyBtn.addEventListener('click', async () => {
 createUnitBtn.addEventListener('click', async () => {
   const locationName = document.getElementById('newLocationName').value.trim();
   const companyId = newLocationCompany.value;
+  const address = document.getElementById('newLocationAddress').value.trim();
   if (!locationName) return showToast('Vui lòng nhập Tên điểm tiêu');
   if (!companyId) return showToast('Vui lòng tạo công ty trước khi tạo điểm tiêu');
 
   createUnitBtn.disabled = true;
   try {
     if (editingOwnUnitId) {
-      await apiFetch(`/partner-admin/units/${editingOwnUnitId}`, { method: 'PUT', body: JSON.stringify({ locationName, companyId }) });
+      await apiFetch(`/partner-admin/units/${editingOwnUnitId}`, { method: 'PUT', body: JSON.stringify({ locationName, companyId, address }) });
       showToast(`Đã cập nhật điểm tiêu "${locationName}"`);
       resetUnitEditForm();
     } else {
-      await apiFetch('/partner-admin/units', { method: 'POST', body: JSON.stringify({ locationName, companyId }) });
+      await apiFetch('/partner-admin/units', { method: 'POST', body: JSON.stringify({ locationName, companyId, address }) });
       showToast(`Đã tạo điểm tiêu "${locationName}"`);
       document.getElementById('newLocationName').value = '';
+      document.getElementById('newLocationAddress').value = '';
     }
     await loadOrg();
   } catch (err) {

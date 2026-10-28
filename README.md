@@ -1370,6 +1370,16 @@ Du lieu: `sql/040_add_created_by_partner_connection_access_group.sql`,
 `.../units`, `.../report-access-groups`). Khong co migration CSDL moi cho diem 8 (chi doi logic
 tinh toan trong `reportAccessService.js`/`userVoucherSystemService.js`).
 
+**9. Khai bao Dia chi cho Cong ty & Diem tieu + tim kiem trong danh sach (v3.86):** tab
+"Cong ty & Diem tieu" cua man "Quan tri doi tac" them o **Dia chi (tuy chon)** cho ca 2 form
+"Tao cong ty moi"/"Tao diem tieu moi" (hien ngay trong danh sach "Cong ty & diem tieu cua ban" -
+dia chi cong ty hien canh ten, dia chi diem tieu hien o tooltip khi di chuot vao) - cot `Address`
+tren CSDL da co san tu dau (`RedemptionCompanies`/`RedemptionUnits`, dung chung voi man hinh
+quan tri day du `/units.html` da ho tro san tu truoc), chi thieu duong dan nhap/hien o rieng man
+nay, khong can migration moi. Them o **tim kiem** phia tren danh sach, loc theo ma/ten cong ty
+hoac ten diem tieu (loc phia trinh duyet, dung lai dung kieu CSS hide/show voi o tim kiem co san
+cua tab "Quan ly tai khoan" - muc 7 ben tren).
+
 ## 5. API cua app nay (danh cho web/mobile UI)
 
 Tat ca endpoint (tru `/auth/login` va `/auth/captcha`) yeu cau header `Authorization: Bearer <token>`.
@@ -2496,7 +2506,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.85)**: sua loi hien thi - tab "Nhat ky he thong" (muc 15c, ca man HCRC day du
+Ban **moi nhat (v3.86)**: man hinh "Quan tri doi tac" (`/partner-admin.html`), tab "Cong ty &
+Diem tieu" (muc 4m, diem 3/5): **(1)** them o **Dia chi (tuy chon)** cho ca form "Tao cong ty
+moi" lan "Tao diem tieu moi" (+ hien ngay trong danh sach "Cong ty & diem tieu cua ban" - dia
+chi cong ty hien canh ten, dia chi diem tieu hien o tooltip). Cot `Address` da co san tu dau tren
+CSDL (dung chung voi man hinh quan tri day du `/units.html`, man hinh do da ho tro san tu truoc),
+chi thieu duong dan nhap/hien o rieng man "Quan tri doi tac" - khong co migration moi.
+**(2)** them o **tim kiem** phia tren danh sach "Cong ty & diem tieu cua ban" (loc theo
+ma/ten cong ty hoac ten diem tieu, loc phia trinh duyet, dung chung kieu voi o tim kiem co san
+cua tab "Quan ly tai khoan"). Xem `src/services/partnerAdminService.js`,
+`public/js/partner-admin.js`.
+
+Ban truoc do (v3.85): sua loi hien thi - tab "Nhat ky he thong" (muc 15c, ca man HCRC day du
 lan tab "Hoat dong quet/thu hoi" cua "Quan tri doi tac") cot "Dia diem" dang hien **MA dia diem**
 (vd "13") thay vi **TEN dia diem** - do `VoucherScanLogs.LocationsDetail` chi luu MA luc ghi log,
 man hinh/Excel xuat ra lai hien thang truong nay ra. Da sua: JOIN sang `Locations_Detail` luc doc
