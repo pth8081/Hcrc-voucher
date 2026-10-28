@@ -45,7 +45,11 @@ function rowToDto(row) {
     reportType: row.ReportType,
     dateRangeMode: row.DateRangeMode,
     companyId: row.CompanyId,
-    redemptionUnitId: row.RedemptionUnitId,
+    // v3.95 (xem sql/044): lich TAO MOI/SUA tu ban nay ghi qua RedemptionUnitIds (nhieu id, chuoi
+    // "1,5,9") - lich CU tao TRUOC ban nay chi co RedemptionUnitId (1 id duy nhat, cot cu van con
+    // nguyen) nen "that lui" doc cot do khi cot moi con rong, tranh lich cu bi hien sai thanh
+    // "khong chon gi" (= gui TAT CA, khac hoan toan y nghia da luu truoc do).
+    redemptionUnitIds: row.RedemptionUnitIds ? parseConnectionIdsColumn(row.RedemptionUnitIds) : (row.RedemptionUnitId ? [row.RedemptionUnitId] : []),
     connectionIds: parseConnectionIdsColumn(row.ConnectionIds),
     customFromDate: row.CustomFromDate ? toDateStr(new Date(row.CustomFromDate)) : null,
     customToDate: row.CustomToDate ? toDateStr(new Date(row.CustomToDate)) : null,
@@ -171,7 +175,11 @@ function validateInput(data) {
     customFromDate,
     customToDate,
     companyId: data.companyId ? Number(data.companyId) : null,
-    redemptionUnitId: data.redemptionUnitId ? Number(data.redemptionUnitId) : null,
+    // v3.95 (xem sql/044): nhieu Diem thu hoi (tick chon, giong "He thong voucher") - rong = gui
+    // TAT CA diem (dung pham vi nguoi tao duoc xem), khong bat buoc phai chon nhu "He thong".
+    redemptionUnitIds: (Array.isArray(data.redemptionUnitIds) ? data.redemptionUnitIds : [])
+      .map((v) => Number(v))
+      .filter((n) => Number.isInteger(n) && n > 0),
     connectionIds,
     recipients: parseRecipients(data.recipients),
     frequency: data.frequency,
@@ -193,7 +201,7 @@ async function createSchedule(data, user) {
     .input('customFromDate', sql.Date, v.customFromDate)
     .input('customToDate', sql.Date, v.customToDate)
     .input('companyId', sql.Int, v.companyId)
-    .input('redemptionUnitId', sql.Int, v.redemptionUnitId)
+    .input('redemptionUnitIds', sql.NVarChar(500), v.redemptionUnitIds.join(','))
     .input('connectionIds', sql.NVarChar(200), v.connectionIds.join(','))
     .input('recipients', sql.NVarChar(1000), v.recipients)
     .input('frequency', sql.NVarChar(20), v.frequency)
@@ -205,11 +213,11 @@ async function createSchedule(data, user) {
     .input('createdByUsername', sql.NVarChar(100), user.username)
     .query(`
       INSERT INTO dbo.EmailReportSchedules
-        (Name, ReportType, DateRangeMode, CustomFromDate, CustomToDate, CompanyId, RedemptionUnitId, ConnectionIds, Recipients,
+        (Name, ReportType, DateRangeMode, CustomFromDate, CustomToDate, CompanyId, RedemptionUnitIds, ConnectionIds, Recipients,
          Frequency, SendHour, SendMinute, WeekDay, MonthDay, IsEnabled, CreatedByUserId, CreatedByUsername, CreatedDate)
       OUTPUT INSERTED.Id
       VALUES
-        (@name, @reportType, @dateRangeMode, @customFromDate, @customToDate, @companyId, @redemptionUnitId, @connectionIds, @recipients,
+        (@name, @reportType, @dateRangeMode, @customFromDate, @customToDate, @companyId, @redemptionUnitIds, @connectionIds, @recipients,
          @frequency, @sendHour, @sendMinute, @weekDay, @monthDay, 1, @createdByUserId, @createdByUsername, GETDATE())
     `);
   return { id: result.recordset[0].Id };
@@ -228,7 +236,7 @@ async function updateSchedule(id, data, user) {
     .input('customFromDate', sql.Date, v.customFromDate)
     .input('customToDate', sql.Date, v.customToDate)
     .input('companyId', sql.Int, v.companyId)
-    .input('redemptionUnitId', sql.Int, v.redemptionUnitId)
+    .input('redemptionUnitIds', sql.NVarChar(500), v.redemptionUnitIds.join(','))
     .input('connectionIds', sql.NVarChar(200), v.connectionIds.join(','))
     .input('recipients', sql.NVarChar(1000), v.recipients)
     .input('frequency', sql.NVarChar(20), v.frequency)
@@ -240,7 +248,7 @@ async function updateSchedule(id, data, user) {
       UPDATE dbo.EmailReportSchedules SET
         Name = @name, ReportType = @reportType, DateRangeMode = @dateRangeMode,
         CustomFromDate = @customFromDate, CustomToDate = @customToDate,
-        CompanyId = @companyId, RedemptionUnitId = @redemptionUnitId, ConnectionIds = @connectionIds,
+        CompanyId = @companyId, RedemptionUnitIds = @redemptionUnitIds, RedemptionUnitId = NULL, ConnectionIds = @connectionIds,
         Recipients = @recipients, Frequency = @frequency, SendHour = @sendHour, SendMinute = @sendMinute,
         WeekDay = @weekDay, MonthDay = @monthDay, UpdatedDate = GETDATE()
       WHERE Id = @id
@@ -366,10 +374,16 @@ async function resolveScheduleScope(schedule) {
  * khong trung lap logic truy van. */
 async function buildReportAttachment(schedule, scope) {
   const { fromDate, toDate } = resolveDateRange(schedule.DateRangeMode, schedule.CustomFromDate, schedule.CustomToDate);
+  // v3.95 (xem sql/044): RedemptionUnitIds (nhieu id) la nguon chinh - "that lui" ve cot
+  // RedemptionUnitId cu (1 id) cho cac lich tao TRUOC ban nay chua tung duoc sua lai, giong het
+  // rowToDto(). mang rong = khong loc gi (gui TAT CA diem trong pham vi duoc xem).
+  const redemptionUnitIds = schedule.RedemptionUnitIds
+    ? parseConnectionIdsColumn(schedule.RedemptionUnitIds)
+    : (schedule.RedemptionUnitId ? [schedule.RedemptionUnitId] : []);
   const extra = {
     visibleLocationCodes: scope.visibleLocationCodes,
     companyId: schedule.CompanyId,
-    redemptionUnitId: schedule.RedemptionUnitId,
+    redemptionUnitId: redemptionUnitIds.length ? redemptionUnitIds : null,
     connectionIds: scope.connectionIds,
     includeUntaggedConnections: scope.includeUntaggedConnections,
   };

@@ -43,9 +43,15 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
     request.input('companyId', sql.Int, companyId);
     extraFilter += ' AND rc.Id = @companyId';
   }
-  if (redemptionUnitId) {
-    request.input('redemptionUnitId', sql.Int, redemptionUnitId);
-    extraFilter += ' AND ru.Id = @redemptionUnitId';
+  // v3.95: redemptionUnitId co the la 1 so (tuong thich nguoc) hoac 1 mang nhieu id (man "Lich
+  // gui email bao cao" - cho tick nhieu Diem tieu cung luc) - xem reportService.js#buildRedemptionUnitFilter.
+  const redemptionUnitIds = (Array.isArray(redemptionUnitId) ? redemptionUnitId : [redemptionUnitId]).filter(Boolean);
+  if (redemptionUnitIds.length) {
+    const placeholders = redemptionUnitIds.map((v, i) => {
+      request.input(`redemptionUnitId${i}`, sql.Int, v);
+      return `@redemptionUnitId${i}`;
+    });
+    extraFilter += ` AND ru.Id IN (${placeholders.join(', ')})`;
   }
   if (userId) {
     request.input('userId', sql.Int, userId);

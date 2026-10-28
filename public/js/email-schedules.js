@@ -35,22 +35,53 @@ function populateReportTypeOptions() {
   select.innerHTML = allowed.map((o) => `<option value="${o.value}">${escapeHtml(o.label)}</option>`).join('');
 }
 
+/**
+ * v3.95: "Diem thu hoi" doi tu 1 select DON (chi chon duoc DUNG 1 diem) sang checkbox NHIEU diem
+ * (giong het "He thong voucher" ben duoi) - theo yeu cau nguoi dung: truoc day 1 lich chi gui
+ * duoc 1 diem/1 cong ty, muon gui nhieu diem CUNG 1 cong ty phai tao nhieu lich rieng le, bat
+ * tien. Chon 1 Cong ty se loc lai danh sach checkbox CHI con diem cua cong ty do (giong cach
+ * reportFilters.js lam cho 3 man hinh bao cao thuong) - khong chon Cong ty nao thi hien TOAN BO
+ * diem trong pham vi duoc xem.
+ */
+async function loadUnitCheckboxes(companyId) {
+  const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : '';
+  const units = await apiFetch(`/reports/filters/redemption-units${query}`);
+  const wrap = document.getElementById('f_redemptionUnitIds');
+  wrap.innerHTML = units
+    .map(
+      (u) => `
+        <label class="checkbox-inline">
+          <input type="checkbox" class="f-unit-checkbox" value="${u.Id}" />
+          ${escapeHtml(u.PartnerName || '(chưa có tên)')}
+        </label>`
+    )
+    .join('') || '<p class="text-muted m-0">Không có điểm thu hồi nào trong phạm vi bạn được xem.</p>';
+}
+
+function setUnitCheckboxes(ids) {
+  const idSet = new Set((ids || []).map(Number));
+  document.querySelectorAll('.f-unit-checkbox').forEach((el) => {
+    el.checked = idSet.has(Number(el.value));
+  });
+}
+function getUnitCheckboxes() {
+  return Array.from(document.querySelectorAll('.f-unit-checkbox:checked')).map((el) => Number(el.value));
+}
+
 async function loadFilterOptions() {
   try {
-    const [companies, units, systems] = await Promise.all([
+    const [companies, systems] = await Promise.all([
       apiFetch('/reports/filters/companies'),
-      apiFetch('/reports/filters/redemption-units'),
       apiFetch('/reports/filters/systems'),
     ]);
     const companySelect = document.getElementById('f_companyId');
     companySelect.innerHTML =
       '<option value="">-- Tất cả công ty bạn được xem --</option>' +
       companies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('');
-
-    const unitSelect = document.getElementById('f_redemptionUnitId');
-    unitSelect.innerHTML =
-      '<option value="">-- Tất cả điểm thu hồi bạn được xem --</option>' +
-      units.map((u) => `<option value="${u.Id}">${escapeHtml(u.PartnerName)}</option>`).join('');
+    await loadUnitCheckboxes(null);
+    companySelect.addEventListener('change', async () => {
+      await loadUnitCheckboxes(companySelect.value || null);
+    });
 
     // He thong voucher: checkbox (KHONG con la 1 select "all/1 he thong") - nguoi dung PHAI tu
     // tick ro rang he thong nao muon gui, dung chi trong pham vi ho duoc xem (danh sach tra ve
@@ -95,11 +126,12 @@ function getConnectionCheckboxes() {
   return Array.from(document.querySelectorAll('.f-connection-checkbox:checked')).map((el) => Number(el.value));
 }
 
-function resetForm() {
+async function resetForm() {
   editingId = null;
   scheduleForm.reset();
   document.getElementById('f_sendTime').value = '08:00';
   setConnectionCheckboxes([]);
+  await loadUnitCheckboxes(null);
   toggleFrequencyFields();
   toggleCustomDateRangeField();
   formTitle.textContent = 'Tạo lịch gửi email mới';
@@ -166,7 +198,7 @@ function renderList(rows) {
   });
 }
 
-function startEdit(s) {
+async function startEdit(s) {
   editingId = s.id;
   document.getElementById('f_name').value = s.name;
   document.getElementById('f_reportType').value = s.reportType;
@@ -174,7 +206,11 @@ function startEdit(s) {
   document.getElementById('f_customFromDate').value = s.customFromDate || '';
   document.getElementById('f_customToDate').value = s.customToDate || '';
   document.getElementById('f_companyId').value = s.companyId || '';
-  document.getElementById('f_redemptionUnitId').value = s.redemptionUnitId || '';
+  // Nap lai danh sach checkbox Diem thu hoi DUNG theo Cong ty cua lich nay (giong luc chon tay
+  // o form), roi moi tick san cac diem da luu - khong lam tuan tu se tick nham vao checkbox cua
+  // danh sach CU (truoc khi loc theo cong ty).
+  await loadUnitCheckboxes(s.companyId || null);
+  setUnitCheckboxes(s.redemptionUnitIds);
   setConnectionCheckboxes(s.connectionIds);
   document.getElementById('f_recipients').value = s.recipients;
   document.getElementById('f_frequency').value = s.frequency;
@@ -241,7 +277,7 @@ scheduleForm.addEventListener('submit', async (e) => {
     customFromDate: dateRangeMode === 'CUSTOM' ? document.getElementById('f_customFromDate').value : null,
     customToDate: dateRangeMode === 'CUSTOM' ? document.getElementById('f_customToDate').value : null,
     companyId: document.getElementById('f_companyId').value || null,
-    redemptionUnitId: document.getElementById('f_redemptionUnitId').value || null,
+    redemptionUnitIds: getUnitCheckboxes(),
     connectionIds,
     recipients: document.getElementById('f_recipients').value.trim(),
     frequency,
