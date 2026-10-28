@@ -43,6 +43,18 @@
           <option value="">-- Công ty của HCRC (không gán đối tác) --</option>
         </select>
         <p class="hint mb-6">Chọn 1 đối tác để công ty này tự hiện ra trong màn hình "Quản trị đối tác" của họ, gán sẵn cho họ dùng ngay - không cần họ tự tạo lại.</p>
+        <label>Loại công ty *</label>
+        <select id="companyType">
+          <option value="REDEMPTION">Công ty thu hồi</option>
+          <option value="PARTNER">Công ty đối tác</option>
+        </select>
+        <p class="hint mb-6">
+          <strong>Công ty thu hồi</strong>: có thể tạo điểm tiêu, tài khoản gắn vào dùng được chức
+          năng thu hồi voucher (mặc định). <strong>Công ty đối tác</strong>: chỉ lưu thông tin công
+          ty - KHÔNG có điểm tiêu, tài khoản gắn vào KHÔNG dùng được chức năng thu hồi. Chuyển 1
+          công ty đang có điểm tiêu/tài khoản sang "Công ty đối tác" sẽ tự gỡ hết điểm tiêu và tắt
+          chức năng thu hồi của các tài khoản đó (có hỏi xác nhận trước).
+        </p>
         <label>Người liên hệ</label>
         <input id="companyContactName" />
         <label>Số điện thoại</label>
@@ -67,9 +79,9 @@
       <div class="table-wrap table-responsive">
       <table>
         <thead>
-          <tr><th>Mã</th><th>Tên công ty</th><th>Thuộc đối tác</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th><th>Hành động</th></tr>
+          <tr><th>Mã</th><th>Tên công ty</th><th>Loại công ty</th><th>Thuộc đối tác</th><th>Liên hệ</th><th>Số điểm tiêu</th><th>Trạng thái</th><th>Hành động</th></tr>
         </thead>
-        <tbody id="companiesBody"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
+        <tbody id="companiesBody"><tr><td colspan="8" class="text-muted">Đang tải...</td></tr></tbody>
       </table>
       </div>
     </div>

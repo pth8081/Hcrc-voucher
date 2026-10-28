@@ -94,9 +94,28 @@ async function assertPartnerNameNotDuplicate(pool, partnerName, excludeId) {
   }
 }
 
+/** Chan gan Diem tieu vao 1 Cong ty dang la "Cong ty doi tac" (CompanyType = 'PARTNER', xem
+ * sql/043) - loai cong ty nay theo dung yeu cau nguoi dung KHONG duoc co Diem tieu nao ca. Dung
+ * chung cho ca create() va update() (doi Cong ty cua 1 Diem tieu da co san). */
+async function assertCompanyAllowsUnits(pool, companyId) {
+  if (!companyId) return;
+  const result = await pool
+    .request()
+    .input('companyId', sql.Int, companyId)
+    .query('SELECT CompanyName, CompanyType FROM dbo.RedemptionCompanies WHERE Id = @companyId');
+  const company = result.recordset[0];
+  if (company && company.CompanyType === 'PARTNER') {
+    const err = new Error('Khong the gan Diem tieu vao Cong ty doi tac');
+    err.statusCode = 400;
+    err.publicMessage = `"${company.CompanyName}" đang là Công ty đối tác - loại công ty này không thể gắn Điểm tiêu. Vui lòng chọn 1 Công ty thu hồi khác, hoặc chuyển công ty này về "Công ty thu hồi" trước.`;
+    throw err;
+  }
+}
+
 async function create(data) {
   const pool = await getPool();
 
+  await assertCompanyAllowsUnits(pool, data.companyId);
   await assertPartnerNameNotDuplicate(pool, data.partnerName);
 
   // LocationDetailId KHONG co FK toi Locations_Detail (bang dung chung voi Core, xem
@@ -180,6 +199,7 @@ async function create(data) {
 async function update(id, data) {
   const pool = await getPool();
 
+  await assertCompanyAllowsUnits(pool, data.companyId);
   await assertPartnerNameNotDuplicate(pool, data.partnerName, id);
 
   // C4 (xem giai thich chi tiet o create() phia tren): khi doi cong ty cua 1 don vi thu hoi
@@ -306,4 +326,62 @@ async function remove(id) {
   await pool.request().input('id', sql.Int, id).query('DELETE FROM dbo.RedemptionUnits WHERE Id = @id');
 }
 
-module.exports = { list, listByConnection, create, update, remove, getLocationCodeById, getById };
+/**
+ * Danh sach UserId dang gan (qua Users.Locations_Detail, cach GIAN TIEP tu truoc khi co cot
+ * VoucherAppPermissions.CompanyId, xem sql/043) vao 1 trong cac Diem tieu CUA cong ty nay - BAT
+ * BUOC goi TRUOC detachAllFromCompany() (sau khi go lien ket se khong con JOIN duoc nua, khong
+ * tim lai duoc danh sach nay). Dung boi companyService.js#update() de dam bao CA tai khoan gan
+ * qua duong CU (Locations_Detail) lan duong MOI (CompanyId truc tiep) deu bi tat chuc nang thu
+ * hoi khi cong ty chuyen sang "Cong ty doi tac" - khong chi rieng tai khoan tao qua man hinh moi.
+ */
+async function listUserIdsByCompanyLocation(companyId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('companyId', sql.Int, companyId)
+    .query(`
+      SELECT u.UserID
+      FROM dbo.Users u
+      INNER JOIN dbo.Locations_Detail d ON LTRIM(RTRIM(d.LocationCode)) = LTRIM(RTRIM(u.Locations_Detail))
+      INNER JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = d.id
+      WHERE ru.CompanyId = @companyId
+    `);
+  return result.recordset.map((r) => r.UserID);
+}
+
+/** Go lien ket (CompanyId = NULL, KHONG xoa Diem tieu) toan bo Diem tieu dang gan vao 1 Cong ty -
+ * dung boi companyService.js#convertToPartnerType khi Cong ty do duoc chuyen sang "Cong ty doi
+ * tac" (loai nay khong duoc co Diem tieu nao, xem sql/043). Diem tieu van con nguyen, co the gan
+ * lai cho 1 Cong ty thu hoi khac sau nay qua man "Sua" binh thuong. */
+async function detachAllFromCompany(companyId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('companyId', sql.Int, companyId)
+    .query('UPDATE dbo.RedemptionUnits SET CompanyId = NULL, UpdatedDate = GETDATE() OUTPUT INSERTED.Id WHERE CompanyId = @companyId');
+  return result.recordset.map((r) => r.Id);
+}
+
+/** Dem nhanh so Diem tieu dang gan vao 1 Cong ty - dung de hien xem truoc o hop thoai xac nhan
+ * chuyen loai cong ty (xem units.js/partner-admin.js). */
+async function countByCompany(companyId) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('companyId', sql.Int, companyId)
+    .query('SELECT COUNT(*) AS cnt FROM dbo.RedemptionUnits WHERE CompanyId = @companyId');
+  return result.recordset[0].cnt;
+}
+
+module.exports = {
+  list,
+  listByConnection,
+  create,
+  update,
+  remove,
+  getLocationCodeById,
+  getById,
+  detachAllFromCompany,
+  countByCompany,
+  listUserIdsByCompanyLocation,
+};

@@ -188,7 +188,11 @@ locationForm.addEventListener('submit', async (e) => {
 async function loadCompanies() {
   try {
     companiesCache = await apiFetch('/companies');
-    companySelect.innerHTML = companiesCache
+    // "Cong ty doi tac" (CompanyType = 'PARTNER', xem sql/043) khong the gan Diem tieu - an khoi
+    // o chon "Cong ty" cua form "Them diem tieu" ben duoi (server cung tu chan neu co tinh gui
+    // thang len, xem redemptionUnitService.js#assertCompanyAllowsUnits).
+    const redemptionCompanies = companiesCache.filter((c) => c.CompanyType !== 'PARTNER');
+    companySelect.innerHTML = redemptionCompanies
       .map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)} (${escapeHtml(c.CompanyCode)})</option>`)
       .join('');
     renderCompanies();
@@ -218,9 +222,10 @@ function renderCompanies() {
       <tr>
         <td data-label="Mã">${escapeHtml(c.CompanyCode)}</td>
         <td data-label="Tên công ty">${escapeHtml(c.CompanyName)}</td>
+        <td data-label="Loại công ty">${c.CompanyType === 'PARTNER' ? '<span class="status-badge status-other">CÔNG TY ĐỐI TÁC</span>' : '<span class="status-badge status-unused">CÔNG TY THU HỒI</span>'}</td>
         <td data-label="Thuộc đối tác">${c.CreatedByPartnerConnectionId ? `<span class="status-badge status-other">${companyPartnerName(c)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td data-label="Liên hệ">${escapeHtml(c.ContactName || '-')} ${c.ContactPhone ? '(' + escapeHtml(c.ContactPhone) + ')' : ''}</td>
-        <td data-label="Số điểm tiêu" id="unit-count-${c.Id}">-</td>
+        <td data-label="Số điểm tiêu" id="unit-count-${c.Id}">${c.CompanyType === 'PARTNER' ? '<span class="text-muted">- (không áp dụng)</span>' : '-'}</td>
         <td data-label="Trạng thái">${c.Status ? 'Hoạt động' : 'Ngừng'}</td>
         <td data-label="Hành động" class="actions-cell">
           <button type="button" class="btn-secondary edit-company-btn" data-id="${c.Id}">Sửa</button>
@@ -246,6 +251,7 @@ function populateCompanyForm(c) {
   companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
   document.getElementById('companyCode').value = c.CompanyCode || '';
   document.getElementById('companyName').value = c.CompanyName || '';
+  document.getElementById('companyType').value = c.CompanyType === 'PARTNER' ? 'PARTNER' : 'REDEMPTION';
   companyPartnerConnectionSelect.value = c.CreatedByPartnerConnectionId ? String(c.CreatedByPartnerConnectionId) : '';
   document.getElementById('companyContactName').value = c.ContactName || '';
   document.getElementById('companyContactPhone').value = c.ContactPhone || '';
@@ -293,6 +299,9 @@ async function loadUnits() {
       if (u.CompanyId) countByCompany[u.CompanyId] = (countByCompany[u.CompanyId] || 0) + 1;
     });
     companiesCache.forEach((c) => {
+      // "Cong ty doi tac" luon hien "- (khong ap dung)" (dat san o renderCompanies(), xem sql/043) -
+      // khong ghi de bang so dem o day vi loai cong ty nay khong bao gio co Diem tieu.
+      if (c.CompanyType === 'PARTNER') return;
       const cell = document.getElementById(`unit-count-${c.Id}`);
       if (cell) cell.textContent = countByCompany[c.Id] || 0;
     });
@@ -379,11 +388,14 @@ async function deleteUnit(id) {
 }
 
 function renderGroupCompaniesCheckboxes() {
-  if (!companiesCache.length) {
+  // "Cong ty doi tac" (CompanyType = 'PARTNER') khong bao gio co du lieu bao cao (khong the gan
+  // Diem tieu, xem sql/043) - an khoi danh sach cap quyen xem cheo bao cao, tranh gay nham lan.
+  const reportCompanies = companiesCache.filter((c) => c.CompanyType !== 'PARTNER');
+  if (!reportCompanies.length) {
     groupCompaniesList.innerHTML = '<span class="text-muted">Chưa có công ty nào</span>';
     return;
   }
-  groupCompaniesList.innerHTML = companiesCache
+  groupCompaniesList.innerHTML = reportCompanies
     .map(
       (c) => `
       <label class="checkbox-inline">
@@ -514,11 +526,36 @@ accessGroupForm.addEventListener('submit', async (e) => {
   });
 });
 
+/** true = tiep tuc luu binh thuong; false = nguoi dung bam "Huy" o hop thoai xac nhan (dung khi
+ * CHUYEN 1 cong ty DANG co Diem tieu/tai khoan sang "Cong ty doi tac", xem sql/043) - khong co gi
+ * de xac nhan (cong ty moi, hoac khong doi sang PARTNER) thi bo qua, tra ve true ngay. */
+async function confirmConvertToPartnerIfNeeded(companyId, newType) {
+  if (!companyId || newType !== 'PARTNER') return true;
+  const current = companiesCache.find((c) => c.Id === companyId);
+  if (!current || current.CompanyType === 'PARTNER') return true;
+  let preview;
+  try {
+    preview = await apiFetch(`/companies/${companyId}/convert-preview`);
+  } catch (err) {
+    showToast(err.message);
+    return false;
+  }
+  if (!preview.unitCount && !preview.accountCount) return true;
+  return confirm(
+    `Công ty "${current.CompanyName}" hiện đang có ${preview.unitCount} điểm tiêu và ${preview.accountCount} tài khoản đang gắn vào. ` +
+      `Chuyển sang "Công ty đối tác" sẽ GỠ hết điểm tiêu khỏi công ty này (không xóa, chỉ gỡ liên kết) ` +
+      `và TẮT chức năng thu hồi voucher của các tài khoản đó (tự động đổi thành "Tài khoản đối tác"). ` +
+      `Dữ liệu đã thu hồi trước đó vẫn được giữ nguyên trong lịch sử. Bạn có chắc chắn muốn chuyển?`
+  );
+}
+
 companyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const companyType = document.getElementById('companyType').value;
   const payload = {
     companyCode: document.getElementById('companyCode').value.trim(),
     companyName: document.getElementById('companyName').value.trim(),
+    companyType,
     createdByPartnerConnectionId: companyPartnerConnectionSelect.value ? Number(companyPartnerConnectionSelect.value) : null,
     contactName: document.getElementById('companyContactName').value.trim(),
     contactPhone: document.getElementById('companyContactPhone').value.trim(),
@@ -528,6 +565,8 @@ companyForm.addEventListener('submit', async (e) => {
     bankAccount: document.getElementById('companyBankAccount').value.trim(),
     bankName: document.getElementById('companyBankName').value.trim(),
   };
+
+  if (!(await confirmConvertToPartnerIfNeeded(editingCompanyId, companyType))) return;
 
   await withSubmitLock(companyForm, async () => {
     try {

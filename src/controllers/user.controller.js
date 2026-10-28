@@ -7,6 +7,7 @@ const auditLogService = require('../services/auditLogService');
 const authService = require('../services/authService');
 const sessionRevalidation = require('../utils/sessionRevalidation');
 const userVoucherSystemService = require('../services/userVoucherSystemService');
+const companyService = require('../services/companyService');
 
 /** redemptionUnitId (neu co) luon uu tien - tra ve LocationCode that cua Don vi thu hoi da
  * chon, thay the moi gia tri locationsDetail go tay. Nem loi 400 neu chon 1 id khong ton tai. */
@@ -53,22 +54,71 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName, locationsGroup, redemptionUnitId, role } = req.body;
+    const { username, password, fullName, locationsGroup, redemptionUnitId, role, companyId } = req.body;
     const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: req.body.locationsDetail });
     const created = await userAdminService.createUser(
       { username, password, fullName, locationsGroup, locationsDetail, role },
       req.user.username
     );
+    // v3.94 (xem sql/043): "Cong ty" chon o form tao tai khoan TRUOC DAY chi dung de loc o chon
+    // Diem tieu (khong duoc luu) - gio luu TRUC TIEP (VoucherAppPermissions.CompanyId) de co the
+    // xac dinh "tai khoan nay thuoc cong ty nao" ngay ca khi cong ty do la "Cong ty doi tac"
+    // (loai nay khong co Diem tieu nen khong suy ra duoc qua Locations_Detail nhu truoc).
+    if (companyId && Number(role) !== 1) {
+      await permissionService.setCompanyAndPartnerAccount(created.userId, { companyId: Number(companyId), isPartnerAccount: false }, req.user.username);
+    }
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'CREATE_USER',
       targetUsername: created.username,
       detail: {
         before: null,
-        after: { role: Number(role) === 1 ? 'admin' : 'staff', redemptionUnitId: redemptionUnitId || null, locationsDetail },
+        after: { role: Number(role) === 1 ? 'admin' : 'staff', redemptionUnitId: redemptionUnitId || null, locationsDetail, companyId: companyId || null },
       },
     });
     res.json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * v3.94 (xem sql/043): gan/doi "Cong ty" TRUC TIEP + bat/tat "Tai khoan doi tac" cho 1 tai khoan
+ * DA CO SAN (man "Tai khoan"). Theo dung yeu cau nguoi dung: CHI duoc BAT isPartnerAccount khi
+ * tai khoan dang gan 1 CONG TY DA LA "Cong ty doi tac" (companyService.assertCanBePartnerAccount
+ * nem loi 400 ro rang neu chua, huong dan admin chuyen cong ty truoc). Khi BAT thanh cong: tu
+ * dong ep CanRedeemVoucher = 0 va go Diem tieu/dia diem hien co (tai khoan doi tac khong co chuc
+ * nang thu hoi, khong can gan dia diem).
+ */
+async function updateCompany(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    await userAdminService.assertUserExists(userId);
+    const before = await permissionService.getPermissions(userId);
+    const { companyId, isPartnerAccount } = req.body;
+    const normalizedCompanyId = companyId ? Number(companyId) : null;
+
+    if (isPartnerAccount) {
+      await companyService.assertCanBePartnerAccount(normalizedCompanyId);
+    }
+
+    await permissionService.setCompanyAndPartnerAccount(userId, { companyId: normalizedCompanyId, isPartnerAccount: !!isPartnerAccount }, req.user.username);
+
+    if (isPartnerAccount) {
+      await permissionService.setPermissions(userId, { ...before, canRedeemVoucher: false }, req.user.username);
+      await userAdminService.updateLocation(userId, null);
+    }
+
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'UPDATE_USER_COMPANY',
+      targetUsername: req.body.username || String(req.params.userId),
+      detail: {
+        before: { companyId: before.companyId, isPartnerAccount: before.isPartnerAccount },
+        after: { companyId: normalizedCompanyId, isPartnerAccount: !!isPartnerAccount },
+      },
+    });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -377,4 +427,5 @@ module.exports = {
   updateVoucherSystems,
   updatePartnerAdmin,
   updateAdminFeaturePermissions,
+  updateCompany,
 };

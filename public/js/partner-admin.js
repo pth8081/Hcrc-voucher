@@ -269,7 +269,9 @@ let openEditUserId = null;
  * ngay luc tao) va diem 5/6 (bo loc danh sach) trong cung 1 tab "Quan ly tai khoan". */
 function renderCompanySelectOptions(select, placeholder) {
   const current = select.value;
-  select.innerHTML = `<option value="">${placeholder}</option>` + ownCompaniesCache.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('');
+  select.innerHTML =
+    `<option value="">${placeholder}</option>` +
+    ownCompaniesCache.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}${c.CompanyType === 'PARTNER' ? ' (Công ty đối tác)' : ''}</option>`).join('');
   if (ownCompaniesCache.some((c) => String(c.Id) === current)) select.value = current;
 }
 
@@ -505,6 +507,21 @@ function renderEditPanel(u) {
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canManageEmailSchedules" ${u.permissions && u.permissions.canManageEmailSchedules ? 'checked' : ''} /> Lịch gửi email báo cáo</label>
     </div>
 
+    <label class="mt-10">Công ty</label>
+    <select class="edit-company-select">
+      <option value="">-- Chưa gán công ty --</option>
+      ${ownCompaniesCache
+        .map(
+          (c) =>
+            `<option value="${c.Id}" ${u.permissions && u.permissions.companyId === c.Id ? 'selected' : ''}>${escapeHtml(c.CompanyName)}${c.CompanyType === 'PARTNER' ? ' (Công ty đối tác)' : ''}</option>`
+        )
+        .join('')}
+    </select>
+    <label class="perm-item mt-6">
+      <input type="checkbox" class="checkbox-input edit-is-partner-account" ${u.permissions && u.permissions.isPartnerAccount ? 'checked' : ''} /> Tài khoản đối tác
+    </label>
+    <p class="hint" style="margin:4px 0 0;">Chỉ bật được khi Công ty ở trên đã là "Công ty đối tác" - tài khoản sẽ mất chức năng thu hồi và không gán được Điểm tiêu.</p>
+
     ${locationField}
     ${reportAccessField}
 
@@ -517,6 +534,16 @@ function renderEditPanel(u) {
 function wireEditPanelHandlers() {
   accList.querySelectorAll('.save-edit-btn').forEach((btn) => {
     btn.addEventListener('click', () => saveEdit(btn.closest('.edit-panel')));
+  });
+  accList.querySelectorAll('.edit-is-partner-account').forEach((cb) => {
+    const panel = cb.closest('.edit-panel');
+    const locationSelect = panel ? panel.querySelector('.edit-location-select') : null;
+    if (!locationSelect) return;
+    locationSelect.disabled = cb.checked;
+    cb.addEventListener('change', () => {
+      locationSelect.disabled = cb.checked;
+      if (cb.checked) locationSelect.value = '';
+    });
   });
 }
 
@@ -532,6 +559,8 @@ async function saveEdit(panel) {
   });
   const locationSelect = panel.querySelector('.edit-location-select');
   const reportAccessSelect = panel.querySelector('.edit-report-access-select');
+  const companyId = panel.querySelector('.edit-company-select').value || null;
+  const isPartnerAccount = panel.querySelector('.edit-is-partner-account').checked;
 
   const btn = panel.querySelector('.save-edit-btn');
   btn.disabled = true;
@@ -544,7 +573,13 @@ async function saveEdit(panel) {
       method: 'PUT',
       body: JSON.stringify({ ...perms, username }),
     });
-    if (locationSelect) {
+    await apiFetch(`/partner-admin/users/${userId}/company`, {
+      method: 'PUT',
+      body: JSON.stringify({ companyId, isPartnerAccount, username }),
+    });
+    // "Tai khoan doi tac" -> server tu go Diem tieu (xem partnerAdminService.js#updateScopedUserCompany) -
+    // BO QUA goi nay de tranh 2 request doi Locations_Detail dong thoi (giong users.js#saveUser).
+    if (locationSelect && !isPartnerAccount) {
       await apiFetch(`/partner-admin/users/${userId}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId: locationSelect.value || null, username }),
@@ -625,9 +660,12 @@ async function loadOrg() {
     orgLoaded = true;
     ownCompaniesCache = companies;
     ownUnitsCache = units;
-    newLocationCompany.innerHTML = companies.length
-      ? companies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('')
-      : '<option value="">Chưa có công ty - tạo công ty trước</option>';
+    // "Cong ty doi tac" (CompanyType = 'PARTNER', xem sql/043) khong the gan Diem tieu - an khoi
+    // o chon "Thuoc cong ty" cua form "Tao diem tieu" (server cung tu chan, xem redemptionUnitService.js).
+    const redemptionCompanies = companies.filter((c) => c.CompanyType !== 'PARTNER');
+    newLocationCompany.innerHTML = redemptionCompanies.length
+      ? redemptionCompanies.map((c) => `<option value="${c.Id}">${escapeHtml(c.CompanyName)}</option>`).join('')
+      : '<option value="">Chưa có công ty thu hồi - tạo công ty trước</option>';
     renderCompanySelectOptions(newUserCompany, '-- Chưa gán công ty --');
     renderCompanySelectOptions(filterCompanySelect, 'Tất cả công ty của bạn');
     // Dong bo lai ca o "Diem tieu" cua form "Tao tai khoan" + bo loc - vua tao/xoa 1 diem tieu o
@@ -665,12 +703,16 @@ function renderOrg() {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
+      const isPartnerCompany = c.CompanyType === 'PARTNER';
       return `
       <div class="company-card" data-company-id="${c.Id}" data-search="${escapeHtml(searchTerm)}">
         <div class="company-card-head">
-          <span class="company-name">${escapeHtml(c.CompanyName)}${c.Address ? ` <span class="text-muted" style="font-size:12px; font-weight:400;">· ${escapeHtml(c.Address)}</span>` : ''}</span>
+          <span class="company-name">
+            ${escapeHtml(c.CompanyName)}${c.Address ? ` <span class="text-muted" style="font-size:12px; font-weight:400;">· ${escapeHtml(c.Address)}</span>` : ''}
+            <span class="status-badge ${isPartnerCompany ? 'status-other' : 'status-unused'}" style="margin-left:6px;">${isPartnerCompany ? 'CÔNG TY ĐỐI TÁC' : 'CÔNG TY THU HỒI'}</span>
+          </span>
           <span style="display:flex; align-items:center; gap:8px;">
-            <span class="text-muted" style="font-size:12px;">${units.length} điểm tiêu</span>
+            <span class="text-muted" style="font-size:12px;">${isPartnerCompany ? 'không áp dụng' : units.length + ' điểm tiêu'}</span>
             <button type="button" class="btn-secondary edit-company-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
             <button type="button" class="btn-danger delete-company-btn" style="padding:4px 10px; font-size:12.5px;">Xóa</button>
           </span>
@@ -684,7 +726,7 @@ function renderOrg() {
             <button type="button" class="delete-unit-btn" data-id="${u.Id}" title="Xóa điểm tiêu" style="border:none;background:none;cursor:pointer;color:var(--danger,#d33);">✕</button>
           </span>`
           )
-          .join('') || '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>'}
+          .join('') || (isPartnerCompany ? '' : '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>')}
       </div>`;
     })
     .join('');
@@ -728,6 +770,7 @@ function populateCompanyEditForm(c) {
   document.getElementById('newCompanyCode').value = c.CompanyCode || '';
   document.getElementById('newCompanyName').value = c.CompanyName || '';
   document.getElementById('newCompanyAddress').value = c.Address || '';
+  document.getElementById('newCompanyType').value = c.CompanyType === 'PARTNER' ? 'PARTNER' : 'REDEMPTION';
   createCompanyBtn.textContent = 'Cập nhật công ty';
   cancelCompanyEditBtn.classList.remove('hidden');
   createCompanyBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -739,6 +782,7 @@ function resetCompanyEditForm() {
   document.getElementById('newCompanyCode').value = '';
   document.getElementById('newCompanyName').value = '';
   document.getElementById('newCompanyAddress').value = '';
+  document.getElementById('newCompanyType').value = 'REDEMPTION';
   createCompanyBtn.textContent = 'Tạo công ty';
   cancelCompanyEditBtn.classList.add('hidden');
 }
@@ -793,24 +837,50 @@ async function deleteOwnUnit(id) {
   }
 }
 
+/** Giong het units.js#confirmConvertToPartnerIfNeeded - hoi xac nhan TRUOC khi CHUYEN 1 cong ty
+ * cua doi tac DANG co Diem tieu/tai khoan sang "Cong ty doi tac" (xem sql/043). */
+async function confirmConvertToPartnerIfNeeded(companyId, newType) {
+  if (!companyId || newType !== 'PARTNER') return true;
+  const current = ownCompaniesCache.find((c) => c.Id === companyId);
+  if (!current || current.CompanyType === 'PARTNER') return true;
+  let preview;
+  try {
+    preview = await apiFetch(`/partner-admin/companies/${companyId}/convert-preview`);
+  } catch (err) {
+    showToast(err.message);
+    return false;
+  }
+  if (!preview.unitCount && !preview.accountCount) return true;
+  return confirm(
+    `Công ty "${current.CompanyName}" hiện đang có ${preview.unitCount} điểm tiêu và ${preview.accountCount} tài khoản đang gắn vào. ` +
+      `Chuyển sang "Công ty đối tác" sẽ GỠ hết điểm tiêu khỏi công ty này (không xóa, chỉ gỡ liên kết) ` +
+      `và TẮT chức năng thu hồi voucher của các tài khoản đó (tự động đổi thành "Tài khoản đối tác"). ` +
+      `Dữ liệu đã thu hồi trước đó vẫn được giữ nguyên trong lịch sử. Bạn có chắc chắn muốn chuyển?`
+  );
+}
+
 createCompanyBtn.addEventListener('click', async () => {
   const companyCode = document.getElementById('newCompanyCode').value.trim();
   const companyName = document.getElementById('newCompanyName').value.trim();
   const address = document.getElementById('newCompanyAddress').value.trim();
+  const companyType = document.getElementById('newCompanyType').value;
   if (!companyCode || !companyName) return showToast('Vui lòng nhập Mã công ty và Tên công ty');
+
+  if (!(await confirmConvertToPartnerIfNeeded(editingOwnCompanyId, companyType))) return;
 
   createCompanyBtn.disabled = true;
   try {
     if (editingOwnCompanyId) {
-      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName, address }) });
+      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName, address, companyType }) });
       showToast(`Đã cập nhật công ty "${companyName}"`);
       resetCompanyEditForm();
     } else {
-      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName, address }) });
+      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName, address, companyType }) });
       showToast(`Đã tạo công ty "${companyName}"`);
       document.getElementById('newCompanyCode').value = '';
       document.getElementById('newCompanyName').value = '';
       document.getElementById('newCompanyAddress').value = '';
+      document.getElementById('newCompanyType').value = 'REDEMPTION';
     }
     await loadOrg();
   } catch (err) {
@@ -859,11 +929,14 @@ const cancelGroupEditBtn = document.getElementById('cancelGroupEditBtn');
 const groupList = document.getElementById('groupList');
 
 function renderGroupCompanyCheckboxes() {
-  if (!ownCompaniesCache.length) {
+  // "Cong ty doi tac" (CompanyType = 'PARTNER') khong bao gio co du lieu bao cao - an khoi danh
+  // sach cap quyen xem cheo bao cao, giong het units.js#renderGroupCompaniesCheckboxes.
+  const reportCompanies = ownCompaniesCache.filter((c) => c.CompanyType !== 'PARTNER');
+  if (!reportCompanies.length) {
     groupCompaniesList.innerHTML = '<span class="text-muted">Chưa có công ty nào - tạo công ty ở tab "Công ty &amp; Điểm tiêu" trước.</span>';
     return;
   }
-  groupCompaniesList.innerHTML = ownCompaniesCache
+  groupCompaniesList.innerHTML = reportCompanies
     .map((c) => `
       <label class="checkbox-inline">
         <input type="checkbox" class="groupCompanyCheckbox" value="${c.Id}" />
@@ -998,12 +1071,13 @@ createForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('newPassword').value;
   const fullName = document.getElementById('newFullName').value.trim();
   const redemptionUnitId = newUserUnit.value || null;
+  const companyId = newUserCompany.value || null;
 
   createBtn.disabled = true;
   try {
     await apiFetch('/partner-admin/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName, redemptionUnitId }),
+      body: JSON.stringify({ username, password, fullName, redemptionUnitId, companyId }),
     });
     showToast(`Đã tạo tài khoản "${username}"`);
     createForm.reset();

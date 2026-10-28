@@ -130,10 +130,23 @@ async function assertInScope(userId, connectionId) {
  * nghia o duoi) de dam bao diem tieu da chon THUOC DUNG pham vi doi tac nay (cua chinh ho tu tao,
  * hoac do HCRC tao va gan rieng cho ho - ca 2 deu di qua CHUNG 1 dieu kien "chu so huu").
  */
-async function createScopedUser({ username, password, fullName, redemptionUnitId }, connectionId, createdBy) {
+/**
+ * companyId (v3.94, xem sql/043): "Cong ty" doi tac chon luc tao tai khoan - BAT BUOC thuoc dung
+ * pham vi connectionId nay (companyService.isOwnedByConnection). Luu TRUC TIEP qua
+ * permissionService.setCompanyAndPartnerAccount - can thiet rieng cho tai khoan gan 1 "Cong ty
+ * doi tac" (loai nay khong co Diem tieu nen khong suy ra duoc "cong ty nao" qua Locations_Detail
+ * nhu truoc). redemptionUnitId van hoat dong doc lap nhu cu (chi co the tro toi 1 Diem tieu thuoc
+ * Cong ty THU HOI, vi Cong ty doi tac khong the co Diem tieu - xem redemptionUnitService.js).
+ */
+async function createScopedUser({ username, password, fullName, redemptionUnitId, companyId }, connectionId, createdBy) {
   const created = await userAdminService.createUser({ username, password, fullName, role: 0 }, createdBy);
   await userVoucherSystemService.setAllowedConnections(created.userId, [connectionId]);
   await permissionService.setCreatedByPartnerConnection(created.userId, connectionId);
+  if (companyId) {
+    const owned = await companyService.isOwnedByConnection(Number(companyId), connectionId);
+    if (!owned) throw forbidden('Cong ty da chon khong thuoc pham vi quan tri cua ban');
+    await permissionService.setCompanyAndPartnerAccount(created.userId, { companyId: Number(companyId), isPartnerAccount: false }, createdBy);
+  }
   if (redemptionUnitId) {
     const unit = await assertUnitOwnedByConnection(Number(redemptionUnitId), connectionId);
     const locationsDetail = unit.LocationDetailId ? await redemptionUnitService.getLocationCodeById(Number(redemptionUnitId)) : null;
@@ -224,6 +237,30 @@ async function updateScopedUserPermissions(userId, connectionId, perms, updatedB
   return safePerms;
 }
 
+/**
+ * v3.94 (xem sql/043): gan/doi "Cong ty" TRUC TIEP + bat/tat "Tai khoan doi tac" cho 1 tai khoan
+ * DA THUOC pham vi connectionId nay. CUNG dieu kien voi user.controller.js#updateCompany (quan
+ * tri day du): CHI duoc BAT isPartnerAccount khi cong ty da chon DA LA "Cong ty doi tac"
+ * (companyService.assertCanBePartnerAccount) - VA cong ty do phai THUOC DUNG pham vi doi tac nay.
+ * BAT thanh cong se tu dong ep CanRedeemVoucher = 0 va go Diem tieu/dia diem hien co.
+ */
+async function updateScopedUserCompany(userId, connectionId, { companyId, isPartnerAccount }, updatedBy) {
+  const before = await assertInScope(userId, connectionId);
+  const normalizedCompanyId = companyId ? Number(companyId) : null;
+  if (normalizedCompanyId) {
+    const owned = await companyService.isOwnedByConnection(normalizedCompanyId, connectionId);
+    if (!owned) throw forbidden('Cong ty da chon khong thuoc pham vi quan tri cua ban');
+  }
+  if (isPartnerAccount) {
+    await companyService.assertCanBePartnerAccount(normalizedCompanyId);
+  }
+  await permissionService.setCompanyAndPartnerAccount(userId, { companyId: normalizedCompanyId, isPartnerAccount: !!isPartnerAccount }, updatedBy);
+  if (isPartnerAccount) {
+    await permissionService.setPermissions(userId, { ...before.permissions, canRedeemVoucher: false }, updatedBy);
+    await userAdminService.updateLocation(userId, null);
+  }
+}
+
 /** Nem loi neu redemptionUnitId KHONG thuoc dung pham vi cua connectionId nay (ke thua "chu so
  * huu" qua CompanyId cua Don vi thu hoi - xem companyService.js#isOwnedByConnection, sql/038) -
  * bat buoc goi truoc khi gan 1 Don vi thu hoi cho tai khoan, tranh doi tac gan nham/co y gan diem
@@ -295,7 +332,7 @@ async function listOwnCompanies(connectionId) {
 /** Tao 1 cong ty MOI, LUON danh dau CreatedByPartnerConnectionId = connectionId cua doi tac dang
  * tao (v3.76) - bo qua hoan toan gia tri nguoi goi co the gui len, dam bao cong ty moi tao luon
  * thuoc dung pham vi, hien ngay trong danh sach cua chinh doi tac do. */
-async function createOwnCompany({ companyCode, companyName, address }, connectionId) {
+async function createOwnCompany({ companyCode, companyName, address, companyType }, connectionId) {
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
   if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
   return companyService.create({
@@ -303,6 +340,7 @@ async function createOwnCompany({ companyCode, companyName, address }, connectio
     companyName: String(companyName).trim(),
     address: address ? String(address).trim() : null,
     createdByPartnerConnectionId: connectionId,
+    companyType,
   });
 }
 
@@ -318,16 +356,29 @@ async function createOwnCompany({ companyCode, companyName, address }, connectio
  * duoc sua: companyCode, companyName, address) - tranh doi tac tu doi "chu so huu" cua chinh
  * cong ty minh dang sua (vd tu nhan cong ty do la cua doi tac khac, hoac tu "tra lai" cho HCRC).
  */
-async function updateOwnCompany(id, { companyCode, companyName, address }, connectionId) {
+async function updateOwnCompany(id, { companyCode, companyName, address, companyType }, connectionId, updatedBy) {
   const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
   if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
   if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
-  await companyService.update(Number(id), {
-    companyCode: String(companyCode).trim(),
-    companyName: String(companyName).trim(),
-    address: address ? String(address).trim() : null,
-  });
+  await companyService.update(
+    Number(id),
+    {
+      companyCode: String(companyCode).trim(),
+      companyName: String(companyName).trim(),
+      address: address ? String(address).trim() : null,
+      companyType,
+    },
+    updatedBy
+  );
+}
+
+/** Xem truoc so Diem tieu/tai khoan se bi anh huong NEU chuyen 1 cong ty DA THUOC pham vi
+ * connectionId nay sang "Cong ty doi tac" - dung cho hop thoai xac nhan o partner-admin.js. */
+async function getOwnCompanyConvertPreview(id, connectionId) {
+  const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
+  if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
+  return companyService.getConvertPreview(Number(id));
 }
 
 /** Xoa 1 cong ty DA THUOC pham vi connectionId nay (v3.81, diem 3) - dieu kien "chu so huu" giong
@@ -474,10 +525,12 @@ module.exports = {
   updateScopedUserPermissions,
   updateScopedUserLocation,
   updateScopedUserReportAccessGroup,
+  updateScopedUserCompany,
   listOwnCompanies,
   createOwnCompany,
   updateOwnCompany,
   removeOwnCompany,
+  getOwnCompanyConvertPreview,
   listOwnUnits,
   createOwnUnit,
   updateOwnUnit,

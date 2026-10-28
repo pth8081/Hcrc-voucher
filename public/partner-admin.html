@@ -102,6 +102,17 @@
               <input id="newCompanyName" placeholder="VD: Fuji Mart - Chi nhánh Hà Nội" />
               <label>Địa chỉ (tùy chọn)</label>
               <input id="newCompanyAddress" placeholder="VD: 25 Láng Hạ, Đống Đa, Hà Nội" />
+              <label>Loại công ty *</label>
+              <select id="newCompanyType">
+                <option value="REDEMPTION">Công ty thu hồi</option>
+                <option value="PARTNER">Công ty đối tác</option>
+              </select>
+              <p class="hint" style="margin:4px 0 0;">
+                <strong>Công ty thu hồi</strong>: tạo được điểm tiêu, tài khoản dùng được chức năng
+                thu hồi (mặc định). <strong>Công ty đối tác</strong>: chỉ lưu thông tin công ty,
+                KHÔNG có điểm tiêu, tài khoản gắn vào KHÔNG thu hồi được - muốn thu hồi voucher,
+                tạo riêng 1 "Công ty thu hồi".
+              </p>
               <button class="btn-primary mt-10" id="createCompanyBtn">Tạo công ty</button>
               <button class="btn-secondary mt-10 hidden" type="button" id="cancelCompanyEditBtn">Hủy sửa</button>
             </div>

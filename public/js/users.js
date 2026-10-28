@@ -236,7 +236,7 @@ function renderNewCompanyOptions() {
   const select = document.getElementById('newCompanyId');
   select.innerHTML =
     '<option value="">-- Chưa gán công ty --</option>' +
-    companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}</option>`).join('');
+    companiesCache.map((c) => `<option value="${c.Id}">${escapeHtmlLayout(c.CompanyName)}${c.CompanyType === 'PARTNER' ? ' (Công ty đối tác)' : ''}</option>`).join('');
 }
 
 function refreshNewRedemptionUnitOptions() {
@@ -295,8 +295,13 @@ function renderUsers(users) {
       const perms = u.permissions || {};
       const deleted = !!u.isDeleted;
       const unit = findUnitForUser(u);
+      // v3.94 (xem sql/043): uu tien Cong ty gan TRUC TIEP (perms.companyId) - BAT BUOC voi "Tai
+      // khoan doi tac" (khong co Diem tieu nen findUnitForUser() luon tra ve null cho ho), van
+      // dung duoc voi tai khoan thuong neu ca 2 nguon KHOP (admin da luu dung Cong ty qua o chon
+      // moi o duoi, xem renderUsers()).
+      const companyIdForFilter = perms.companyId || (unit ? unit.CompanyId : '');
       return `
-      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" data-company-id="${unit ? unit.CompanyId : ''}" data-unit-id="${unit ? unit.Id : ''}" class="${deleted ? 'row-deleted' : ''}">
+      <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" data-company-id="${companyIdForFilter}" data-unit-id="${unit ? unit.Id : ''}" class="${deleted ? 'row-deleted' : ''}">
         <td data-label="Tên đăng nhập">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">ĐÃ XÓA</span>' : ''}</td>
         <td data-label="Họ tên"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
         <td data-label="Vai trò">${isAdmin ? 'Quản trị' : 'Nhân viên'}</td>
@@ -310,8 +315,19 @@ function renderUsers(users) {
         <td data-label="Kích hoạt từ"><input type="datetime-local" class="active-from" value="${toLocalInputValue(u.activeFrom)}" /></td>
         <td data-label="Hết hạn"><input type="datetime-local" class="active-until" value="${toLocalInputValue(u.activeUntil)}" /></td>
         <td class="state-cell" data-label="Trạng thái">${STATE_CHIP[u.state] || ''}</td>
+        <td data-label="Công ty / Tài khoản đối tác">
+          <select class="edit-company-id" ${isAdmin ? 'disabled' : ''}>
+            <option value="">-- Chưa gán công ty --</option>
+            ${companiesCache.map((c) => `<option value="${c.Id}" ${perms.companyId === c.Id ? 'selected' : ''}>${escapeHtmlLayout(c.CompanyName)}${c.CompanyType === 'PARTNER' ? ' (Công ty đối tác)' : ''}</option>`).join('')}
+          </select>
+          ${!isAdmin ? `
+          <label class="perm-item fs-13 mt-6">
+            <input type="checkbox" class="checkbox-input edit-is-partner-account" ${perms.isPartnerAccount ? 'checked' : ''} /> Tài khoản đối tác
+          </label>
+          <p class="hint" style="margin:4px 0 0;">Chỉ bật được khi Công ty ở trên đã là "Công ty đối tác" - tài khoản sẽ mất chức năng thu hồi và không gán được Đơn vị thu hồi.</p>` : ''}
+        </td>
         <td data-label="Đơn vị thu hồi">
-          <select class="redemption-unit">
+          <select class="redemption-unit" ${!isAdmin && perms.isPartnerAccount ? 'disabled' : ''}>
             <option value="">-- Chưa gán điểm tiêu --</option>
             ${redemptionUnitOptions()}
           </select>
@@ -390,6 +406,18 @@ function renderUsers(users) {
       tr.querySelector('.partner-admin-connection').value = String(user.permissions.partnerAdminConnectionId);
     }
 
+    // "Tai khoan doi tac" bat -> khong con gan Diem tieu duoc nua (server cung tu go, xem
+    // user.controller.js#updateCompany) - khoa luon o chon "Don vi thu hoi" tren giao dien cho
+    // khop, tranh gui 2 gia tri mau thuan nhau cung luc khi bam "Luu".
+    const isPartnerAccountCheckbox = tr.querySelector('.edit-is-partner-account');
+    if (isPartnerAccountCheckbox) {
+      isPartnerAccountCheckbox.addEventListener('change', () => {
+        const unitSelect = tr.querySelector('.redemption-unit');
+        unitSelect.disabled = isPartnerAccountCheckbox.checked;
+        if (isPartnerAccountCheckbox.checked) unitSelect.value = '';
+      });
+    }
+
     const lockBtn = tr.querySelector('.lock-btn');
     const isLocked = user && user.state === 'expired';
     lockBtn.textContent = isLocked ? 'Mở khóa' : 'Khóa';
@@ -463,6 +491,10 @@ async function saveUser(tr) {
   const groupId = groupIdRaw ? Number(groupIdRaw) : null;
   const redemptionUnitIdRaw = tr.querySelector('.redemption-unit').value;
   const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
+  const companyIdRaw = tr.querySelector('.edit-company-id') ? tr.querySelector('.edit-company-id').value : '';
+  const companyId = companyIdRaw ? Number(companyIdRaw) : null;
+  const isPartnerAccountCheckbox = tr.querySelector('.edit-is-partner-account');
+  const isPartnerAccount = !!(isPartnerAccountCheckbox && isPartnerAccountCheckbox.checked);
   const fullName = tr.querySelector('.edit-fullname').value.trim();
   const passwordInput = tr.querySelector('.edit-password');
   const password = passwordInput.value || null;
@@ -514,12 +546,26 @@ async function saveUser(tr) {
       }),
     },
     {
-      label: 'Đơn vị thu hồi',
-      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
+      label: 'Công ty / Tài khoản đối tác',
+      run: () => apiFetch(`/users/${encodeURIComponent(userId)}/company`, {
         method: 'PUT',
-        body: JSON.stringify({ redemptionUnitId, username }),
+        body: JSON.stringify({ companyId, isPartnerAccount, username }),
       }),
     },
+    // "Tai khoan doi tac" -> server tu go Dia diem (xem user.controller.js#updateCompany) - BO
+    // QUA job nay de tranh goi dong thoi 2 request doi Locations_Detail (co the tranh chap, ai
+    // chay sau cung thang) voi job "Cong ty / Tai khoan doi tac" o tren.
+    ...(isPartnerAccount
+      ? []
+      : [
+          {
+            label: 'Đơn vị thu hồi',
+            run: () => apiFetch(`/users/${encodeURIComponent(userId)}/location`, {
+              method: 'PUT',
+              body: JSON.stringify({ redemptionUnitId, username }),
+            }),
+          },
+        ]),
     {
       label: 'Hệ thống voucher được dùng',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/voucher-systems`, {
@@ -583,12 +629,14 @@ createUserBtn.addEventListener('click', async () => {
   const role = document.getElementById('newRole').value;
   const redemptionUnitIdRaw = document.getElementById('newRedemptionUnitId').value;
   const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
+  const newCompanyIdRaw = document.getElementById('newCompanyId').value;
+  const companyId = newCompanyIdRaw ? Number(newCompanyIdRaw) : null;
 
   createUserBtn.disabled = true;
   try {
     await apiFetch('/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName, role: Number(role), redemptionUnitId }),
+      body: JSON.stringify({ username, password, fullName, role: Number(role), redemptionUnitId, companyId }),
     });
     showToast(`Đã tạo tài khoản "${username}"`);
     document.getElementById('newUsername').value = '';

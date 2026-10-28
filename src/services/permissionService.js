@@ -32,6 +32,10 @@ const DEFAULT_PERMISSIONS = {
   partnerAdminCanManageOrg: true,
   partnerAdminCanViewAuditLog: true,
   partnerAdminCanViewScanLog: true,
+  // v3.94: "Cong ty" tai khoan nay dang gan TRUC TIEP (xem sql/043) + co phai "Tai khoan doi tac"
+  // hay khong - xem ghi chu day du o userAdminService.js#assertCanSetPartnerAccount.
+  companyId: null,
+  isPartnerAccount: false,
 };
 
 /** Admin (Users.status = 1) luon co du moi quyen TINH NANG UNG DUNG (6 quyen dau), khong phu
@@ -49,6 +53,8 @@ const ADMIN_PERMISSIONS = {
   partnerAdminConnectionId: null,
   partnerAdminConnectionName: null,
   isPartnerAdmin: false,
+  companyId: null,
+  isPartnerAccount: false,
   adminCanManageUnits: true,
   adminCanManageConnections: true,
   adminCanManageUsers: true,
@@ -69,7 +75,7 @@ async function getPermissions(userId) {
     .query(`
       SELECT p.CanRedeemVoucher, p.CanViewReconciliation, p.CanViewSummary, p.CanViewUsedVouchers,
              p.CanViewBusinessGuide, p.CanViewSystemGuide, p.CanManageEmailSchedules, p.PartnerAdminConnectionId,
-             c.Name AS PartnerAdminConnectionName, ${FEATURE_COLUMNS_SELECT}
+             c.Name AS PartnerAdminConnectionName, p.CompanyId, p.IsPartnerAccount, ${FEATURE_COLUMNS_SELECT}
       FROM dbo.VoucherAppPermissions p
       LEFT JOIN dbo.ApiConnections c ON c.Id = p.PartnerAdminConnectionId
       WHERE p.UserId = @userId
@@ -94,6 +100,8 @@ async function getPermissions(userId) {
     partnerAdminCanManageOrg: !!row.PartnerAdminCanManageOrg,
     partnerAdminCanViewAuditLog: !!row.PartnerAdminCanViewAuditLog,
     partnerAdminCanViewScanLog: !!row.PartnerAdminCanViewScanLog,
+    companyId: row.CompanyId || null,
+    isPartnerAccount: !!row.IsPartnerAccount,
   };
 }
 
@@ -163,6 +171,57 @@ async function setPermissions(userId, perms, updatedBy) {
         VALUES (@userId, @canRedeem, @canRecon, @canSummary, @canUsed,
                 @canBusinessGuide, @canSystemGuide, @canEmailSchedules, @updatedBy, GETDATE());
     `);
+}
+
+/**
+ * Gan "Cong ty" TRUC TIEP (xem sql/043) + "Tai khoan doi tac" cho 1 tai khoan - tach rieng khoi
+ * setPermissions() (khong dung chung 1 MERGE) vi 2 truong nay doc lap voi 6 quyen tinh nang, va
+ * duoc goi tu CA userAdminService.js (man "Tai khoan") lan partnerAdminService.js (man "Quan tri
+ * doi tac"). Validate "isPartnerAccount chi BAT duoc khi CompanyId dang tro toi 1 Cong ty doi tac"
+ * la trach nhiem cua NOI GOI (userAdminService.js#assertCanSetPartnerAccount) - ham nay chi ghi,
+ * khong tu kiem tra lai.
+ */
+async function setCompanyAndPartnerAccount(userId, { companyId, isPartnerAccount }, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('companyId', sql.Int, companyId || null)
+    .input('isPartnerAccount', sql.Bit, isPartnerAccount ? 1 : 0)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET
+        CompanyId = @companyId, IsPartnerAccount = @isPartnerAccount, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, CompanyId, IsPartnerAccount, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 0, 0, 1, 0, @companyId, @isPartnerAccount, @updatedBy, GETDATE());
+    `);
+}
+
+/**
+ * Dung boi companyService.js#convertToPartnerType khi 1 Cong ty duoc CHUYEN sang "Cong ty doi
+ * tac" - voi TOAN BO tai khoan dang CompanyId toi cong ty do: ep CanRedeemVoucher = 0 (khong con
+ * chuc nang thu hoi) va IsPartnerAccount = 1 (tu dong thanh "Tai khoan doi tac", dung yeu cau
+ * "tu dong doi ca tai khoan dang gan khi chuyen cong ty"). KHONG dong gi den 6 quyen tinh nang
+ * con lai (vd canViewSummary...) - chi 2 cot nay can thay doi theo dung yeu cau.
+ */
+async function forcePartnerAccountForCompany(companyId, updatedBy) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('companyId', sql.Int, companyId)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      UPDATE dbo.VoucherAppPermissions
+      SET CanRedeemVoucher = 0, IsPartnerAccount = 1, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      OUTPUT INSERTED.UserId
+      WHERE CompanyId = @companyId
+    `);
+  return result.recordset.map((r) => r.UserId);
 }
 
 /**
@@ -338,4 +397,6 @@ module.exports = {
   createDefaultPermissions,
   setCreatedByPartnerConnection,
   listCreatedByPartnerConnection,
+  setCompanyAndPartnerAccount,
+  forcePartnerAccountForCompany,
 };
