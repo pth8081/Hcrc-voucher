@@ -247,7 +247,7 @@ const SYSTEM_GUIDE_HTML = `
     (không chỉ công ty của chính mình), gán vào 1 "Nhóm quyền xem báo cáo" đã tạo sẵn (xem mục
     5 bên dưới).</li>
   <li><strong>Hệ thống voucher được dùng</strong>: nếu doanh nghiệp tích hợp nhiều hệ thống
-    voucher cùng lúc (vd BRGmart + Fuji - xem mục 2 bên dưới), tick chọn 1 hoặc nhiều hệ thống
+    voucher cùng lúc (vd HCRC + Fuji - xem mục 2 bên dưới), tick chọn 1 hoặc nhiều hệ thống
     để GIỚI HẠN tài khoản chỉ được dùng/xem đúng các hệ thống đó; không tick gì = không giới
     hạn, dùng/xem được toàn bộ hệ thống hiện có.</li>
 </ul>

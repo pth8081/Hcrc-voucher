@@ -2506,7 +2506,15 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.87)**: cai thien UI/UX tren man hinh DESKTOP (dien thoai khong doi gi) - rieng
+Ban **moi nhat (v3.88)**: sua vi du con sot "BRGmart" trong noi dung Huong dan trong app (2 cho:
+`src/content/guideContent.js` muc "Hệ thống voucher được dùng", `public/users.html` hint cung
+ten) - doi thanh "HCRC + Fuji" cho khop voi vi du da dung nhat quan o cac phan con lai cua tai
+lieu huong dan (muc 2b "Tich hop da he thong voucher"). "BRGmart" chi la vi du minh hoa trong
+TEXT, chua bao gio la 1 ket noi that trong du lieu - ten he thong voucher THAT hien trong dropdown
+luc quet/loc bao cao lay tu cot "Ten ket noi" nguoi dung tu nhap o man "Ket noi API"
+(`/api-connection.html`, du lieu - khong phai code). Khong co migration CSDL moi.
+
+Ban truoc do (v3.87): cai thien UI/UX tren man hinh DESKTOP (dien thoai khong doi gi) - rieng
 cho cac trang nhieu du lieu (bao cao, Tai khoan, Don vi thu hoi, Quan tri doi tac, Nhat ky he
 thong, Lich gui email, Bao mat). **(1)** Khung noi dung (`.container-wide`) nang tu 960px len
 1180px - truoc do bang nhieu cot (vd Bao cao doi soat) bi **vo dong chu xau** du man hinh con
