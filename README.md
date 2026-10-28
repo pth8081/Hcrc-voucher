@@ -2523,7 +2523,25 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.95)**: man "Lich gui email bao cao" - o "Diem thu hoi" doi tu 1 o chon DON
+Ban **moi nhat (v3.96)**: o **"Diem thu hoi"** o CA 3 man hinh bao cao xem truc tiep (Doi soat/
+Tong hop/Voucher da su dung) doi tu o chon DON sang **tick checkbox NHIEU diem CUNG luc** - theo
+yeu cau nguoi dung sau khi thay man "Lich gui email bao cao" (v3.95) da doi kieu nay, hoi lai
+"Sao ko tich ma lai chon ban nhi?" cho chinh 3 man hinh nay. Ve mat UI: o "Diem thu hoi" gio la 1
+nut bam mo ra 1 khung checkbox (giong het co che dropdown "Quan tri" tren thanh menu), hien
+"X diem da chon" khi tick nhieu hon 1; chon lai Cong ty se tu dong **bo tick het** cac diem dang
+chon (vi danh sach ben duoi doi hoan toan sang cong ty moi); tick/bo tick 1 diem se **loc lai
+ngay** o "Tai khoan thu hoi" va "He thong voucher" ben canh (cascading, giu nguyen quy tac cu -
+xem muc 11). Ve mat server: `report.controller.js#parseExtraFilters` doc `redemptionUnitId` tu
+query string dang **chuoi nhieu id cach nhau dau phay** (vd `3,7,12`) thay vi 1 so - khong can
+sua gi them o 3 ham sinh bao cao chinh (`reportService.js`/`summaryReportService.js`/
+`usedVoucherReportService.js`) vi da ho tro san nhan mang tu v3.95 (lam cho Lich gui email).
+`filterRedeemers`/`filterSystems` (2 API phu tra danh sach cho o chon) va
+`userVoucherSystemService.js#getAllowedConnectionIdsForLocation` duoc them ban **so nhieu**
+(`resolveFilterLocationCodes`, `getAllowedConnectionIdsForLocations`) - ngu nghia la HOP (union)
+ket qua cua tung diem da chon, khong phai giao (vd tick 2 diem thi "Tai khoan thu hoi" hien tai
+khoan cua CA 2 diem do gop lai).
+
+Ban truoc do (v3.95): man "Lich gui email bao cao" - o "Diem thu hoi" doi tu 1 o chon DON
 (chi duoc dung 1 diem/1 lich) sang **checkbox NHIEU diem** (sql/044), theo yeu cau nguoi dung:
 truoc day chon 1 Cong ty roi chi chon duoc DUNG 1 Diem thu hoi cua cong ty do, muon gui nhieu
 diem cung 1 cong ty phai tao nhieu lich rieng le - bat tien. Gio: chon 1 Cong ty se loc lai danh
@@ -2537,7 +2555,7 @@ con rong). 3 ham sinh bao cao dung chung (`reportService.js`, `summaryReportServ
 `usedVoucherReportService.js`) duoc mo rong nhan THEM mang nhieu id (truoc day chi nhan 1 so) -
 hoan toan tuong thich nguoc, 3 man hinh bao cao thuong (dang dung o chon don) khong doi gi.
 
-Ban truoc do (v3.94): them khai niem **"Loai cong ty"** va **"Loai tai khoan"** (sql/043),
+Ban truoc do nua (v3.94): them khai niem **"Loai cong ty"** va **"Loai tai khoan"** (sql/043),
 theo yeu cau nguoi dung - phan biet **Cong ty thu hoi** (mac dinh, giu nguyen hanh vi cu: co the
 tao Diem tieu, tai khoan gan vao dung duoc chuc nang thu hoi) voi **Cong ty doi tac** (loai MOI -
 chi luu thong tin cong ty, KHONG duoc gan Diem tieu nao, tai khoan gan vao MAC DINH mat chuc nang

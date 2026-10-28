@@ -11,13 +11,18 @@ const MAX_EXPORT_ROWS = 20000;
  * codes = null -> khong loc gi (duoc xem toan bo). codes = [] -> khong duoc xem dia diem nao
  * ca (khoa tai khoan chua duoc gan dia diem/cong ty nao). codes = [...] -> chi xem dung cac
  * dia diem do.
+ *
+ * `prefix` (v3.96) cho phep goi ham nay NHIEU LAN tren CUNG 1 request (vd listFilterRedeemers
+ * vua loc theo visibleLocationCodes, vua loc THEM theo cac Diem thu hoi dang tick chon) ma
+ * khong bi trung ten tham so dau vao - mssql nem loi neu request.input() goi 2 lan voi cung 1
+ * ten tham so. Mac dinh "locCode" (giu nguyen hanh vi cu cho moi noi khac dang goi ham nay).
  */
-function buildLocationCodeFilter(request, codes, column) {
+function buildLocationCodeFilter(request, codes, column, prefix = 'locCode') {
   if (codes === null) return '';
   if (!codes.length) return ' AND 1 = 0';
   const placeholders = codes.map((code, i) => {
-    request.input(`locCode${i}`, sql.NVarChar(100), code);
-    return `@locCode${i}`;
+    request.input(`${prefix}${i}`, sql.NVarChar(100), code);
+    return `@${prefix}${i}`;
   });
   return ` AND LTRIM(RTRIM(${column})) IN (${placeholders.join(', ')})`;
 }
@@ -252,16 +257,21 @@ async function listFilterRedemptionUnits(visibleLocationCodes, companyId) {
  * "Diem thu hoi" dang loc hay khong, nen chon 1 Diem thu hoi van thay duoc ca nhung tai khoan
  * chua bao gio/khong con gan diem do trong o chon "Tai khoan thu hoi" (ket hop lai se luon ra
  * bao cao rong, gay nham lan). Doi nguon sang chinh bang `Users` (theo dung gan ket hien tai,
- * Users.Locations_Detail), loc THEM dung locationCode cua Diem thu hoi dang chon neu co - xem
- * report.controller.js#filterRedeemers. Bo qua tai khoan da bi xoa mem (UserAccountSchedule).
+ * Users.Locations_Detail), loc THEM dung cac locationCode cua (cac) Diem thu hoi dang chon neu
+ * co - xem report.controller.js#filterRedeemers. Bo qua tai khoan da bi xoa mem
+ * (UserAccountSchedule).
+ *
+ * v3.96: locationCodes gio co the la MANG nhieu ma (tick chon nhieu Diem thu hoi tren man hinh
+ * bao cao) - dung lai buildLocationCodeFilter nhung voi prefix input RIENG ("filterUnitLoc${i}")
+ * de KHONG trung ten voi input "locCode${i}" ma buildLocationCodeFilter o tren da dat cho
+ * visibleLocationCodes tren CUNG 1 request (2 lan goi ham nay tren 1 request, phai tach prefix).
  */
-async function listFilterRedeemers(visibleLocationCodes, locationCode) {
+async function listFilterRedeemers(visibleLocationCodes, locationCodes) {
   const pool = await getPool();
   const request = pool.request();
   let filter = buildLocationCodeFilter(request, visibleLocationCodes, 'u.Locations_Detail');
-  if (locationCode) {
-    request.input('locationCode', sql.NVarChar(100), locationCode);
-    filter += ' AND LTRIM(RTRIM(u.Locations_Detail)) = @locationCode';
+  if (locationCodes && locationCodes.length) {
+    filter += buildLocationCodeFilter(request, locationCodes, 'u.Locations_Detail', 'filterUnitLoc');
   }
   const result = await request.query(`
     SELECT DISTINCT u.UserID AS userId, u.FullName AS userName
