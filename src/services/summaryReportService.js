@@ -80,7 +80,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
         vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code,
         DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
         vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
-        ru.PartnerName, ru.CompanyId, rc.CompanyName
+        ru.PartnerName, ru.CompanyId, rc.CompanyName, vri.InvoiceNumber
       FROM dbo.VOUCHER_SYNC vs
       LEFT JOIN (
         -- M8: khi 1 LocationCode bi trung nhieu dong (du lieu Locations_Detail dung chung voi
@@ -99,6 +99,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
       LEFT JOIN dbo.RedemptionUnits ru ON ru.LocationDetailId = ld.id
       LEFT JOIN dbo.RedemptionCompanies rc ON rc.Id = ru.CompanyId
       LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
+      LEFT JOIN dbo.VoucherRedemptionInvoices vri ON vri.TransNum = vs.TRANS_NUM
       WHERE CAST(vs.Created_Date AS DATE) BETWEEN @fromDate AND @toDate${locationFilter}${extraFilter}
       ORDER BY rc.CompanyName, ru.PartnerName, vs.Created_Date
     `);
@@ -137,6 +138,7 @@ function buildHierarchy(rows) {
       voucherSerial: row.Voucher_Serial,
       valueAmt: amount,
       synced: row.Sync === 'Y',
+      invoiceNumber: row.InvoiceNumber || null,
     });
     point.count += 1;
     point.amount += amount;
@@ -220,6 +222,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
     { header: 'Serial', key: 'voucherSerial', width: 18 },
     { header: 'Menh gia', key: 'valueAmt', width: 14 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
+    { header: 'So hoa don', key: 'invoiceNumber', width: 18 },
   ];
   detailSheet.getRow(1).font = { bold: true };
   companies.forEach((company) => {
@@ -235,6 +238,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
           voucherSerial: sanitizeExcelText(row.voucherSerial),
           valueAmt: row.valueAmt,
           syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',
+          invoiceNumber: sanitizeExcelText(row.invoiceNumber || '-'),
         });
       });
     });

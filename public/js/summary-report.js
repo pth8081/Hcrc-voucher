@@ -27,23 +27,23 @@ function buildQuery() {
 }
 
 async function loadReport() {
-  reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải...</td></tr>';
+  reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Đang tải...</td></tr>';
   try {
     const data = await apiFetch(`/reports/summary?${buildQuery()}`);
     render(data);
   } catch (err) {
     showToast(err.message);
-    reportBody.innerHTML = `<tr><td colspan="7" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
+    reportBody.innerHTML = `<tr><td colspan="8" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td></tr>`;
   }
 }
 
 function render(data) {
   if (data.unassignedLocation) {
-    reportBody.innerHTML = '<tr><td colspan="7" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="8" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!data.companies.length) {
-    reportBody.innerHTML = '<tr><td colspan="7" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="8" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
 
@@ -56,6 +56,7 @@ function render(data) {
         <td></td><td></td><td></td><td></td>
         <td data-label="Số voucher">${company.count}</td>
         <td data-label="Mệnh giá">${fmtMoney(company.amount)}</td>
+        <td></td>
       </tr>`);
 
     company.points.forEach((point) => {
@@ -65,6 +66,7 @@ function render(data) {
           <td></td><td></td><td></td><td></td>
           <td data-label="Số voucher">${point.count}</td>
           <td data-label="Mệnh giá">${fmtMoney(point.amount)}</td>
+          <td></td>
         </tr>`);
 
       point.rows.forEach((row) => {
@@ -77,6 +79,7 @@ function render(data) {
             <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(chờ đồng bộ)</span>'}</td>
             <td></td>
             <td data-label="Mệnh giá">${fmtMoney(row.valueAmt)}</td>
+            <td data-label="Số hóa đơn">${row.invoiceNumber ? escapeHtml(row.invoiceNumber) : '<span class="text-muted">-</span>'}</td>
           </tr>`);
       });
     });
@@ -88,6 +91,7 @@ function render(data) {
       <td></td><td></td><td></td><td></td>
       <td data-label="Số voucher">${data.grandTotal.count}</td>
       <td data-label="Mệnh giá">${fmtMoney(data.grandTotal.amount)}</td>
+      <td></td>
     </tr>`);
 
   reportBody.innerHTML = rowsHtml.join('');
