@@ -105,7 +105,13 @@
    (nhieu truong: quyen, diem tieu, nhom bao cao...) thi xep doc van hop ly hon. Duoi 860px
    (dien thoai/tablet dung) KHONG doi gi so voi truoc - van xep the nhu cu. */
 @media (min-width: 860px) {
-  #usersBody tr:not(.row-expanded) {
+  /* v3.90 (loi da bao cao): PHAI loai tru .row-filtered-out o day - neu khong, quy tac nay va
+     "#usersBody tr.row-filtered-out { display: none; }" (dinh nghia o tren, khong co media-query)
+     co CUNG DO CU THE (1 ID + 1 class + 1 type), quy tac SAU trong file (chinh la quy tac nay)
+     thang, vo tinh HIEN LAI cac dong da bi an boi o tim kiem/loc tren desktop - khien bo loc
+     "Tim theo ten dang nhap...", "Tat ca cong ty", "Tat ca diem thu hoi" trong nhu khong hoat
+     dong (van hoat dong tren dien thoai vi media-query nay khong ap dung duoi 860px). */
+  #usersBody tr:not(.row-expanded):not(.row-filtered-out) {
     display: flex;
     align-items: center;
     gap: 16px;

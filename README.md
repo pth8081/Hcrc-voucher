@@ -2494,10 +2494,16 @@ chieu/tra cuu lai sau nay. De trong van thu hoi binh thuong nhu truoc.
   xac nhan co TransNum RIENG** (sinh moi cho tung ma), nen se co **nhieu dong** cung 1
   InvoiceNumber neu luot do gom nhieu voucher - khong can bang nhom rieng, JOIN truc tiep theo
   TransNum la du cho bao cao.
-- Hien them trong bao cao **"Voucher da su dung"** (muc 12c) - cot "So hoa don" + o tim kiem
+- Hien trong bao cao **"Voucher da su dung"** (muc 12c) - cot "So hoa don" + o tim kiem
   (LIKE gan dung) + cot trong file Excel xuat ra.
-- Khong anh huong gi toi 2 bao cao cong don (Doi soat, Tong hop) - chi ap dung cho bao cao
-  danh sach phang tung giao dich.
+- **Cap nhat (v3.90)**: them cot "So hoa don" vao CA bang "Chi tiet giao dich" cua **"Bao cao doi
+  soat"** (muc 5/6, `report.html`) lan hang CHI TIET tung giao dich cua **"Bao cao tong hop"**
+  (muc 12b, `summary-report.html`) - ca 2 noi deu JOIN them `VoucherRedemptionInvoices` theo
+  TransNum (dung chung cach lam voi "Voucher da su dung"), ap dung ca man hinh LAN Excel xuat ra.
+  **Khong them** vao hang cong don Cong ty/Diem tieu cua 2 bao cao nay (1 dia diem/cong ty co the
+  gom nhieu hoa don khac nhau trong cung khoang ngay, khong cong don duoc) - chi hien o dung hang
+  CHI TIET tung giao dich rieng le. Khong co o tim kiem theo so hoa don rieng cho 2 bao cao nay
+  (chi "Voucher da su dung" moi co, giu nguyen nhu truoc).
 
 Du lieu/API: `sql/039_create_voucher_redemption_invoices.sql`. `POST /api/vouchers/redeem-batch`
 nhan them tham so `invoiceNumber` (tuy chon, `src/services/voucherService.js#sanitizeInvoiceNumber`
@@ -2514,7 +2520,18 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.89)**: sua loi **gio hien thi sai lech 7 gio** o Nhat ky he thong + ca 3 bao
+Ban **moi nhat (v3.90)**: 2 thay doi doc lap, theo phan hoi nguoi dung. **(1)** Them cot "So hoa
+don" vao bang Chi tiet giao dich cua "Bao cao doi soat" va hang chi tiet cua "Bao cao tong hop"
+(ca man hinh lan Excel xuat ra) - truoc do chi "Voucher da su dung" moi co cot nay (v3.80). Xem
+muc 18a. **(2)** Sua loi **bo loc tren man hinh "Tai khoan" (`/users.html`) khong hoat dong tren
+DESKTOP** (van hoat dong binh thuong tren dien thoai) - loi phat sinh tu chinh thay doi "gon dong
+bang tren desktop" cua v3.87: quy tac CSS moi do (`#usersBody tr:not(.row-expanded) { display:
+flex; ... }`) va quy tac an dong bi loc co san (`#usersBody tr.row-filtered-out { display: none;
+}`) co CUNG DO CU THE, quy tac nam SAU trong file (chinh la quy tac moi cua v3.87) thang, vo tinh
+HIEN LAI cac dong dang le phai bi an boi o tim kiem/loc tren man hinh rong (≥860px). Da sua:
+loai tru them `:not(.row-filtered-out)` vao quy tac moi. Khong co migration CSDL moi.
+
+Ban truoc do (v3.89): sua loi **gio hien thi sai lech 7 gio** o Nhat ky he thong + ca 3 bao
 cao (nguoi dung bao loi kem anh chup: gio quet thuc te vao buoi chieu nhung Nhat ky hien ra gio
 dem/qua ngay khac). Nguyen nhan: `CreatedDate` ghi qua `GETDATE()` (dung gio dia phuong may chu
 CSDL, VN UTC+7, dung nhu da cau hinh) nhung driver `mssql`/`tedious` mac dinh (`useUTC: true`,

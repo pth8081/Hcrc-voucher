@@ -49,6 +49,14 @@ const VOUCHER_CONNECTION_JOIN = `
   LEFT JOIN dbo.VoucherRedemptionConnections vrc ON vrc.TransNum = vs.TRANS_NUM
 `;
 
+// VoucherRedemptionInvoices: so hoa don TUY CHON nguoi dung tu go luc thu hoi (muc 18a, sql/039),
+// khoa theo TRANS_NUM - dung chung 1 kieu JOIN voi usedVoucherReportService.js. Chi can cho bang
+// CHI TIET (tung giao dich), khong dung cho bang Tong hop theo dia diem (da cong don theo dia
+// diem, 1 dia diem co the gom nhieu hoa don khac nhau trong cung khoang ngay).
+const VOUCHER_INVOICE_JOIN = `
+  LEFT JOIN dbo.VoucherRedemptionInvoices vri ON vri.TransNum = vs.TRANS_NUM
+`;
+
 /**
  * Loc theo he thong voucher (connectionIds): null = khong loc (xem toan bo), [] = khong duoc
  * xem he thong nao (tai khoan bi khoa het quyen), [...] = chi xem dung cac Id do. Dung CA cho
@@ -168,10 +176,11 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
       DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
       rc.CompanyName,
-      vs.VALUE_AMT, vs.Sync, vrc.ConnectionName
+      vs.VALUE_AMT, vs.Sync, vrc.ConnectionName, vri.InvoiceNumber
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
     ${VOUCHER_CONNECTION_JOIN}
+    ${VOUCHER_INVOICE_JOIN}
     WHERE ${detailFilter}
     ORDER BY vs.Created_Date DESC
   `);
@@ -299,6 +308,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     { header: 'He thong', key: 'connectionName', width: 16 },
     { header: 'Menh gia', key: 'valueAmt', width: 14 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
+    { header: 'So hoa don', key: 'invoiceNumber', width: 18 },
   ];
   detailSheet.getRow(1).font = { bold: true };
   details.forEach((row) => {
@@ -314,6 +324,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
       connectionName: sanitizeExcelText(row.ConnectionName || '-'),
       valueAmt: Number(row.VALUE_AMT || 0),
       syncedLabel: row.Sync === 'Y' ? 'Da dong bo' : 'Cho dong bo',
+      invoiceNumber: sanitizeExcelText(row.InvoiceNumber || '-'),
     });
   });
   detailSheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
