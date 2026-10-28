@@ -2523,7 +2523,21 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.94)**: them khai niem **"Loai cong ty"** va **"Loai tai khoan"** (sql/043),
+Ban **moi nhat (v3.95)**: man "Lich gui email bao cao" - o "Diem thu hoi" doi tu 1 o chon DON
+(chi duoc dung 1 diem/1 lich) sang **checkbox NHIEU diem** (sql/044), theo yeu cau nguoi dung:
+truoc day chon 1 Cong ty roi chi chon duoc DUNG 1 Diem thu hoi cua cong ty do, muon gui nhieu
+diem cung 1 cong ty phai tao nhieu lich rieng le - bat tien. Gio: chon 1 Cong ty se loc lai danh
+sach checkbox ben duoi CHI con diem cua cong ty do (giong het cach 3 man hinh bao cao thuong dang
+loc), tick duoc 1 hoac nhieu diem CUNG LUC - khong tick gi = gui TAT CA diem trong pham vi duoc
+xem (hoac tat ca diem cua cong ty da chon), giu dung quy uoc "khong chon = khong gioi han" dang
+dung cho "He thong voucher". Cot CSDL moi `EmailReportSchedules.RedemptionUnitIds` (chuoi nhieu
+id cach nhau dau phay, cung kieu voi `ConnectionIds` co san) - giu nguyen cot `RedemptionUnitId`
+cu, lich da tao truoc ban nay van doc duoc binh thuong (tu dong "that lui" ve cot cu khi cot moi
+con rong). 3 ham sinh bao cao dung chung (`reportService.js`, `summaryReportService.js`,
+`usedVoucherReportService.js`) duoc mo rong nhan THEM mang nhieu id (truoc day chi nhan 1 so) -
+hoan toan tuong thich nguoc, 3 man hinh bao cao thuong (dang dung o chon don) khong doi gi.
+
+Ban truoc do (v3.94): them khai niem **"Loai cong ty"** va **"Loai tai khoan"** (sql/043),
 theo yeu cau nguoi dung - phan biet **Cong ty thu hoi** (mac dinh, giu nguyen hanh vi cu: co the
 tao Diem tieu, tai khoan gan vao dung duoc chuc nang thu hoi) voi **Cong ty doi tac** (loai MOI -
 chi luu thong tin cong ty, KHONG duoc gan Diem tieu nao, tai khoan gan vao MAC DINH mat chuc nang

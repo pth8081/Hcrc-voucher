@@ -100,6 +100,23 @@ function buildConnectionFilter(request, connectionIds, includeUntagged) {
   return includeUntagged ? ` AND (vrc.ConnectionId IS NULL OR ${inClause})` : ` AND ${inClause}`;
 }
 
+/**
+ * v3.95: redemptionUnitId gio co the la 1 so DUY NHAT (tuong thich nguoc - cac man hinh bao cao
+ * binh thuong van dung @o chon "Diem thu hoi" don, khong doi gi) HOAC 1 MANG nhieu id (man "Lich
+ * gui email bao cao" - cho phep tick NHIEU Diem tieu CUNG luc, xem emailScheduleService.js va
+ * phan tich da gui nguoi dung). Mang rong/null/undefined = khong loc gi (giong het hanh vi cu).
+ */
+function buildRedemptionUnitFilter(request, redemptionUnitId, inputPrefix) {
+  if (redemptionUnitId === null || redemptionUnitId === undefined) return '';
+  const ids = (Array.isArray(redemptionUnitId) ? redemptionUnitId : [redemptionUnitId]).filter(Boolean);
+  if (!ids.length) return '';
+  const placeholders = ids.map((v, i) => {
+    request.input(`${inputPrefix}${i}`, sql.Int, v);
+    return `@${inputPrefix}${i}`;
+  });
+  return ` AND ru.Id IN (${placeholders.join(', ')})`;
+}
+
 /** Loc THEM theo cong ty/diem thu hoi/tai khoan thu hoi (tuy chon, bo qua neu khong truyen) -
  * dung chung cho ca 3 bao cao (doi soat, tong hop, danh sach voucher da su dung). Can
  * LOCATION_MAPPING_JOIN (alias ru/rc) da co san trong cau truy van goi ham nay, va bang chinh
@@ -110,10 +127,7 @@ function buildExtraFilters(request, { companyId, redemptionUnitId, userId, conne
     request.input('filterCompanyId', sql.Int, companyId);
     filter += ' AND rc.Id = @filterCompanyId';
   }
-  if (redemptionUnitId) {
-    request.input('filterRedemptionUnitId', sql.Int, redemptionUnitId);
-    filter += ' AND ru.Id = @filterRedemptionUnitId';
-  }
+  filter += buildRedemptionUnitFilter(request, redemptionUnitId, 'filterRedemptionUnitId');
   if (userId) {
     request.input('filterUserId', sql.Int, userId);
     filter += ' AND vs.userid = @filterUserId';
