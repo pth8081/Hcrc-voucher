@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quản lý đối tác - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/users.css" />
+<link rel="stylesheet" href="/css/partner-overview.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div id="notAdminNotice" class="card hidden">
+      <p class="text-muted m-0">Chỉ tài khoản quản trị mới xem được trang này.</p>
+    </div>
+
+    <div id="overviewCard">
+      <div class="card">
+        <h2>Quản lý đối tác</h2>
+        <p class="hint mb-0">
+          Tổng quan toàn bộ đối tác (hệ thống voucher) đang kết nối - công ty, điểm tiêu và tài
+          khoản do từng đối tác tự tạo qua màn hình "Quản trị đối tác" của họ. Đối tác
+          <strong>không</strong> xem/sửa được cấu hình API (base URL, khóa xác thực...) - việc đó
+          chỉ Quản trị HCRC có quyền quản lý "Kết nối API" mới thao tác được. Tự động hiện đủ số
+          đối tác hiện có, không cần chọn/thêm gì ở đây - muốn khóa/mở khóa tài khoản hoặc sửa
+          công ty/điểm tiêu vẫn thao tác ở màn "Tài khoản"/"Đơn vị thu hồi" như trước.
+        </p>
+      </div>
+
+      <div id="partnerList"><div class="card"><p class="text-muted m-0">Đang tải...</p></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/vendor/simplewebauthn-browser.umd.min.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/partner-overview.js"></script>
+</body>
+</html>

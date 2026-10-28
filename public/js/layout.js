@@ -19,6 +19,7 @@ const NAV_ICONS = {
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   guide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15.5"/><path d="M6 22a2 2 0 0 1-2-2.5C4 18.5 5 18 6 18h13"/><path d="M9 8h7M9 11h5"/></svg>',
   email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  partners: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="7" height="11"/><rect x="14" y="6" width="7" height="15"/><path d="M6 14h1M6 17h1M17 10h1M17 13h1M17 16h1"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
@@ -56,6 +57,20 @@ const NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
   { key: 'units', href: '/units.html', label: 'Đơn vị thu hồi', icon: NAV_ICONS.units, permission: 'adminCanManageUnits' },
   { key: 'connection', href: '/api-connection.html', label: 'Kết nối API', icon: NAV_ICONS.connection, permission: 'adminCanManageConnections' },
+  // Man hinh CHI DOC (khong co thao tac sua/xoa) - server mo cho MOI tai khoan Quan tri day du,
+  // khong doi hoi 1 quyen AdminCanXxx rieng (xem partnerOverview.routes.js). KHONG the bo trong
+  // `permission` o day du vay: hasPermission() coi "khong khai bao permission" la LUON hien, bat
+  // ke role - se vo tinh lo muc nay ra ca menu cua tai khoan NHAN VIEN thuong (role=0, chi bi chan
+  // o server, van thay duoc muc trong menu). Dung tam 5 quyen AdminCanXxx hien co (OR - co it nhat
+  // 1 quyen la du, giong muc "email-schedules" o tren) de chi hien dung cho tai khoan Quan tri -
+  // 1 tai khoan Quan tri binh thuong (chua bi thu het ca 5 quyen man hinh con) van thay du.
+  {
+    key: 'partner-overview',
+    href: '/partner-overview.html',
+    label: 'Quản lý đối tác',
+    icon: NAV_ICONS.partners,
+    permission: ['adminCanManageUnits', 'adminCanManageConnections', 'adminCanManageUsers', 'adminCanViewAdminLog', 'adminCanManageEmailSettings'],
+  },
   { key: 'users', href: '/users.html', label: 'Tài khoản', icon: NAV_ICONS.users, permission: 'adminCanManageUsers' },
   { key: 'admin-log', href: '/admin-log.html', label: 'Nhật ký hệ thống', icon: NAV_ICONS.adminLog, permission: 'adminCanViewAdminLog' },
   { key: 'email-settings', href: '/email-settings.html', label: 'Thiết lập email', icon: NAV_ICONS.email, permission: 'adminCanManageEmailSettings' },
