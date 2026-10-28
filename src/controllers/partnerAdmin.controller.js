@@ -156,8 +156,8 @@ async function listCompanies(req, res, next) {
 
 async function createCompany(req, res, next) {
   try {
-    const { companyCode, companyName } = req.body;
-    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName }, req.partnerAdminConnectionId);
+    const { companyCode, companyName, address } = req.body;
+    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName, address }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_COMPANY',
@@ -173,8 +173,8 @@ async function createCompany(req, res, next) {
 async function updateCompany(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const { companyCode, companyName } = req.body;
-    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName }, req.partnerAdminConnectionId);
+    const { companyCode, companyName, address } = req.body;
+    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName, address }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_UPDATE_COMPANY',
@@ -214,8 +214,8 @@ async function listUnits(req, res, next) {
 
 async function createUnit(req, res, next) {
   try {
-    const { locationName, companyId } = req.body;
-    const created = await partnerAdminService.createOwnUnit({ locationName, companyId }, req.partnerAdminConnectionId);
+    const { locationName, companyId, address } = req.body;
+    const created = await partnerAdminService.createOwnUnit({ locationName, companyId, address }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_UNIT',
@@ -231,8 +231,8 @@ async function createUnit(req, res, next) {
 async function updateUnit(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const { locationName, companyId } = req.body;
-    await partnerAdminService.updateOwnUnit(id, { locationName, companyId }, req.partnerAdminConnectionId);
+    const { locationName, companyId, address } = req.body;
+    await partnerAdminService.updateOwnUnit(id, { locationName, companyId, address }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_UPDATE_UNIT',

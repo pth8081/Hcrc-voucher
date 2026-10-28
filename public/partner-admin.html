@@ -100,6 +100,8 @@
               <input id="newCompanyCode" placeholder="VD: FUJI-HN" />
               <label>Tên công ty *</label>
               <input id="newCompanyName" placeholder="VD: Fuji Mart - Chi nhánh Hà Nội" />
+              <label>Địa chỉ (tùy chọn)</label>
+              <input id="newCompanyAddress" placeholder="VD: 25 Láng Hạ, Đống Đa, Hà Nội" />
               <button class="btn-primary mt-10" id="createCompanyBtn">Tạo công ty</button>
               <button class="btn-secondary mt-10 hidden" type="button" id="cancelCompanyEditBtn">Hủy sửa</button>
             </div>
@@ -109,12 +111,17 @@
               <input id="newLocationName" placeholder="VD: Fuji Mart - 25 Láng Hạ" />
               <label>Thuộc công ty *</label>
               <select id="newLocationCompany"></select>
+              <label>Địa chỉ (tùy chọn)</label>
+              <input id="newLocationAddress" placeholder="VD: 25 Láng Hạ, Đống Đa, Hà Nội" />
               <button class="btn-primary mt-10" id="createUnitBtn">Tạo điểm tiêu</button>
               <button class="btn-secondary mt-10 hidden" type="button" id="cancelUnitEditBtn">Hủy sửa</button>
             </div>
           </div>
 
           <h3 class="mt-20">Công ty &amp; điểm tiêu của bạn</h3>
+          <div class="manage-toolbar">
+            <input id="orgSearchInput" placeholder="Tìm theo tên/mã công ty hoặc tên điểm tiêu..." />
+          </div>
           <div id="orgList"></div>
         </div>
 

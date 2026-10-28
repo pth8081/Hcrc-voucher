@@ -30,7 +30,7 @@ async function listByConnection(connectionId) {
     .input('connectionId', sql.Int, connectionId)
     .query(`
       SELECT
-        ru.Id, ru.LocationDetailId, ru.PartnerCode, ru.PartnerName, ru.CompanyId, ru.Status,
+        ru.Id, ru.LocationDetailId, ru.PartnerCode, ru.PartnerName, ru.Address, ru.CompanyId, ru.Status,
         c.CompanyName,
         LTRIM(RTRIM(d.LocationCode)) AS LocationCode,
         LTRIM(RTRIM(d.LocationName)) AS LocationName
