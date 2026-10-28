@@ -2520,7 +2520,22 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.91)**: 2 diem UI/UX nho tren DIEN THOAI, phat hien luc ra soat toan dien lai
+Ban **moi nhat (v3.92)**: them cot **"Diem tieu"** canh cot **"Dia diem"** o ca 3 bao cao (Doi
+soat, Voucher da su dung, Tong hop) - theo yeu cau nguoi dung, truoc do moi bao cao chi hien 1
+trong 2 ten (hoac ten dia diem tho, hoac ten diem tieu doi tac tu dat tuy bao cao), khong the
+thay ca 2 cung luc. **"Dia diem"** = ten dia diem tho theo du lieu Core/legacy
+(`Locations_Detail.Location_DetailName`). **"Diem tieu"** = ten doi tac tu dang ky trong "Quan
+tri doi tac" (`RedemptionUnits.PartnerName`) - neu dia diem do CHUA duoc dang ky thanh 1 diem
+tieu nao, cot nay tam hien lai ten dia diem tho (giong cach cac cot tuong tu dang xu ly trong
+app, khong de trong). Thay doi: (1) **Bao cao doi soat** (`report.html`) - them "Diem tieu" vao
+ca bang "Tong hop theo dia diem" lan bang "Chi tiet giao dich" (truoc do khong co cot nay). (2)
+**Bao cao voucher da su dung** (`used-vouchers.html`) - them "Dia diem" dung truoc cot "Diem
+tieu" co san (truoc do chi co "Diem tieu"). (3) **Bao cao tong hop** (`summary-report.html`) -
+them "Dia diem" canh cot "Cong ty / Diem tieu", chi hien o dong cap diem tieu (giong cach cac cot
+so lieu khac chi hien dung dong lien quan). Ca 3 file Excel xuat ra cung duoc them cot tuong ung.
+Khong co migration CSDL moi, khong doi logic loc/nhom du lieu - chi them 1 truong hien thi.
+
+Ban truoc do (v3.91): 2 diem UI/UX nho tren DIEN THOAI, phat hien luc ra soat toan dien lai
 man hinh mobile sau cac ban truoc. **(1)** Thanh tab nhieu muc (`.tabs`/`.tab-btn`, dung chung o
 `admin-log.html`, `partner-admin.html`, `units.html`, `users.html`) tren man hinh hep bi bop chu
 xuong 2-3 dong rat roi khi co nhieu tab (vd "Quan tri doi tac" co 5 tab) - doi thanh **cuon ngang
