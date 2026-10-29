@@ -2523,7 +2523,28 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.99)**: sua loi that nguoi dung bao cao - **xuat Excel bi LECH 7 TIENG** so voi
+Ban **moi nhat (v3.100)**: theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
+CHON) cho tai khoan dang nhap, dung de **tich chon nhanh nguoi nhan** o man "Lich gui email bao
+cao" thay vi phai go tay tung dia chi email. Lam dong thoi cho CA 2 man tao/sua tai khoan: `users.html`
+(HCRC) va `partner-admin.html` (tu phuc vu cua doi tac).
+- Them cot `Email`/`Phone` (deu NULL, sql/046) vao `VoucherAppPermissions` (bang app TU TAO,
+  KHONG dung tren `dbo.Users` goc cua he thong Core). `permissionService.js#setContactInfo`
+  (MERGE, cung mau `setCompanyAndPartnerAccount`) ghi 2 truong nay, goi tu luc tao tai khoan
+  (`userAdminService.js#createUser`) VA luc sua ho so (`user.controller.js#updateProfile`/
+  `partnerAdminService.js#updateScopedUserProfile`).
+- Man "Lich gui email bao cao": o "Email nguoi nhan" them 1 nut bam mo khung tick chon (cung kieu
+  dropdown checkbox da dung cho "Diem thu hoi", muc 18c) liet ke cac tai khoan DA CO san Email -
+  tich vao se TU DONG dien email do vao o nhap tay ben duoi, **KHONG thay the** o nhap tay - van
+  go them duoc email nguoi ngoai he thong (khong co tai khoan) o CUNG o do, dung yeu cau nguoi
+  dung ("tôi muốn tự add email được không" -> co).
+- **Pham vi danh sach de tich** (API moi `GET /email-schedules/recipients`,
+  `emailScheduleService.js#listRecipientCandidates`): Quan tri day du (HCRC) thay TOAN BO tai
+  khoan co san Email; Quan tri doi tac CHI thay tai khoan THUOC DUNG he thong cua ho (tai su dung
+  lai dung pham vi cua `partnerAdminService.js#listScopedUsers`, khong tu viet lai truy van rieng
+  de tranh lech quyen). Da kiem chung ca 2 pham vi bang Playwright (mock du lieu rieng cho tai
+  khoan HCRC va tai khoan Quan tri doi tac, xac nhan dung so luong/dung tai khoan hien ra moi ben).
+
+Ban truoc do (v3.99): sua loi that nguoi dung bao cao - **xuat Excel bi LECH 7 TIENG** so voi
 man hinh xem truc tiep (vd web hien dung "08:47" nhung file Excel xuat ra lai hien "01:42" cho
 CUNG 1 giao dich) o **CA 3 bao cao** (Doi soat/Tong hop/Voucher da su dung) VA file dinh kem khi
 gui qua email (dung lai chung 3 ham xuat Excel nay, xem muc 18b). Nguyen nhan: migration v3.89 da
@@ -2539,7 +2560,7 @@ he thong cung bi y het, da sua luon cho nhat quan**): `usedVoucherReportService.
 chung lai bang script doc that noi dung file Excel sinh ra (khong chi doc code), xac nhan gio hien
 dung cho ca 5 cho sau khi sua.
 
-Ban truoc do (v3.98): theo yeu cau nguoi dung - tai khoan duoc gan **"Quan tri doi tac"** gio
+Ban truoc do nua (v3.98): theo yeu cau nguoi dung - tai khoan duoc gan **"Quan tri doi tac"** gio
 **TU DONG co san CA 3 quyen xem bao cao** (Doi soat/Tong hop/Voucher da su dung) ngay luc duoc gan,
 khong can HCRC vao man "Tai khoan" tick tay tung quyen rieng nua. Truoc ban nay, gan "Quan tri doi
 tac" chi tu bat san `CanViewReconciliation` (theo `DEFAULT_PERMISSIONS`) - `CanViewSummary`/

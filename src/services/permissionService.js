@@ -1,5 +1,12 @@
 const { sql, getPool } = require('../config/db');
 
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  err.publicMessage = message;
+  return err;
+}
+
 /** Quyen mac dinh khi 1 tai khoan nhan vien CHUA co dong nao trong VoucherAppPermissions
  * (tai khoan cu tu truoc khi co tinh nang nay, hoac vua tao xong) - phai khop DUNG voi
  * DEFAULT cua bang trong sql/014, tranh lech hanh vi giua "co dong" va "chua co dong". */
@@ -36,6 +43,11 @@ const DEFAULT_PERMISSIONS = {
   // hay khong - xem ghi chu day du o userAdminService.js#assertCanSetPartnerAccount.
   companyId: null,
   isPartnerAccount: false,
+  // v3.100 (theo yeu cau nguoi dung): thong tin lien he TUY CHON (sql/046) - dung de tich chon
+  // nhanh nguoi nhan o man "Lich gui email bao cao" (emailScheduleService.js#listRecipientCandidates)
+  // thay vi go tay tung dia chi email. Khong anh huong gi den quyen tinh nang/pham vi bao cao.
+  email: null,
+  phone: null,
 };
 
 /** Admin (Users.status = 1) luon co du moi quyen TINH NANG UNG DUNG (6 quyen dau), khong phu
@@ -64,7 +76,8 @@ const ADMIN_PERMISSIONS = {
 
 const FEATURE_COLUMNS_SELECT = `
   p.PartnerAdminCanManageAccounts, p.PartnerAdminCanManageOrg, p.PartnerAdminCanViewAuditLog, p.PartnerAdminCanViewScanLog,
-  p.AdminCanManageUnits, p.AdminCanManageConnections, p.AdminCanManageUsers, p.AdminCanViewAdminLog, p.AdminCanManageEmailSettings
+  p.AdminCanManageUnits, p.AdminCanManageConnections, p.AdminCanManageUsers, p.AdminCanViewAdminLog, p.AdminCanManageEmailSettings,
+  p.Email, p.Phone
 `;
 
 async function getPermissions(userId) {
@@ -102,6 +115,8 @@ async function getPermissions(userId) {
     partnerAdminCanViewScanLog: !!row.PartnerAdminCanViewScanLog,
     companyId: row.CompanyId || null,
     isPartnerAccount: !!row.IsPartnerAccount,
+    email: row.Email || null,
+    phone: row.Phone || null,
   };
 }
 
@@ -109,7 +124,12 @@ async function getPermissions(userId) {
  * requireRole.js#requireAdminFeature (chan API) va authService.js#issueSession (qua
  * resolvePermissions). Tach rieng khoi getPermissions() vi getPermissions() tra DEFAULT_PERMISSIONS
  * (quyen nhan vien thuong) khi chua co dong du lieu - KHONG dung duoc cho tai khoan Quan tri (can
- * default TOAN BO true, khong phai chi 2 quyen dau nhu DEFAULT_PERMISSIONS). */
+ * default TOAN BO true, khong phai chi 2 quyen dau nhu DEFAULT_PERMISSIONS).
+ *
+ * v3.100: tra THEM email/phone (xem sql/046) - ADMIN_PERMISSIONS (static, khong doc DB) KHONG
+ * the mang 2 truong nay (se luon ghi de thanh null cho MOI tai khoan Quan tri), nen phai doc that
+ * tu bang qua chinh ham nay (da co san 1 lan goi DB cho moi tai khoan Quan tri trong resolvePermissions(),
+ * khong can them 1 lan goi rieng). */
 async function getAdminFeaturePermissions(userId) {
   const pool = await getPool();
   const result = await pool
@@ -124,6 +144,8 @@ async function getAdminFeaturePermissions(userId) {
       adminCanManageUsers: true,
       adminCanViewAdminLog: true,
       adminCanManageEmailSettings: true,
+      email: null,
+      phone: null,
     };
   }
   return {
@@ -132,6 +154,8 @@ async function getAdminFeaturePermissions(userId) {
     adminCanManageUsers: !!row.AdminCanManageUsers,
     adminCanViewAdminLog: !!row.AdminCanViewAdminLog,
     adminCanManageEmailSettings: !!row.AdminCanManageEmailSettings,
+    email: row.Email || null,
+    phone: row.Phone || null,
   };
 }
 
@@ -199,6 +223,39 @@ async function setCompanyAndPartnerAccount(userId, { companyId, isPartnerAccount
         (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
          CanViewBusinessGuide, CanViewSystemGuide, CompanyId, IsPartnerAccount, UpdatedBy, UpdatedDate)
         VALUES (@userId, 1, 1, 0, 0, 1, 0, @companyId, @isPartnerAccount, @updatedBy, GETDATE());
+    `);
+}
+
+/**
+ * v3.100 (theo yeu cau nguoi dung): ghi Email/So dien thoai (sql/046, deu TUY CHON - truyen null
+ * de xoa trang) cho 1 tai khoan - goi tu userAdminService.js#createUser (luc tao moi) VA
+ * user.controller.js#updateProfile/partnerAdminService.js#updateScopedUserProfile (luc sua).
+ * Tach rieng (khong dung chung MERGE voi setPermissions()) vi 2 truong nay DOC LAP voi 6 quyen
+ * tinh nang, dung CHUNG mau voi setCompanyAndPartnerAccount() o tren.
+ */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+async function setContactInfo(userId, { email, phone }, updatedBy) {
+  const trimmedEmail = email ? String(email).trim() : null;
+  const trimmedPhone = phone ? String(phone).trim() : null;
+  if (trimmedEmail && !EMAIL_RE.test(trimmedEmail)) throw badRequest('Email khong hop le');
+  if (trimmedPhone && !/^[0-9+().\-\s]{6,20}$/.test(trimmedPhone)) throw badRequest('So dien thoai khong hop le');
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('email', sql.NVarChar(200), trimmedEmail)
+    .input('phone', sql.NVarChar(30), trimmedPhone)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET Email = @email, Phone = @phone, UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, Email, Phone, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 0, 0, 1, 0, @email, @phone, @updatedBy, GETDATE());
     `);
 }
 
@@ -431,4 +488,5 @@ module.exports = {
   listCreatedByPartnerConnection,
   setCompanyAndPartnerAccount,
   forcePartnerAccountForCompany,
+  setContactInfo,
 };

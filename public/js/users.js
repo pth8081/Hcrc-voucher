@@ -304,6 +304,8 @@ function renderUsers(users) {
       <tr data-user-id="${u.userId}" data-username="${escapeHtmlLayout(u.username)}" data-company-id="${companyIdForFilter}" data-unit-id="${unit ? unit.Id : ''}" class="${deleted ? 'row-deleted' : ''}">
         <td data-label="Tên đăng nhập">${escapeHtmlLayout(u.username)}${deleted ? ' <span class="status-badge status-used">ĐÃ XÓA</span>' : ''}</td>
         <td data-label="Họ tên"><input class="edit-fullname" value="${escapeHtmlLayout(u.fullName || '')}" /></td>
+        <td data-label="Email"><input class="edit-email" type="email" value="${escapeHtmlLayout(perms.email || '')}" /></td>
+        <td data-label="SĐT"><input class="edit-phone" type="tel" value="${escapeHtmlLayout(perms.phone || '')}" /></td>
         <td data-label="Vai trò">${isAdmin ? 'Quản trị' : 'Nhân viên'}</td>
         <td class="perm-cell" data-label="Thu hồi">${permCheckbox('canRedeemVoucher', perms.canRedeemVoucher, isAdmin)}</td>
         <td class="perm-cell" data-label="Đối soát">${permCheckbox('canViewReconciliation', perms.canViewReconciliation, isAdmin)}</td>
@@ -496,6 +498,8 @@ async function saveUser(tr) {
   const isPartnerAccountCheckbox = tr.querySelector('.edit-is-partner-account');
   const isPartnerAccount = !!(isPartnerAccountCheckbox && isPartnerAccountCheckbox.checked);
   const fullName = tr.querySelector('.edit-fullname').value.trim();
+  const email = tr.querySelector('.edit-email').value.trim() || null;
+  const phone = tr.querySelector('.edit-phone').value.trim() || null;
   const passwordInput = tr.querySelector('.edit-password');
   const password = passwordInput.value || null;
   if (!fullName) {
@@ -574,10 +578,10 @@ async function saveUser(tr) {
       }),
     },
     {
-      label: 'Hồ sơ (họ tên/mật khẩu)',
+      label: 'Hồ sơ (họ tên/mật khẩu/email/SĐT)',
       run: () => apiFetch(`/users/${encodeURIComponent(userId)}/profile`, {
         method: 'PUT',
-        body: JSON.stringify({ fullName, password, username }),
+        body: JSON.stringify({ fullName, password, email, phone, username }),
       }),
     },
     {
@@ -626,6 +630,8 @@ createUserBtn.addEventListener('click', async () => {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const fullName = document.getElementById('newFullName').value.trim();
+  const email = document.getElementById('newEmail').value.trim() || null;
+  const phone = document.getElementById('newPhone').value.trim() || null;
   const role = document.getElementById('newRole').value;
   const redemptionUnitIdRaw = document.getElementById('newRedemptionUnitId').value;
   const redemptionUnitId = redemptionUnitIdRaw ? Number(redemptionUnitIdRaw) : null;
@@ -636,12 +642,14 @@ createUserBtn.addEventListener('click', async () => {
   try {
     await apiFetch('/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName, role: Number(role), redemptionUnitId, companyId }),
+      body: JSON.stringify({ username, password, fullName, email, phone, role: Number(role), redemptionUnitId, companyId }),
     });
     showToast(`Đã tạo tài khoản "${username}"`);
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
     document.getElementById('newFullName').value = '';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newPhone').value = '';
     document.getElementById('newCompanyId').value = '';
     refreshNewRedemptionUnitOptions();
     load();

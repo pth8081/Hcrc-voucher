@@ -6,6 +6,8 @@ const reportService = require('./reportService');
 const summaryReportService = require('./summaryReportService');
 const usedVoucherReportService = require('./usedVoucherReportService');
 const emailGatewayService = require('./emailGatewayService');
+const permissionService = require('./permissionService');
+const partnerAdminService = require('./partnerAdminService');
 
 const REPORT_TYPES = ['DAILY', 'SUMMARY', 'USED_VOUCHERS'];
 const FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY'];
@@ -92,6 +94,41 @@ async function listSchedules({ userId, role }) {
     SELECT * FROM dbo.EmailReportSchedules ${filter} ORDER BY Name
   `);
   return result.recordset.map(rowToDto);
+}
+
+/**
+ * v3.100 (theo yeu cau nguoi dung): danh sach tai khoan DA CO san Email (xem sql/046) de tich
+ * chon nhanh lam "Nguoi nhan" khi tao/sua lich gui email, thay vi go tay tung dia chi - dung
+ * CHUNG 1 quy uoc pham vi voi listSchedules() o tren (quan tri day du = toan bo, con lai = chi
+ * trong pham vi cua chinh ho), nhung o day pham vi la "tai khoan duoc chon lam nguoi nhan", KHONG
+ * phai "lich dang so huu":
+ *  - Quan tri day du (role=1): toan bo tai khoan (ca nhan vien lan quan tri khac) co san Email.
+ *  - Quan tri doi tac: CHI tai khoan thuoc dung he thong cua ho (tai su dung dung quy uoc pham
+ *    vi cua partnerAdminService.js#listScopedUsers - khong tu viet lai truy van rieng, tranh lech
+ *    nhau ve sau).
+ *  - Nhan vien thuong duoc cap rieng quyen "Lich gui email bao cao" (khong phai Quan tri doi tac):
+ *    KHONG co khai niem "pham vi cua rieng ho" ro rang nhu doi tac - tra mang rong, van go tay
+ *    email binh thuong duoc (khong mat tinh nang cu, chi la khong co danh sach de tich).
+ */
+async function listRecipientCandidates({ userId, role }) {
+  if (Number(role) === 1) {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT u.UserID AS userId, u.FullName AS fullName, u.Username AS username, p.Email AS email
+      FROM dbo.Users u
+      INNER JOIN dbo.VoucherAppPermissions p ON p.UserId = u.UserID
+      LEFT JOIN dbo.UserAccountSchedule s ON s.UserId = u.UserID
+      WHERE p.Email IS NOT NULL AND LTRIM(RTRIM(p.Email)) <> '' AND ISNULL(s.IsDeleted, 0) = 0
+      ORDER BY u.FullName
+    `);
+    return result.recordset;
+  }
+  const permissions = await permissionService.getPermissions(userId);
+  if (!permissions.isPartnerAdmin || !permissions.partnerAdminConnectionId) return [];
+  const scoped = await partnerAdminService.listScopedUsers(permissions.partnerAdminConnectionId);
+  return scoped
+    .filter((u) => !u.isDeleted && u.permissions && u.permissions.email)
+    .map((u) => ({ userId: u.userId, fullName: u.fullName, username: u.username, email: u.permissions.email }));
 }
 
 async function getScheduleRow(id) {
@@ -482,6 +519,7 @@ module.exports = {
   FREQUENCIES,
   DATE_RANGE_MODES,
   listSchedules,
+  listRecipientCandidates,
   getScheduleRow,
   assertOwnership,
   createSchedule,

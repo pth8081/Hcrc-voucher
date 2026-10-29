@@ -29,7 +29,7 @@ async function assertUserExists(userId) {
  * (PositionCode_Name, DepartmentCode_Name, DSMART) vi app nay quan ly phan quyen doc lap,
  * khong phu thuoc cau truc/quy uoc cua he thong khac dung chung bang Users.
  */
-async function createUser({ username, password, fullName, locationsGroup, locationsDetail, role }, createdBy) {
+async function createUser({ username, password, fullName, locationsGroup, locationsDetail, role, email, phone }, createdBy) {
   const trimmedUsername = String(username || '').trim();
   if (!trimmedUsername) throw badRequest('Thieu ten dang nhap');
   // M6: truoc day chi kiem tra do dai (>=8 ky tu) luc TAO tai khoan moi, trong khi dat lai mat
@@ -70,6 +70,12 @@ async function createUser({ username, password, fullName, locationsGroup, locati
   // duoc ngay va sua neu can - chi co y nghia voi nhan vien, admin luon full quyen.
   if (status === 0) {
     await permissionService.createDefaultPermissions(userId, createdBy);
+  }
+  // v3.100 (theo yeu cau nguoi dung): Email/So dien thoai (sql/046, deu TUY CHON) - ghi cho CA
+  // nhan vien LAN quan tri (khac voi createDefaultPermissions o tren, chi co y nghia voi nhan
+  // vien) vi day la thong tin lien he don thuan, khong phai quyen tinh nang.
+  if (email || phone) {
+    await permissionService.setContactInfo(userId, { email, phone }, createdBy);
   }
 
   return { userId, username: trimmedUsername };

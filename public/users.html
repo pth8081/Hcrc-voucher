@@ -41,6 +41,11 @@
             thu hồi") để tài khoản này chỉ thấy/được tính vào đúng báo cáo của điểm đó - không cần
             gõ tay mã địa điểm nữa.
           </p>
+          <p class="security-note">
+            <strong>Email</strong>/<strong>Số điện thoại</strong> (đều tùy chọn) dùng để
+            <strong>tích chọn nhanh người nhận</strong> ở màn "Lịch gửi email báo cáo" - thay vì
+            phải gõ tay từng địa chỉ email mỗi lần tạo lịch gửi.
+          </p>
           <div class="form-grid">
             <div>
               <label>Tên đăng nhập</label>
@@ -53,6 +58,14 @@
             <div>
               <label>Họ tên</label>
               <input id="newFullName" placeholder="vd: Nguyễn Văn A" />
+            </div>
+            <div>
+              <label>Email (tùy chọn)</label>
+              <input id="newEmail" type="email" placeholder="vd: nva@hcrc.vn" />
+            </div>
+            <div>
+              <label>Số điện thoại (tùy chọn)</label>
+              <input id="newPhone" type="tel" placeholder="vd: 0912345678" />
             </div>
             <div>
               <label>Vai trò</label>
@@ -125,7 +138,7 @@
             <table id="usersTable">
               <thead>
                 <tr>
-                  <th>Tên đăng nhập</th><th>Họ tên</th><th>Vai trò</th>
+                  <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th>
                   <th>Thu hồi</th><th>Đối soát</th><th>Tổng hợp</th><th>Voucher đã dùng</th>
                   <th>HD nghiệp vụ</th><th>HD hệ thống</th><th>Lịch gửi email</th>
                   <th>Kích hoạt từ</th><th>Hết hạn</th><th>Trạng thái</th>
@@ -139,7 +152,7 @@
                   <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="usersBody"><tr><td colspan="21" class="text-muted">Đang tải...</td></tr></tbody>
+              <tbody id="usersBody"><tr><td colspan="23" class="text-muted">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>

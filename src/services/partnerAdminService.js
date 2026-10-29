@@ -138,8 +138,8 @@ async function assertInScope(userId, connectionId) {
  * nhu truoc). redemptionUnitId van hoat dong doc lap nhu cu (chi co the tro toi 1 Diem tieu thuoc
  * Cong ty THU HOI, vi Cong ty doi tac khong the co Diem tieu - xem redemptionUnitService.js).
  */
-async function createScopedUser({ username, password, fullName, redemptionUnitId, companyId }, connectionId, createdBy) {
-  const created = await userAdminService.createUser({ username, password, fullName, role: 0 }, createdBy);
+async function createScopedUser({ username, password, fullName, redemptionUnitId, companyId, email, phone }, connectionId, createdBy) {
+  const created = await userAdminService.createUser({ username, password, fullName, role: 0, email, phone }, createdBy);
   await userVoucherSystemService.setAllowedConnections(created.userId, [connectionId]);
   await permissionService.setCreatedByPartnerConnection(created.userId, connectionId);
   if (companyId) {
@@ -206,9 +206,11 @@ async function removeOwnConnection(userId, connectionId) {
  * dung nguyen ven userAdminService.updateProfile() (ham quan tri day du dang dung), chi them
  * assertInScope() de dam bao doi tac khong sua duoc tai khoan ngoai pham vi cua ho.
  */
-async function updateScopedUserProfile(userId, connectionId, { fullName, password }) {
+async function updateScopedUserProfile(userId, connectionId, { fullName, password, email, phone }, updatedBy) {
   await assertInScope(userId, connectionId);
   await userAdminService.updateProfile(userId, { fullName, password });
+  // v3.100: Email/So dien thoai (sql/046) - cung mau voi user.controller.js#updateProfile.
+  await permissionService.setContactInfo(userId, { email, phone }, updatedBy);
 }
 
 /**

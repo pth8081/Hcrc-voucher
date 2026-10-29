@@ -103,6 +103,84 @@ async function loadFilterOptions() {
   }
 }
 
+/**
+ * v3.100 (theo yeu cau nguoi dung): o "Email nguoi nhan" them 1 nut bam mo khung tick chon nhanh
+ * cac tai khoan DA CO san Email (sql/046) - giong het co che dropdown checkbox da dung cho "Diem
+ * thu hoi" (muc 18c). Khong thay the o nhap tay #f_recipients - tick chon CHI tu dong dien/xoa
+ * dung email do trong o nay, van go tay them duoc email khac (nguoi ngoai he thong khong co tai
+ * khoan) nhu truoc, 2 cach dung SONG SONG tren CUNG 1 o. Lay trang thai tick TU CHINH noi dung o
+ * nhap tay moi lan mo khung (khong luu rieng) - 1 nguon su that duy nhat, luon dung ca khi dang
+ * sua 1 lich co san (startEdit da dien san #f_recipients truoc do).
+ */
+let recipientCandidatesCache = [];
+async function loadRecipientCandidates() {
+  try {
+    recipientCandidatesCache = await apiFetch('/email-schedules/recipients');
+  } catch (err) {
+    console.error('Khong tai duoc danh sach tai khoan co email:', err.message);
+  }
+}
+
+function currentRecipientEmails() {
+  return document
+    .getElementById('f_recipients')
+    .value.split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+function setRecipientEmails(list) {
+  document.getElementById('f_recipients').value = Array.from(new Set(list)).join(', ');
+}
+
+function updateRecipientToggleLabel() {
+  const toggle = document.querySelector('#recipientPicker .unit-multiselect-toggle');
+  if (!toggle) return;
+  const checked = new Set(currentRecipientEmails());
+  const checkedCount = recipientCandidatesCache.filter((c) => checked.has(c.email)).length;
+  toggle.textContent = checkedCount ? `${checkedCount} tài khoản đã chọn` : 'Chọn từ danh sách tài khoản có email';
+}
+
+function renderRecipientPanel() {
+  const panel = document.querySelector('#recipientPicker .unit-multiselect-panel');
+  const checked = new Set(currentRecipientEmails());
+  panel.innerHTML = recipientCandidatesCache.length
+    ? recipientCandidatesCache
+        .map(
+          (c) => `
+      <label>
+        <input type="checkbox" class="recipient-checkbox" value="${escapeHtml(c.email)}" ${checked.has(c.email) ? 'checked' : ''} />
+        ${escapeHtml(c.fullName || c.username)} <span class="text-muted fs-13">(${escapeHtml(c.email)})</span>
+      </label>`
+        )
+        .join('')
+    : '<p class="text-muted" style="margin:4px 8px;">Chưa có tài khoản nào có sẵn email - vào màn "Tài khoản" để gán email cho tài khoản.</p>';
+  panel.querySelectorAll('.recipient-checkbox').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      let emails = currentRecipientEmails();
+      if (cb.checked) emails.push(cb.value);
+      else emails = emails.filter((e) => e !== cb.value);
+      setRecipientEmails(emails);
+      updateRecipientToggleLabel();
+    });
+  });
+}
+
+function wireRecipientPicker() {
+  const picker = document.getElementById('recipientPicker');
+  const toggle = picker.querySelector('.unit-multiselect-toggle');
+  const panel = picker.querySelector('.unit-multiselect-panel');
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    renderRecipientPanel();
+    panel.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!picker.contains(e.target)) panel.classList.remove('open');
+  });
+  document.getElementById('f_recipients').addEventListener('input', updateRecipientToggleLabel);
+}
+wireRecipientPicker();
+
 function toggleFrequencyFields() {
   const freq = document.getElementById('f_frequency').value;
   document.getElementById('weekDayField').classList.toggle('hidden', freq !== 'WEEKLY');
@@ -130,6 +208,7 @@ async function resetForm() {
   editingId = null;
   scheduleForm.reset();
   document.getElementById('f_sendTime').value = '08:00';
+  updateRecipientToggleLabel();
   setConnectionCheckboxes([]);
   await loadUnitCheckboxes(null);
   toggleFrequencyFields();
@@ -213,6 +292,7 @@ async function startEdit(s) {
   setUnitCheckboxes(s.redemptionUnitIds);
   setConnectionCheckboxes(s.connectionIds);
   document.getElementById('f_recipients').value = s.recipients;
+  updateRecipientToggleLabel();
   document.getElementById('f_frequency').value = s.frequency;
   if (s.weekDay !== null && s.weekDay !== undefined) document.getElementById('f_weekDay').value = String(s.weekDay);
   if (s.monthDay !== null && s.monthDay !== undefined) document.getElementById('f_monthDay').value = s.monthDay;
@@ -309,4 +389,5 @@ populateReportTypeOptions();
 toggleFrequencyFields();
 toggleCustomDateRangeField();
 loadFilterOptions();
+loadRecipientCandidates();
 loadList();

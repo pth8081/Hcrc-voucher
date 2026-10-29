@@ -18,6 +18,7 @@ router.use(
 );
 
 router.get('/', controller.list);
+router.get('/recipients', controller.listRecipients);
 router.post('/', controller.create);
 router.put('/:id', controller.update);
 router.put('/:id/enabled', controller.setEnabled);

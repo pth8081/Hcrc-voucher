@@ -32,6 +32,17 @@ async function list(req, res, next) {
   }
 }
 
+/** v3.100: danh sach tai khoan co san Email, dung lam goi y tich chon nhanh o o "Nguoi nhan" -
+ * xem emailScheduleService.js#listRecipientCandidates. */
+async function listRecipients(req, res, next) {
+  try {
+    const data = await emailScheduleService.listRecipientCandidates({ userId: req.user.userId, role: req.user.role });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function create(req, res, next) {
   try {
     await assertCanUseReportType(req, req.body.reportType);
@@ -103,4 +114,4 @@ async function sendNow(req, res, next) {
   }
 }
 
-module.exports = { list, create, update, setEnabled, remove, sendNow };
+module.exports = { list, listRecipients, create, update, setEnabled, remove, sendNow };
