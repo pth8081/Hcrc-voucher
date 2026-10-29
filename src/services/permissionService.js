@@ -251,6 +251,37 @@ async function grantEmailScheduleAccess(userId, updatedBy) {
 }
 
 /**
+ * v3.98 (theo yeu cau nguoi dung): tu dong CAP (khong bao gio GO) ca 3 quyen xem bao cao
+ * (CanViewReconciliation/CanViewSummary/CanViewUsedVouchers) cho 1 tai khoan NGAY KHI duoc gan
+ * "Quan tri doi tac" - cung 1 mau voi grantEmailScheduleAccess() o tren (goi tu
+ * user.controller.js#updatePartnerAdmin, CHI khi GAN, KHONG BAO GIO khi GO). Truoc ban nay, chi
+ * CanViewReconciliation la true theo DEFAULT_PERMISSIONS - CanViewSummary/CanViewUsedVouchers VAN
+ * false cho den khi admin TU tick rieng o man "Tai khoan", du tai khoan do da la "Quan tri doi
+ * tac" - gay hieu nham/bat tien dung nhu nguoi dung phan anh. Luu y: tai khoan Quan tri DAY DU
+ * (role=1) KHONG can ham nay - resolvePermissions() da LUON tra ve ca 3 quyen = true cho ho bat
+ * ke du lieu trong bang nay (xem ADMIN_PERMISSIONS), khong phu thuoc cot duoc luu.
+ */
+async function grantReportViewAccess(userId, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('userId', sql.Int, userId)
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      MERGE dbo.VoucherAppPermissions AS target
+      USING (SELECT @userId AS UserId) AS src
+      ON target.UserId = src.UserId
+      WHEN MATCHED THEN UPDATE SET
+        CanViewReconciliation = 1, CanViewSummary = 1, CanViewUsedVouchers = 1,
+        UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
+      WHEN NOT MATCHED THEN INSERT
+        (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
+         CanViewBusinessGuide, CanViewSystemGuide, UpdatedBy, UpdatedDate)
+        VALUES (@userId, 1, 1, 1, 1, 1, 0, @updatedBy, GETDATE());
+    `);
+}
+
+/**
  * Gan/go quyen "quan tri gioi han theo 1 he thong voucher" (partner-admin) cho 1 tai khoan -
  * xem ghi chu M16 o DEFAULT_PERMISSIONS. CHI UPDATE/INSERT rieng cot nay (khong dung chung MERGE
  * voi setPermissions() o tren) de KHONG vo tinh ghi de cac quyen tinh nang khac dang co san khi
@@ -391,6 +422,7 @@ module.exports = {
   resolvePermissions,
   setPermissions,
   grantEmailScheduleAccess,
+  grantReportViewAccess,
   setPartnerAdminConnection,
   setPartnerAdminTabPermissions,
   setAdminFeaturePermissions,

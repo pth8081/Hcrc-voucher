@@ -358,6 +358,11 @@ async function updatePartnerAdmin(req, res, next) {
       // khong bat phai di tick rieng ngay sau do. CHI cap khi GAN (khong bao gio go khi THU HOI
       // quyen "Quan tri doi tac" - xem ghi chu o grantEmailScheduleAccess()).
       await permissionService.grantEmailScheduleAccess(userId, req.user.username);
+      // v3.98 (theo yeu cau nguoi dung): tuong tu, TU DONG co san CA 3 quyen xem bao cao (Doi
+      // soat/Tong hop/Voucher da su dung) ngay khi duoc gan "Quan tri doi tac" - khong bat phai
+      // di tick rieng tung quyen o man "Tai khoan" nua. Xem ghi chu day du o
+      // permissionService.js#grantReportViewAccess.
+      await permissionService.grantReportViewAccess(userId, req.user.username);
     }
     await auditLogService.log({
       actorUsername: req.user.username,
