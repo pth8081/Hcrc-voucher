@@ -2521,9 +2521,13 @@ duoi day tuong ung 1 lan merge thuc te, lay thang tu tieu de commit merge vao `m
 nay **chi liet ke tu v1.8 tro di** (cac commit truoc do, giai doan phat trien ban dau, chua gan
 so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3.5`/`v3.6` la do
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
-khong phai bo sot.
+khong phai bo sot. **Quy uoc danh so (theo yeu cau nguoi dung)**: het `x.99` thi SANG SO
+`(x+1).0` (vd sau `v3.99` la `v4.0`), KHONG tang tiep thanh `x.100` - 2 ban `v3.100`/`v3.101`
+trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day (ban than
+commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
+uoc ve sau).
 
-Ban **moi nhat (v3.101)**: sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
+Ban **moi nhat (v4.1)**: sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
 den tai khoan "Quan tri doi tac":
 - **Pham vi bao cao**: truoc ban nay, tai khoan "Quan tri doi tac" CHI mac dinh xem duoc TOAN BO
   bao cao he thong cua ho KHI CHUA duoc gan "Nhom quyen xem bao cao" nao (M20, v3.82) - 1 nhom
@@ -2543,7 +2547,7 @@ den tai khoan "Quan tri doi tac":
   khau/Quyen tinh nang sang **CHI XEM** (ap dung dung quy tac da co san cho Khoa/Mo khoa/Diem
   tieu/Nhom quyen bao cao tu truoc) - chi quan tri day du HCRC moi sua duoc.
 
-Ban truoc do (v3.100): theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
+Ban truoc do (v4.0): theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
 CHON) cho tai khoan dang nhap, dung de **tich chon nhanh nguoi nhan** o man "Lich gui email bao
 cao" thay vi phai go tay tung dia chi email. Lam dong thoi cho CA 2 man tao/sua tai khoan: `users.html`
 (HCRC) va `partner-admin.html` (tu phuc vu cua doi tac).
