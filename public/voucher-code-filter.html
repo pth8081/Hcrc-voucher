@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lọc mã voucher - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/api-connection.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div id="noAccessNotice" class="card hidden">
+      <p class="text-muted m-0">Tài khoản của bạn chưa được cấp quyền dùng màn hình này - liên hệ quản trị viên để được cấp quyền.</p>
+    </div>
+
+    <div id="mainCard">
+      <div class="card">
+        <h2>Lọc mã voucher theo hệ thống</h2>
+        <p class="hint">
+          Chỉ đúng phần <strong>Loại trừ (blacklist)</strong> / <strong>Chỉ chấp nhận (whitelist)</strong>
+          tiền tố mã voucher cho (các) hệ thống bạn được cấp quyền — không cần vào "Kết nối API" đầy
+          đủ. Thay đổi có hiệu lực <strong>NGAY LẬP TỨC</strong> cho mọi lượt quét/thu hồi của hệ
+          thống tương ứng.
+        </p>
+      </div>
+
+      <div id="systemsWrap"><p class="text-muted">Đang tải...</p></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/voucher-code-filter.js"></script>
+</body>
+</html>

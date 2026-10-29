@@ -353,6 +353,9 @@ async function updatePartnerAdmin(req, res, next) {
       canManageOrg: req.body.canManageOrg !== false,
       canViewAuditLog: req.body.canViewAuditLog !== false,
       canViewScanLog: req.body.canViewScanLog !== false,
+      // sql/049: KHAC 4 quyen tren (mac dinh BAT neu khong gui gi, giu hanh vi "du ca 4 tab" tu
+      // truoc) - quyen nay la nang luc MOI, mac dinh TAT neu khong gui, HCRC phai CHU DONG tick.
+      canManageVoucherFilter: req.body.canManageVoucherFilter === true,
     };
     await permissionService.setPartnerAdminTabPermissions(userId, tabPerms, req.user.username);
     if (normalized) {
@@ -409,6 +412,7 @@ async function updateAdminFeaturePermissions(req, res, next) {
       canManageUsers: !!req.body.canManageUsers,
       canViewAdminLog: !!req.body.canViewAdminLog,
       canManageEmailSettings: !!req.body.canManageEmailSettings,
+      canManageVoucherFilter: !!req.body.canManageVoucherFilter,
     };
     await permissionService.setAdminFeaturePermissions(userId, perms, req.user.username);
     await auditLogService.log({

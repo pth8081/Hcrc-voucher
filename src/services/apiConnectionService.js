@@ -255,6 +255,61 @@ async function getById(id) {
   return result.recordset[0] ? toMaskedDto(result.recordset[0]) : null;
 }
 
+const PREFIX_FILTER_COLUMNS = 'Id, Name, IsActive, IsLocked, ExcludedCodePrefixes, AllowedCodePrefixes, CodePrefixFilterMode';
+
+function toPrefixFilterDto(row) {
+  return {
+    id: row.Id,
+    name: row.Name,
+    isActive: !!row.IsActive,
+    isLocked: !!row.IsLocked,
+    codePrefixFilterMode: normalizeCodePrefixFilterMode(row.CodePrefixFilterMode),
+    excludedCodePrefixes: parsePrefixList(row.ExcludedCodePrefixes),
+    allowedCodePrefixes: parsePrefixList(row.AllowedCodePrefixes),
+  };
+}
+
+/**
+ * Danh sach RUT GON CHI gom ten + cau hinh loc tien to (khong Base URL/xac thuc/mapping...) - dung
+ * cho man hinh "Loc ma voucher" (voucherCodeFilter.controller.js), tach rieng khoi list() day du
+ * (chi admin co adminCanManageConnections moi vao duoc) de 1 tai khoan CHI duoc cap quyen loc
+ * tien to (sql/049) khong thay/khong sua duoc cau hinh ket noi khac, du khong phai la du lieu bi
+ * mat (list()/toMaskedDto da an secret tu truoc) - day la gioi han PHAM VI theo dung thiet ke.
+ */
+async function listPrefixFilterOnly() {
+  const pool = await getPool();
+  const result = await pool.request().query(`SELECT ${PREFIX_FILTER_COLUMNS} FROM dbo.ApiConnections ORDER BY IsActive DESC, Name`);
+  return result.recordset.map(toPrefixFilterDto);
+}
+
+async function getPrefixFilterOnly(id) {
+  const pool = await getPool();
+  const result = await pool.request().input('id', sql.Int, id).query(`SELECT ${PREFIX_FILTER_COLUMNS} FROM dbo.ApiConnections WHERE Id = @id`);
+  return result.recordset[0] ? toPrefixFilterDto(result.recordset[0]) : null;
+}
+
+/**
+ * UPDATE CHI 3 cot loc tien to - KHONG dung chung voi update() day du (toRow()/validateBody doi
+ * hoi name/baseUrl/checkPath/redeemPath, se luon that bai voi payload RUT GON cua man hinh nay).
+ * Goi tu voucherCodeFilter.controller.js, sau khi da qua validateCodePrefixFilterConfig().
+ */
+async function updatePrefixFilterOnly(id, data, updatedBy) {
+  const pool = await getPool();
+  await pool
+    .request()
+    .input('id', sql.Int, id)
+    .input('codePrefixFilterMode', sql.NVarChar(10), normalizeCodePrefixFilterMode(data.codePrefixFilterMode))
+    .input('excludedCodePrefixes', sql.NVarChar(500), normalizePrefixList(data.excludedCodePrefixes))
+    .input('allowedCodePrefixes', sql.NVarChar(500), normalizePrefixList(data.allowedCodePrefixes))
+    .input('updatedBy', sql.NVarChar(100), updatedBy || null)
+    .query(`
+      UPDATE dbo.ApiConnections SET
+        CodePrefixFilterMode = @codePrefixFilterMode, ExcludedCodePrefixes = @excludedCodePrefixes,
+        AllowedCodePrefixes = @allowedCodePrefixes, UpdatedDate = GETDATE(), UpdatedBy = @updatedBy
+      WHERE Id = @id
+    `);
+}
+
 async function getByIdDecrypted(id) {
   const pool = await getPool();
   const result = await pool.request().input('id', sql.Int, id).query('SELECT * FROM dbo.ApiConnections WHERE Id = @id');
@@ -643,6 +698,9 @@ module.exports = {
   getPrefixFilterConfig,
   matchPrefixFilter,
   validateCodePrefixFilterConfig,
+  listPrefixFilterOnly,
+  getPrefixFilterOnly,
+  updatePrefixFilterOnly,
   create,
   update,
   activate,
