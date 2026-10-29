@@ -24,51 +24,48 @@ function badRequest(message) {
 /**
  * Hau thuan man hinh "Quan tri doi tac" (public/partner-admin.html) - ban RUT GON cua man hinh
  * "Tai khoan" danh cho 1 tai khoan duoc gan quyen quan tri GIOI HAN theo DUNG 1 he thong voucher
- * (xem requirePartnerAdmin.js). Pham vi XEM BAT BUOC thoa CA 2 dieu kien (tu v3.70):
- *  1. Tai khoan nhan vien (role=0) nay BAN DAU do CHINH doi tac nay tao ra, qua man hinh tu phuc
- *     vu nay (`CreatedByPartnerConnectionId` - co dinh VINH VIEN tu luc tao, xem sql/035) - KHONG
- *     PHAI "dang dung he thong cua ho" la du. Vi du 1 tai khoan do quan tri day du HCRC tao truc
- *     tiep qua man hinh "Tai khoan", sau do duoc cap THEM quyen dung he thong Fuji (de 1 nhan vien
- *     dang nhap 1 lan quet duoc ca 2 he thong) - tai khoan nay KHONG xuat hien trong danh sach
- *     cua Fuji (khong phai ho tao ra, khong nen tu quan ly duoc no), du HIEN TAI co dung he thong
- *     Fuji that. Tab "Hoat dong quet/thu hoi" (muc xem Nhat ky he thong) KHONG ap dung dieu kien
- *     nay - van loc thuan theo ConnectionName tren tung giao dich, nen Fuji van thay dung cac luot
- *     quet he thong Fuji cua tai khoan do, chi khong tu quan ly duoc chinh tai khoan.
- *  2. HIEN TAI van con dung he thong cua ho (UserVoucherSystems chua connectionId nay) - doc TUOI
- *     moi lan goi, KHONG dua vao dieu kien (1) la du: 1 tai khoan DO CHINH doi tac tao ra nhung
- *     sau do bi quan tri day du go het he thong cua ho (vd Fuji tu go qua removeOwnConnection(),
- *     hoac quan tri day du go thay) se KHONG con hien ra nua - cho den khi duoc gan lai dung he
- *     thong do (vi dieu kien (1) KHONG BAO GIO doi, tai khoan se TU DONG xuat hien tro lai ngay,
- *     khong can tao lai).
+ * (xem requirePartnerAdmin.js).
+ *
+ * v3.101 (loi that nguoi dung bao cao): TRUOC ban nay, dieu kien XEM bat buoc tai khoan phai
+ * `CreatedByPartnerConnectionId` DUNG BANG connectionId nay (chi tao qua man tu phuc vu) - he qua
+ * la BAT KY tai khoan nao HCRC tao TRUC TIEP qua man "Tai khoan" (vd gan han "Quan tri doi tac"
+ * cho 1 tai khoan, hoac tao 1 nhan vien roi gan CHI DUNG he thong cua doi tac) deu "vo hinh" VINH
+ * VIEN voi chinh doi tac do, du da gan dung he thong. Nay BO HAN dieu kien "chu so huu" nay - CHI
+ * con 1 dieu kien DUY NHAT: tai khoan (role=0) HIEN TAI co dung he thong cua doi tac nay trong
+ * UserVoucherSystems (doc TUOI moi lan goi). Doi lai, VIET lai duoc (profile/quyen tinh nang) VAN
+ * CHI cho phep voi tai khoan `exclusiveToThisSystem` (xem duoi) - tai khoan dang DUNG CHUNG them
+ * he thong khac (vd 1 nhan vien HCRC duoc cap them quyen dung he thong doi tac de quet duoc ca 2
+ * he thong 1 lan dang nhap) van XEM duoc (minh bach) nhung CHI quan tri day du moi sua duoc, dung
+ * nguyen tac da ap dung cho Khoa/Mo khoa/Diem tieu/Nhom quyen bao cao truoc day - xem
+ * setScopedUserActive/updateScopedUserProfile/updateScopedUserPermissions/updateScopedUserLocation/
+ * updateScopedUserReportAccessGroup.
  * Loai tru hoan toan: tai khoan quan tri (role=1); tai khoan khong gioi han he thong nao (null/
  * rong trong UserVoucherSystems, "khong thuoc pham vi ai ca", dung duoc TOAN BO he thong ke ca
  * he thong tuong lai).
  *
  * Moi dong tra ve co them co `exclusiveToThisSystem`:
- *  - true  = tai khoan CHI dung DUY NHAT he thong cua doi tac nay (dung nhu truoc day) - doi tac
- *            duoc TOAN QUYEN (xem + Khoa/Mo khoa).
+ *  - true  = tai khoan CHI dung DUY NHAT he thong cua doi tac nay - doi tac duoc TOAN QUYEN (xem +
+ *            sua + Khoa/Mo khoa).
  *  - false = tai khoan dang DUNG CHUNG them he thong khac (vd quan tri HCRC da cap them quyen
- *            dung he thong HCRC cho 1 tai khoan Fuji tao, de 1 nhan vien dang nhap 1 lan quet
- *            duoc ca 2 he thong) - doi tac VAN XEM duoc (minh bach, biet tai khoan nay ton tai va
- *            dang hoat dong the nao o phan cua ho), nhung KHONG Khoa/Mo khoa duoc nua (xem
- *            setScopedUserActive) - tranh 1 doi tac khoa nham chan luon ca dang nhap phia he
+ *            dung he thong HCRC cho 1 tai khoan Fuji tao, HOAC CHINH tai khoan do HCRC tao truc
+ *            tiep roi gan dung he thong Fuji) - doi tac VAN XEM duoc (minh bach, biet tai khoan
+ *            nay ton tai va dang hoat dong the nao o phan cua ho), nhung KHONG sua/Khoa/Mo khoa
+ *            duoc nua - tranh 1 doi tac khoa/sua nham chan luon ca dang nhap/thong tin phia he
  *            thong kia. Gia tri nay tinh LAI TUOI moi lan goi (doc truc tiep UserVoucherSystems
  *            hien tai) - ngay quan tri HCRC go bot he thong HCRC khoi tai khoan do (ve lai dung 1
  *            he thong cua doi tac), co nay tu dong thanh true lai NGAY lan goi tiep theo, doi tac
- *            co lai toan quyen khoa/mo khoa ma khong can ai can thiep gi them.
+ *            co lai toan quyen sua/khoa/mo khoa ma khong can ai can thiep gi them.
  */
 async function listScopedUsers(connectionId) {
-  const [withSchedule, voucherSystemsByUserId, createdByPartnerByUserId, reportAccessByUserId] = await Promise.all([
+  const [withSchedule, voucherSystemsByUserId, reportAccessByUserId] = await Promise.all([
     userScheduleService.listAllWithSchedule(true), // true = gom ca tai khoan da xoa mem, de doi tac tu khoi phuc lai duoc chinh tai khoan ho da tao
     userVoucherSystemService.listUserAccess(),
-    permissionService.listCreatedByPartnerConnection(),
     reportAccessService.listUserAccess(),
   ]);
   const reportAccessMap = new Map(reportAccessByUserId.map((a) => [a.userId, a]));
 
   const rows = withSchedule
     .filter((u) => Number(u.role) === 0)
-    .filter((u) => createdByPartnerByUserId.get(u.userId) === connectionId)
     .map((u) => {
       const systemIds = (voucherSystemsByUserId.get(u.userId) || []).map((s) => s.connectionId);
       return { u, systemIds };
@@ -205,9 +202,20 @@ async function removeOwnConnection(userId, connectionId) {
  * Sua ho ten/dat lai mat khau cho 1 tai khoan DA THUOC pham vi connectionId nay (v3.76) - tai
  * dung nguyen ven userAdminService.updateProfile() (ham quan tri day du dang dung), chi them
  * assertInScope() de dam bao doi tac khong sua duoc tai khoan ngoai pham vi cua ho.
+ *
+ * v3.101: BAT BUOC tai khoan dang CHI dung DUY NHAT he thong cua doi tac nay (exclusiveToThisSystem) -
+ * cung ly do/mau voi setScopedUserActive/updateScopedUserLocation o tren, can thiet TU KHI
+ * listScopedUsers() mo rong pham vi XEM sang ca tai khoan HCRC tao truc tiep/dang dung chung
+ * (truoc day dieu kien "chu so huu" cua listScopedUsers() da tu dong loai nhung tai khoan nay,
+ * nen chua can kiem tra rieng o day).
  */
 async function updateScopedUserProfile(userId, connectionId, { fullName, password, email, phone }, updatedBy) {
-  await assertInScope(userId, connectionId);
+  const row = await assertInScope(userId, connectionId);
+  if (!row.exclusiveToThisSystem) {
+    throw forbidden(
+      'Tai khoan nay dang duoc quan tri day du cap them quyen dung he thong khac - chi quan tri day du moi sua duoc ho so cua tai khoan nay.'
+    );
+  }
   await userAdminService.updateProfile(userId, { fullName, password });
   // v3.100: Email/So dien thoai (sql/046) - cung mau voi user.controller.js#updateProfile.
   await permissionService.setContactInfo(userId, { email, phone }, updatedBy);
@@ -223,9 +231,16 @@ async function updateScopedUserProfile(userId, connectionId, { fullName, passwor
  * khong - tranh 1 doi tac tu cap quyen "Quan tri doi tac" cho 1 tai khoan khac (tao them 1 "doi
  * tac quan tri" ngang hang voi chinh ho). Muon gan/go quyen nay BAT BUOC phai qua man hinh "Tai
  * khoan" cua quan tri day du (user.controller.js#updatePartnerAdmin).
+ *
+ * v3.101: BAT BUOC exclusiveToThisSystem - xem ghi chu day du o updateScopedUserProfile() o tren.
  */
 async function updateScopedUserPermissions(userId, connectionId, perms, updatedBy) {
-  await assertInScope(userId, connectionId);
+  const row = await assertInScope(userId, connectionId);
+  if (!row.exclusiveToThisSystem) {
+    throw forbidden(
+      'Tai khoan nay dang duoc quan tri day du cap them quyen dung he thong khac - chi quan tri day du moi doi duoc quyen tinh nang cua tai khoan nay.'
+    );
+  }
   const safePerms = {
     canRedeemVoucher: !!perms.canRedeemVoucher,
     canViewReconciliation: !!perms.canViewReconciliation,
@@ -250,9 +265,16 @@ async function updateScopedUserPermissions(userId, connectionId, perms, updatedB
  * dien partner-admin.js cung da bo han o tick nay, day la lop chan o tang server (phong truong
  * hop goi thang API, khong qua giao dien). Van giu nguyen cho phep gan/doi CompanyId don thuan
  * (khong kem bat IsPartnerAccount) - vo hai, khong tu tao ra "Tai khoan doi tac" nao ca.
+ *
+ * v3.101: BAT BUOC exclusiveToThisSystem - xem ghi chu day du o updateScopedUserProfile() o tren.
  */
 async function updateScopedUserCompany(userId, connectionId, { companyId, isPartnerAccount }, updatedBy) {
-  await assertInScope(userId, connectionId);
+  const row = await assertInScope(userId, connectionId);
+  if (!row.exclusiveToThisSystem) {
+    throw forbidden(
+      'Tai khoan nay dang duoc quan tri day du cap them quyen dung he thong khac - chi quan tri day du moi doi duoc Cong ty cua tai khoan nay.'
+    );
+  }
   if (isPartnerAccount) {
     throw forbidden('Chi HCRC moi duoc chuyen tai khoan thanh "Tai khoan doi tac" - lien he HCRC de duoc ho tro');
   }

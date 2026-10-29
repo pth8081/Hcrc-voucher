@@ -516,9 +516,14 @@ function renderEditPanel(u) {
       Hiện tại: <strong>${escapeHtml(u.reportAccessGroupName || 'Mặc định')}</strong> — chỉ quản trị viên HCRC mới đổi được cho tài khoản dùng chung.
     </div>`;
 
-  return `
-  <div class="edit-panel" data-edit-panel="${u.userId}">
-    <h4>Sửa tài khoản: ${escapeHtml(u.username)}</h4>
+  // v3.101 (theo yeu cau nguoi dung): danh sach nay gio GOM CA tai khoan HCRC tao truc tiep roi
+  // gan dung he thong cua doi tac (xem partnerAdminService.js#listScopedUsers) - voi tai khoan
+  // dang DUNG CHUNG (khong chi thuoc DUY NHAT he thong nay, hoac do HCRC tao/quan ly), Ho ten/
+  // Email/SDT/Mat khau/Quyen tinh nang chuyen thanh CHI XEM, giong het cach locationField/
+  // reportAccessField o tren da lam - chi quan tri day du moi sua duoc, tranh doi tac sua nham/
+  // co y sua tai khoan khong hoan toan thuoc ve ho.
+  const profileField = u.exclusiveToThisSystem
+    ? `
     <label>Họ tên</label>
     <input class="edit-fullname" value="${escapeHtml(u.fullName || '')}" />
     <label>Email (tùy chọn)</label>
@@ -526,8 +531,16 @@ function renderEditPanel(u) {
     <label>Số điện thoại (tùy chọn)</label>
     <input class="edit-phone" type="tel" value="${escapeHtml((u.permissions && u.permissions.phone) || '')}" />
     <label>Đặt lại mật khẩu (để trống = giữ nguyên)</label>
-    <input class="edit-password" type="password" placeholder="Nhập mật khẩu mới nếu muốn đổi" />
+    <input class="edit-password" type="password" placeholder="Nhập mật khẩu mới nếu muốn đổi" />`
+    : `
+    <label>Họ tên / liên hệ</label>
+    <div class="loc-readonly">
+      ${escapeHtml(u.fullName || '(chưa có)')}${u.permissions && u.permissions.email ? ' · ' + escapeHtml(u.permissions.email) : ''}${u.permissions && u.permissions.phone ? ' · ' + escapeHtml(u.permissions.phone) : ''}
+      — tài khoản này đang dùng chung hệ thống khác, chỉ <strong>quản trị viên HCRC</strong> mới đổi được họ tên/email/SĐT/mật khẩu cho tài khoản dùng chung.
+    </div>`;
 
+  const permField = u.exclusiveToThisSystem
+    ? `
     <label class="mt-10" style="display:block;">Quyền tính năng</label>
     <div class="perm-grid">
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canRedeemVoucher" ${u.permissions && u.permissions.canRedeemVoucher ? 'checked' : ''} /> Thu hồi voucher</label>
@@ -537,7 +550,17 @@ function renderEditPanel(u) {
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewBusinessGuide" ${u.permissions && u.permissions.canViewBusinessGuide ? 'checked' : ''} /> Hướng dẫn nghiệp vụ</label>
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewSystemGuide" ${u.permissions && u.permissions.canViewSystemGuide ? 'checked' : ''} /> Hướng dẫn hệ thống</label>
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canManageEmailSchedules" ${u.permissions && u.permissions.canManageEmailSchedules ? 'checked' : ''} /> Lịch gửi email báo cáo</label>
-    </div>
+    </div>`
+    : `
+    <label class="mt-10" style="display:block;">Quyền tính năng</label>
+    <div class="loc-readonly">Chỉ quản trị viên HCRC mới đổi được quyền tính năng cho tài khoản dùng chung.</div>`;
+
+  return `
+  <div class="edit-panel" data-edit-panel="${u.userId}">
+    <h4>Sửa tài khoản: ${escapeHtml(u.username)}</h4>
+    ${profileField}
+
+    ${permField}
 
     ${companyField}
 
@@ -560,10 +583,18 @@ async function saveEdit(panel) {
   const userId = Number(panel.dataset.editPanel);
   const row = scopedUsersCache.find((u) => u.userId === userId);
   const username = row ? row.username : String(userId);
-  const fullName = panel.querySelector('.edit-fullname').value.trim();
-  const email = panel.querySelector('.edit-email').value.trim() || null;
-  const phone = panel.querySelector('.edit-phone').value.trim() || null;
-  const password = panel.querySelector('.edit-password').value;
+  const fullNameInput = panel.querySelector('.edit-fullname');
+  const fullName = fullNameInput ? fullNameInput.value.trim() : null;
+  const emailInput = panel.querySelector('.edit-email');
+  const email = emailInput ? emailInput.value.trim() || null : null;
+  const phoneInput = panel.querySelector('.edit-phone');
+  const phone = phoneInput ? phoneInput.value.trim() || null : null;
+  const passwordInput = panel.querySelector('.edit-password');
+  const password = passwordInput ? passwordInput.value : null;
+  if (fullNameInput && !fullName) {
+    showToast('Họ tên không được để trống');
+    return;
+  }
   const perms = {};
   panel.querySelectorAll('.edit-perm').forEach((cb) => {
     perms[cb.dataset.perm] = cb.checked;
@@ -574,14 +605,20 @@ async function saveEdit(panel) {
   const btn = panel.querySelector('.save-edit-btn');
   btn.disabled = true;
   try {
-    await apiFetch(`/partner-admin/users/${userId}/profile`, {
-      method: 'PUT',
-      body: JSON.stringify({ fullName, password, email, phone, username }),
-    });
-    await apiFetch(`/partner-admin/users/${userId}/permissions`, {
-      method: 'PUT',
-      body: JSON.stringify({ ...perms, username }),
-    });
+    // v3.101: tai khoan dang DUNG CHUNG (khong .exclusiveToThisSystem) khong con cac o nay trong
+    // DOM nua (xem renderEditPanel) - bo qua 2 request nay, chi HCRC moi sua duoc Ho ten/Email/
+    // SDT/Mat khau/Quyen tinh nang cho tai khoan dung chung (server cung tu choi 403 neu co
+    // goi thang API, day chi la an UI cho ro rang).
+    if (fullNameInput) {
+      await apiFetch(`/partner-admin/users/${userId}/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({ fullName, password, email, phone, username }),
+      });
+      await apiFetch(`/partner-admin/users/${userId}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...perms, username }),
+      });
+    }
     // v3.97: doi tac khong con tu gan Cong ty/bat "Tai khoan doi tac" duoc nua (xem
     // partnerAdminService.js#updateScopedUserCompany) - bo luon request nay, chi HCRC moi lam
     // duoc qua man "Tai khoan" (users.html).

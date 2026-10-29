@@ -81,23 +81,32 @@ async function getAllLocationCodesForPartnerConnection(connectionId) {
  * quyen o day chi de HAN CHE lai 1 admin cu the neu can (gan nhom SPECIFIC cho admin do), khong
  * phai buoc admin phai duoc cap quyen moi xem duoc.
  *
- * M20 (v3.82, theo yeu cau): tai khoan "Quan tri doi tac" (isPartnerAdmin) CHUA duoc gan Nhom
- * quyen xem bao cao rieng nao thi MAC DINH xem duoc TOAN BO du lieu thuoc he thong cua ho (giong
- * vai tro admin HCRC nhung gioi han dung he thong do) - khong bat phai tu tao 1 nhom quyen ALL
- * roi tu gan cho chinh minh moi xem duoc het.
+ * v3.101 (loi that nguoi dung bao cao): tai khoan "Quan tri doi tac" (isPartnerAdmin) LUON xem
+ * duoc TOAN BO du lieu thuoc he thong cua ho - BAT KE co dang duoc gan "Nhom quyen xem bao cao"
+ * nao hay khong. TRUOC ban nay (M20, v3.82), dieu nay CHI dung khi "CHUA duoc gan Nhom quyen xem
+ * bao cao rieng nao" - 1 Nhom quyen gan san (du vo tinh hay co y) van GHI DE lai thanh hep hon,
+ * gay dung yeu cau nguoi dung phan anh (phai vao phan quyen lai tu dau). Khac voi Quan tri day du
+ * (role=1, van giu nguyen "van an toan" - HCRC co the chu dong gan 1 Nhom quyen de han che 1 admin
+ * cu the neu can), "van an toan" nay KHONG con ap dung cho Quan tri doi tac nua - vai tro nay dung
+ * nghia la toan quyen quan tri DUNG he thong cua chinh ho, khong nen bi thu hep boi 1 Nhom quyen
+ * gan nham/con sot tu truoc. Kiem tra dieu kien nay TRUOC CA viec co Nhom quyen hay khong.
  */
 async function resolveVisibleLocationCodes({ userId, ownLocationsDetail, role }) {
   const ownCode = ownLocationsDetail ? String(ownLocationsDetail).trim() : null;
+
+  if (Number(role) !== 1) {
+    const permissions = await permissionService.getPermissions(userId);
+    if (permissions.isPartnerAdmin && permissions.partnerAdminConnectionId) {
+      const codes = Array.from(new Set([ownCode, ...(await getAllLocationCodesForPartnerConnection(permissions.partnerAdminConnectionId))].filter(Boolean)));
+      return { scope: 'specific', codes };
+    }
+  }
+
   const group = await getUserGroup(userId);
 
   if (!group) {
     if (Number(role) === 1) {
       return { scope: 'all', codes: null };
-    }
-    const permissions = await permissionService.getPermissions(userId);
-    if (permissions.isPartnerAdmin && permissions.partnerAdminConnectionId) {
-      const codes = Array.from(new Set([ownCode, ...(await getAllLocationCodesForPartnerConnection(permissions.partnerAdminConnectionId))].filter(Boolean)));
-      return { scope: 'specific', codes };
     }
     // Tai khoan chua duoc gan dia diem (LocationsDetail rong) VA khong o trong nhom quyen nao:
     // se luon thay bao cao trong, khong the phan biet voi "hom nay khong co giao dich" tren giao
