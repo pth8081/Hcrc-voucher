@@ -108,3 +108,16 @@ function fmtDate(v) {
   if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleString('vi-VN');
 }
+
+/**
+ * Giong fmtDate() nhung CHI hien NGAY (bo gio) - dung cho cac truong ban chat la "1 ngay" chu
+ * khong phai 1 thoi diem cu the (vd "Thoi han"/han su dung voucher - Core luon tra ve dang
+ * 00:00:00 kem 1 ngay, hien ca gio chi gay roi mat/de nham, xem cot "Thoi han" o 3 man hinh bao
+ * cao). Cung 1 ly do an toan XSS nhu fmtDate() (xem H10 o tren).
+ */
+function fmtDateOnly(v) {
+  if (!v) return '-';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('vi-VN');
+}

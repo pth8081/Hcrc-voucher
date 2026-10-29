@@ -60,7 +60,7 @@ function render(rows, unassignedLocation) {
         <td data-label="Ngày tiêu">${fmtDate(row.createdDate)}</td>
         <td data-label="Mã giao dịch">${escapeHtml(row.transNum || '-')}</td>
         <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}</td>
-        <td data-label="Thời hạn">${fmtDate(row.expiryDate)}</td>
+        <td data-label="Thời hạn">${fmtDateOnly(row.expiryDate)}</td>
         <td data-label="Người tiêu">${escapeHtml(row.userName || '-')}</td>
         <td data-label="Công ty">${escapeHtml(row.companyName)}</td>
         <td data-label="Địa điểm">${escapeHtml(row.locationName)}</td>
