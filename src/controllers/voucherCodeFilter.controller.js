@@ -2,21 +2,25 @@ const apiConnectionService = require('../services/apiConnectionService');
 const auditLogService = require('../services/auditLogService');
 
 /** Danh sach he thong nguoi dung hien tai duoc phep xem/sua - HCRC (scope='all') thay het, Quan
- * tri doi tac (scope='own') CHI thay dung 1 he thong da gan (req.voucherFilterConnectionId). */
+ * tri doi tac (scope='own') CHI thay dung 1 he thong da gan (req.voucherFilterConnectionId).
+ * sql/050: tra THEM `canEdit` (top-level, ap dung chung cho ca danh sach - quyen Sua/Xem cua 1
+ * tai khoan la DONG NHAT cho moi he thong ho thay duoc, khong can gan rieng tung dong) de frontend
+ * biet hien nut "Luu thay doi" hay khoa form lai thanh CHI XEM - xem voucher-code-filter.js. */
 async function list(req, res, next) {
   try {
     const all = await apiConnectionService.listPrefixFilterOnly();
-    const data = req.voucherFilterScope === 'all'
+    const systems = req.voucherFilterScope === 'all'
       ? all
       : all.filter((c) => Number(c.id) === Number(req.voucherFilterConnectionId));
-    res.json({ success: true, data });
+    res.json({ success: true, data: { systems, canEdit: !!req.voucherFilterCanEdit } });
   } catch (err) {
     next(err);
   }
 }
 
-/** sql/049: double-check PHAM VI ngay tai controller (khong chi dua vao middleware) - xem
- * requireVoucherFilterAccess.js. Quan tri doi tac chi duoc sua DUNG id cua ho. */
+/** sql/049/050: double-check PHAM VI + QUYEN SUA ngay tai controller (khong chi dua vao
+ * middleware) - xem requireVoucherFilterAccess.js. Quan tri doi tac chi duoc sua DUNG id cua ho;
+ * tai khoan CHI co quyen Xem (khong co quyen Sua) khong duoc goi duoc ham nay, du dung id. */
 function assertInScope(req, id) {
   return req.voucherFilterScope === 'all' || Number(req.voucherFilterConnectionId) === Number(id);
 }
@@ -24,6 +28,9 @@ function assertInScope(req, id) {
 async function update(req, res, next) {
   try {
     const id = Number(req.params.id);
+    if (!req.voucherFilterCanEdit) {
+      return res.status(403).json({ success: false, message: 'Tai khoan cua ban chi co quyen XEM, khong co quyen sua cau hinh loc ma voucher' });
+    }
     if (!assertInScope(req, id)) {
       return res.status(403).json({ success: false, message: 'Ban khong co quyen sua he thong nay' });
     }
