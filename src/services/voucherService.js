@@ -177,6 +177,19 @@ const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
  * THEO HUONG KHONG CHAN NHAM (Core van la nguon xac nhan chinh cho trang thai UNUSED/USED, kiem
  * tra nay chi la 1 lop phong ho THEM, khong thay the).
  */
+/**
+ * Chuyen 1 gia tri ngay (chuoi tho tu Core, qua mapping do admin tu cau hinh) thanh Date object
+ * HOP LE, hoac null neu thieu/khong parse duoc - dung truoc khi ghi vao cot SQL DateTime (vd
+ * ExpiryDate o VoucherRedemptionConnections) de tranh truyen 1 Invalid Date lam that bai CA
+ * GIAO DICH thu hoi dang trong CUNG 1 transaction chi vi Core tra ve dinh dang ngay la (tinh nang
+ * hien thi "Thoi han" KHONG duoc phep anh huong nghiep vu thu hoi chinh).
+ */
+function toSafeDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function isExpiredByDate(expiryDateStr) {
   if (!expiryDateStr) return false;
   const expiry = new Date(expiryDateStr);
@@ -852,14 +865,21 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, c
       // TRANS_NUM - CUNG transaction voi INSERT VOUCHER_SYNC o tren, de 2 ban ghi luon nhat quan
       // voi nhau. Can thiet de syncRetryService.js biet goi lai DUNG he thong khi giao dich nay
       // dang "cho dong bo" (xem sql/027_create_voucher_redemption_connections.sql).
+      //
+      // ExpiryDate (sql/048): han su dung voucher, lay tu KET QUA KIEM TRA Core NGAY TRUOC luc
+      // thu hoi (precheck - cung 1 request da dung de xac nhan UNUSED/chua het han o tren), vi
+      // ban than lenh thu hoi (redeemResult/Core redeem response) KHONG tra ve truong nay (xem
+      // apiConnectionService.js - redeemMapping khong co expiryDatePath). Dung cho cot "Thoi han"
+      // tren 3 man hinh bao cao (xem reportService.js/summaryReportService.js/usedVoucherReportService.js).
       await transaction
         .request()
         .input('transNum', sql.Char(18), transNum)
         .input('connectionId', sql.Int, connectionId || null)
         .input('connectionName', sql.NVarChar(100), redeemResult.connectionName || null)
+        .input('expiryDate', sql.DateTime, toSafeDate(precheck.expiryDate))
         .query(`
-          INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName)
-          VALUES (@transNum, @connectionId, @connectionName)
+          INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName, ExpiryDate)
+          VALUES (@transNum, @connectionId, @connectionName, @expiryDate)
         `);
 
       // So hoa don (v3.80, TUY CHON): CUNG transaction voi 2 INSERT o tren, de nhat quan - chi

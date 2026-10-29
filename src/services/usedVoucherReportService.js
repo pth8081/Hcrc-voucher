@@ -109,7 +109,7 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     SELECT ${topClause}
       DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date, vs.TRANS_NUM, vs.Voucher_Code, vs.Voucher_Serial, vs.User_Name,
       vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
-      ru.PartnerName, rc.CompanyName, vrc.ConnectionName, vri.InvoiceNumber
+      ru.PartnerName, rc.CompanyName, vrc.ConnectionName, vri.InvoiceNumber, vrc.ExpiryDate
     FROM dbo.VOUCHER_SYNC vs
     LEFT JOIN (
       -- M8: xem ghi chu chi tiet o summaryReportService.js (cung 1 loi, cung cach sua) - uu tien
@@ -133,6 +133,9 @@ async function listUsedVouchers({ fromDate, toDate, visibleLocationCodes, compan
     createdDate: row.Created_Date,
     transNum: row.TRANS_NUM,
     voucherCode: row.Voucher_Code,
+    // vrc.ExpiryDate ghi truc tiep tu 1 Date object JS luc thu hoi (khong qua GETDATE() SQL - xem
+    // voucherService.js), nen KHONG bi loi lech 7 tieng kieu v3.89/v3.99 nhu Created_Date o tren.
+    expiryDate: row.ExpiryDate || null,
     voucherSerial: row.Voucher_Serial,
     userName: row.User_Name,
     locationsDetail: row.Locations_Detail,
@@ -168,6 +171,7 @@ async function buildExcelBuffer(rows) {
     { header: 'Ngay tieu', key: 'createdDate', width: 20 },
     { header: 'Ma giao dich', key: 'transNum', width: 22 },
     { header: 'Ma voucher', key: 'voucherCode', width: 18 },
+    { header: 'Thoi han', key: 'expiryDate', width: 16 },
     { header: 'Serial', key: 'voucherSerial', width: 18 },
     { header: 'Nguoi tieu', key: 'userName', width: 24 },
     { header: 'Cong ty', key: 'companyName', width: 26 },
@@ -206,6 +210,7 @@ async function buildExcelBuffer(rows) {
   });
 
   sheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
+  sheet.getColumn('expiryDate').numFmt = 'dd/mm/yyyy';
   sheet.getColumn('valueAmt').numFmt = '#,##0';
 
   return workbook.xlsx.writeBuffer();

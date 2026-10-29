@@ -86,7 +86,7 @@ async function consolidatedReport({ fromDate, toDate, visibleLocationCodes, comp
         vs.User_Name, vs.TRANS_NUM, vs.Voucher_Serial, vs.Voucher_Code,
         DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
         vs.Locations_Detail, vs.Location_DetailName, vs.VALUE_AMT, vs.Sync,
-        ru.PartnerName, ru.CompanyId, rc.CompanyName, vri.InvoiceNumber
+        ru.PartnerName, ru.CompanyId, rc.CompanyName, vri.InvoiceNumber, vrc.ExpiryDate
       FROM dbo.VOUCHER_SYNC vs
       LEFT JOIN (
         -- M8: khi 1 LocationCode bi trung nhieu dong (du lieu Locations_Detail dung chung voi
@@ -143,6 +143,9 @@ function buildHierarchy(rows) {
       transNum: row.TRANS_NUM,
       voucherCode: row.Voucher_Code,
       voucherSerial: row.Voucher_Serial,
+      // vrc.ExpiryDate ghi truc tiep tu 1 Date object JS luc thu hoi (khong qua GETDATE() SQL -
+      // xem voucherService.js), nen KHONG bi loi lech 7 tieng kieu v3.89/v3.99 nhu Created_Date.
+      expiryDate: row.ExpiryDate || null,
       valueAmt: amount,
       synced: row.Sync === 'Y',
       invoiceNumber: row.InvoiceNumber || null,
@@ -231,6 +234,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
     { header: 'Nguoi tieu', key: 'userName', width: 24 },
     { header: 'Ma giao dich', key: 'transNum', width: 22 },
     { header: 'Ma voucher', key: 'voucherCode', width: 18 },
+    { header: 'Thoi han', key: 'expiryDate', width: 16 },
     { header: 'Serial', key: 'voucherSerial', width: 18 },
     { header: 'Menh gia', key: 'valueAmt', width: 14 },
     { header: 'Dong bo', key: 'syncedLabel', width: 14 },
@@ -252,6 +256,9 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
           userName: sanitizeExcelText(row.userName),
           transNum: sanitizeExcelText(row.transNum),
           voucherCode: sanitizeExcelText(row.voucherCode),
+          // Khac createdDate o tren: expiryDate KHONG qua GETDATE() SQL (ghi truc tiep tu 1 Date
+          // object JS luc thu hoi - xem voucherService.js), nen KHONG bi loi lech 7 tieng.
+          expiryDate: row.expiryDate || null,
           voucherSerial: sanitizeExcelText(row.voucherSerial),
           valueAmt: row.valueAmt,
           syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',
@@ -261,6 +268,7 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
     });
   });
   detailSheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
+  detailSheet.getColumn('expiryDate').numFmt = 'dd/mm/yyyy';
   detailSheet.getColumn('valueAmt').numFmt = '#,##0';
 
   return workbook.xlsx.writeBuffer();

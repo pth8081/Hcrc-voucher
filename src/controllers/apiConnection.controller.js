@@ -175,6 +175,26 @@ async function resolveTestConnection(req, res) {
   return null;
 }
 
+/**
+ * Theo yeu cau nguoi dung (sau khi phat hien qua "Test kiem tra" van kiem tra duoc 1 ma dang bi
+ * loai tru): CA 2 cong cu test ("Test kiem tra" la ngon_doc, "Test thu hoi" tieu that) deu PHAI
+ * tuan theo dung cau hinh loc tien to dang ap dung cho ket noi, giong het luong quet/thu hoi
+ * thuc te (xem voucherService.js#checkPrefixFilter) - de 2 man hinh test duoc CHINH tinh nang
+ * loc nay cho dung nhu khi dung that, khong con lech hanh vi giua "test" va "that".
+ */
+function respondIfPrefixFiltered(connection, voucherCode, res) {
+  const blocked = apiConnectionService.matchPrefixFilter(connection, voucherCode);
+  if (!blocked) return false;
+  res.status(400).json({
+    success: false,
+    message:
+      blocked.mode === 'INCLUDE'
+        ? `Ma khong trung tien to nao duoc chap nhan (${blocked.allowedPrefixes.join(', ')}) - tu choi test de dung cau hinh loc hien tai cua ket noi.`
+        : `Ma trung tien to bi loai tru "${blocked.matchedPrefix}" - tu choi test de dung cau hinh loc hien tai cua ket noi.`,
+  });
+  return true;
+}
+
 /** Test kiem tra voucher (an toan - chi doc, khong lam thay doi trang thai voucher that). */
 async function testCheck(req, res, next) {
   try {
@@ -183,6 +203,7 @@ async function testCheck(req, res, next) {
 
     const connection = await resolveTestConnection(req, res);
     if (!connection) return;
+    if (respondIfPrefixFiltered(connection, voucherCode, res)) return;
 
     try {
       const result = await callDynamic(connection, 'check', { code: voucherCode });
@@ -234,24 +255,7 @@ async function testRedeem(req, res, next) {
 
     const connection = await resolveTestConnection(req, res);
     if (!connection) return;
-
-    // Theo phan anh nguoi dung: "Test thu hoi" TIEU VOUCHER THAT (khac han "Test kiem tra" chi
-    // doc) nen PHAI tuan theo dung cau hinh loc tien to dang ap dung cho ket noi nay, giong luong
-    // quet/thu hoi thuc te (xem voucherService.js#checkPrefixFilter) - neu khong, admin test co
-    // the vo tinh tieu mat 1 voucher dang nam trong danh sach bi chan. "Test kiem tra" (testCheck
-    // ben duoi) CO TINH giu nguyen KHONG loc, vi no la cong cu CHAN DOAN read-only, dung de kiem
-    // tra chinh xac 1 ma dang bi loai co dung nhu mong doi hay khong - loc o do se tu lam mat kha
-    // nang chan doan nay.
-    const blocked = apiConnectionService.matchPrefixFilter(connection, voucherCode);
-    if (blocked) {
-      return res.status(400).json({
-        success: false,
-        message:
-          blocked.mode === 'INCLUDE'
-            ? `Ma khong trung tien to nao duoc chap nhan (${blocked.allowedPrefixes.join(', ')}) - tu choi thu hoi de dung cau hinh loc hien tai cua ket noi.`
-            : `Ma trung tien to bi loai tru "${blocked.matchedPrefix}" - tu choi thu hoi de dung cau hinh loc hien tai cua ket noi.`,
-      });
-    }
+    if (respondIfPrefixFiltered(connection, voucherCode, res)) return;
 
     const transNum = generateTransNum();
     const vars = {
