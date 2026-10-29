@@ -2523,7 +2523,27 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.100)**: theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
+Ban **moi nhat (v3.101)**: sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
+den tai khoan "Quan tri doi tac":
+- **Pham vi bao cao**: truoc ban nay, tai khoan "Quan tri doi tac" CHI mac dinh xem duoc TOAN BO
+  bao cao he thong cua ho KHI CHUA duoc gan "Nhom quyen xem bao cao" nao (M20, v3.82) - 1 nhom
+  quyen gan san (vo tinh hay co y) van GHI DE lai thanh hep hon, phai vao phan quyen lai tu dau.
+  Nay sua: Quan tri doi tac **LUON** xem duoc toan bo du lieu he thong cua ho, **bat ke** co gan
+  nhom quyen nao hay khong - rieng Quan tri day du (role=1, HCRC) van giu nguyen "van an toan"
+  cu (HCRC van chu dong gan nhom de han che 1 admin cu the neu can).
+- **Danh sach "Quan ly tai khoan" cua doi tac**: truoc ban nay CHI hien tai khoan DO CHINH doi
+  tac do tu tao (qua man tu phuc vu) - tai khoan nao HCRC tao TRUC TIEP qua man "Tai khoan" roi
+  gan dung he thong cua doi tac (ke ca gan han "Quan tri doi tac" cho tai khoan do) se "vo hinh"
+  VINH VIEN voi chinh doi tac, du da gan dung he thong. Nay sua: bo dieu kien "chu so huu", chi
+  con 1 dieu kien DUY NHAT - tai khoan HIEN TAI co dung he thong cua doi tac hay khong
+  (`partnerAdminService.js#listScopedUsers`). De tranh doi tac sua/khoa nham tai khoan HCRC dang
+  "dung chung" (vd 1 nhan vien HCRC duoc cap them quyen dung he thong doi tac de quet duoc ca 2
+  he thong 1 lan dang nhap), tai khoan khong CHI thuoc DUY NHAT he thong cua doi tac
+  (`exclusiveToThisSystem=false`) van XEM duoc (minh bach) nhung chuyen Ho ten/Email/SDT/Mat
+  khau/Quyen tinh nang sang **CHI XEM** (ap dung dung quy tac da co san cho Khoa/Mo khoa/Diem
+  tieu/Nhom quyen bao cao tu truoc) - chi quan tri day du HCRC moi sua duoc.
+
+Ban truoc do (v3.100): theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
 CHON) cho tai khoan dang nhap, dung de **tich chon nhanh nguoi nhan** o man "Lich gui email bao
 cao" thay vi phai go tay tung dia chi email. Lam dong thoi cho CA 2 man tao/sua tai khoan: `users.html`
 (HCRC) va `partner-admin.html` (tu phuc vu cua doi tac).
@@ -2544,7 +2564,7 @@ cao" thay vi phai go tay tung dia chi email. Lam dong thoi cho CA 2 man tao/sua 
   de tranh lech quyen). Da kiem chung ca 2 pham vi bang Playwright (mock du lieu rieng cho tai
   khoan HCRC va tai khoan Quan tri doi tac, xac nhan dung so luong/dung tai khoan hien ra moi ben).
 
-Ban truoc do (v3.99): sua loi that nguoi dung bao cao - **xuat Excel bi LECH 7 TIENG** so voi
+Ban truoc do nua (v3.99): sua loi that nguoi dung bao cao - **xuat Excel bi LECH 7 TIENG** so voi
 man hinh xem truc tiep (vd web hien dung "08:47" nhung file Excel xuat ra lai hien "01:42" cho
 CUNG 1 giao dich) o **CA 3 bao cao** (Doi soat/Tong hop/Voucher da su dung) VA file dinh kem khi
 gui qua email (dung lai chung 3 ham xuat Excel nay, xem muc 18b). Nguyen nhan: migration v3.89 da
