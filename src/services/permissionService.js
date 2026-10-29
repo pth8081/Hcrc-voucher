@@ -42,6 +42,10 @@ const DEFAULT_PERMISSIONS = {
   // sql/049: nang luc HOAN TOAN MOI (khac 4 quyen tren, von la GIOI HAN BOT 1 nang luc da co san
   // tu truoc nen moi default true) - mac dinh TAT, HCRC phai chu dong cap tung tai khoan.
   partnerAdminCanManageVoucherFilter: false,
+  // sql/050: quyen XEM RIENG (CHI xem, khong sua) man "Loc ma voucher" - doc lap voi quyen Sua o
+  // tren, mac dinh TAT. Vao duoc man hinh neu co IT NHAT 1 trong 2 quyen (Sua HOAC Xem) - xem
+  // requireVoucherFilterAccess.js.
+  partnerAdminCanViewVoucherFilter: false,
   // v3.94: "Cong ty" tai khoan nay dang gan TRUC TIEP (xem sql/043) + co phai "Tai khoan doi tac"
   // hay khong - xem ghi chu day du o userAdminService.js#assertCanSetPartnerAccount.
   companyId: null,
@@ -78,12 +82,15 @@ const ADMIN_PERMISSIONS = {
   // sql/049: xem ghi chu o DEFAULT_PERMISSIONS.partnerAdminCanManageVoucherFilter - mac dinh TAT
   // ngay ca cho tai khoan Quan tri day du dang co san.
   adminCanManageVoucherFilter: false,
+  // sql/050: quyen XEM RIENG (CHI xem, khong sua) - xem ghi chu o DEFAULT_PERMISSIONS.partnerAdminCanViewVoucherFilter.
+  adminCanViewVoucherFilter: false,
 };
 
 const FEATURE_COLUMNS_SELECT = `
   p.PartnerAdminCanManageAccounts, p.PartnerAdminCanManageOrg, p.PartnerAdminCanViewAuditLog, p.PartnerAdminCanViewScanLog,
   p.AdminCanManageUnits, p.AdminCanManageConnections, p.AdminCanManageUsers, p.AdminCanViewAdminLog, p.AdminCanManageEmailSettings,
   p.AdminCanManageVoucherFilter, p.PartnerAdminCanManageVoucherFilter,
+  p.AdminCanViewVoucherFilter, p.PartnerAdminCanViewVoucherFilter,
   p.Email, p.Phone
 `;
 
@@ -121,6 +128,7 @@ async function getPermissions(userId) {
     partnerAdminCanViewAuditLog: !!row.PartnerAdminCanViewAuditLog,
     partnerAdminCanViewScanLog: !!row.PartnerAdminCanViewScanLog,
     partnerAdminCanManageVoucherFilter: !!row.PartnerAdminCanManageVoucherFilter,
+    partnerAdminCanViewVoucherFilter: !!row.PartnerAdminCanViewVoucherFilter,
     companyId: row.CompanyId || null,
     isPartnerAccount: !!row.IsPartnerAccount,
     email: row.Email || null,
@@ -156,6 +164,8 @@ async function getAdminFeaturePermissions(userId) {
       // nguyen "full quyen man Quan tri" nhu hanh vi cu) - quyen nay la nang luc MOI, van mac
       // dinh TAT du chua co dong (giu dung quy uoc "khong ai tu nhien co" cho MOI truong hop).
       adminCanManageVoucherFilter: false,
+      // sql/050: xem ghi chu o DEFAULT_PERMISSIONS.partnerAdminCanViewVoucherFilter - mac dinh TAT.
+      adminCanViewVoucherFilter: false,
       email: null,
       phone: null,
     };
@@ -167,6 +177,7 @@ async function getAdminFeaturePermissions(userId) {
     adminCanViewAdminLog: !!row.AdminCanViewAdminLog,
     adminCanManageEmailSettings: !!row.AdminCanManageEmailSettings,
     adminCanManageVoucherFilter: !!row.AdminCanManageVoucherFilter,
+    adminCanViewVoucherFilter: !!row.AdminCanViewVoucherFilter,
     email: row.Email || null,
     phone: row.Phone || null,
   };
@@ -397,6 +408,7 @@ async function setPartnerAdminTabPermissions(userId, perms, updatedBy) {
     .input('canViewAuditLog', sql.Bit, perms.canViewAuditLog ? 1 : 0)
     .input('canViewScanLog', sql.Bit, perms.canViewScanLog ? 1 : 0)
     .input('canManageVoucherFilter', sql.Bit, perms.canManageVoucherFilter ? 1 : 0)
+    .input('canViewVoucherFilter', sql.Bit, perms.canViewVoucherFilter ? 1 : 0)
     .input('updatedBy', sql.NVarChar(100), updatedBy || null)
     .query(`
       MERGE dbo.VoucherAppPermissions AS target
@@ -405,14 +417,15 @@ async function setPartnerAdminTabPermissions(userId, perms, updatedBy) {
       WHEN MATCHED THEN UPDATE SET
         PartnerAdminCanManageAccounts = @canManageAccounts, PartnerAdminCanManageOrg = @canManageOrg,
         PartnerAdminCanViewAuditLog = @canViewAuditLog, PartnerAdminCanViewScanLog = @canViewScanLog,
-        PartnerAdminCanManageVoucherFilter = @canManageVoucherFilter,
+        PartnerAdminCanManageVoucherFilter = @canManageVoucherFilter, PartnerAdminCanViewVoucherFilter = @canViewVoucherFilter,
         UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
       WHEN NOT MATCHED THEN INSERT
         (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
          CanViewBusinessGuide, CanViewSystemGuide, PartnerAdminCanManageAccounts, PartnerAdminCanManageOrg,
-         PartnerAdminCanViewAuditLog, PartnerAdminCanViewScanLog, PartnerAdminCanManageVoucherFilter, UpdatedBy, UpdatedDate)
+         PartnerAdminCanViewAuditLog, PartnerAdminCanViewScanLog, PartnerAdminCanManageVoucherFilter,
+         PartnerAdminCanViewVoucherFilter, UpdatedBy, UpdatedDate)
         VALUES (@userId, 1, 1, 0, 0, 1, 0, @canManageAccounts, @canManageOrg,
-                @canViewAuditLog, @canViewScanLog, @canManageVoucherFilter, @updatedBy, GETDATE());
+                @canViewAuditLog, @canViewScanLog, @canManageVoucherFilter, @canViewVoucherFilter, @updatedBy, GETDATE());
     `);
 }
 
@@ -433,6 +446,7 @@ async function setAdminFeaturePermissions(userId, perms, updatedBy) {
     .input('canViewAdminLog', sql.Bit, perms.canViewAdminLog ? 1 : 0)
     .input('canManageEmailSettings', sql.Bit, perms.canManageEmailSettings ? 1 : 0)
     .input('canManageVoucherFilter', sql.Bit, perms.canManageVoucherFilter ? 1 : 0)
+    .input('canViewVoucherFilter', sql.Bit, perms.canViewVoucherFilter ? 1 : 0)
     .input('updatedBy', sql.NVarChar(100), updatedBy || null)
     .query(`
       MERGE dbo.VoucherAppPermissions AS target
@@ -442,13 +456,15 @@ async function setAdminFeaturePermissions(userId, perms, updatedBy) {
         AdminCanManageUnits = @canManageUnits, AdminCanManageConnections = @canManageConnections,
         AdminCanManageUsers = @canManageUsers, AdminCanViewAdminLog = @canViewAdminLog,
         AdminCanManageEmailSettings = @canManageEmailSettings, AdminCanManageVoucherFilter = @canManageVoucherFilter,
+        AdminCanViewVoucherFilter = @canViewVoucherFilter,
         UpdatedBy = @updatedBy, UpdatedDate = GETDATE()
       WHEN NOT MATCHED THEN INSERT
         (UserId, CanRedeemVoucher, CanViewReconciliation, CanViewSummary, CanViewUsedVouchers,
          CanViewBusinessGuide, CanViewSystemGuide, AdminCanManageUnits, AdminCanManageConnections,
-         AdminCanManageUsers, AdminCanViewAdminLog, AdminCanManageEmailSettings, AdminCanManageVoucherFilter, UpdatedBy, UpdatedDate)
+         AdminCanManageUsers, AdminCanViewAdminLog, AdminCanManageEmailSettings, AdminCanManageVoucherFilter,
+         AdminCanViewVoucherFilter, UpdatedBy, UpdatedDate)
         VALUES (@userId, 1, 1, 1, 1, 1, 1, @canManageUnits, @canManageConnections,
-                @canManageUsers, @canViewAdminLog, @canManageEmailSettings, @canManageVoucherFilter, @updatedBy, GETDATE());
+                @canManageUsers, @canViewAdminLog, @canManageEmailSettings, @canManageVoucherFilter, @canViewVoucherFilter, @updatedBy, GETDATE());
     `);
 }
 

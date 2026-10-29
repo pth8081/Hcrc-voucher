@@ -14,27 +14,31 @@ const systemsWrap = document.getElementById('systemsWrap');
 init();
 
 async function init() {
-  let systems;
+  let result;
   try {
-    systems = await apiFetch('/voucher-code-filter');
+    result = await apiFetch('/voucher-code-filter');
   } catch (err) {
     noAccessNotice.classList.remove('hidden');
     mainCard.classList.add('hidden');
     return;
   }
-  renderSystems(systems);
+  renderSystems(result.systems, result.canEdit);
 }
 
-function renderSystems(systems) {
+function renderSystems(systems, canEdit) {
   if (!systems.length) {
     systemsWrap.innerHTML = '<div class="card"><p class="text-muted m-0">Chưa có hệ thống voucher nào được gán cho tài khoản của bạn.</p></div>';
     return;
   }
-  systemsWrap.innerHTML = systems.map((s) => systemCardHtml(s)).join('');
-  systems.forEach((s) => wireCard(s));
+  if (!canEdit) {
+    mainCard.insertAdjacentHTML('beforeend', '<p class="invoice-reminder-line">Tài khoản của bạn chỉ có quyền <strong>XEM</strong> cấu hình lọc mã voucher - liên hệ quản trị viên nếu cần quyền sửa.</p>');
+  }
+  systemsWrap.innerHTML = systems.map((s) => systemCardHtml(s, canEdit)).join('');
+  systems.forEach((s) => wireCard(s, canEdit));
 }
 
-function systemCardHtml(s) {
+function systemCardHtml(s, canEdit) {
+  const disabledAttr = canEdit ? '' : 'disabled';
   return `
     <div class="card" data-system-id="${s.id}">
       <div class="flex items-center gap-8" style="justify-content:space-between;">
@@ -42,31 +46,32 @@ function systemCardHtml(s) {
       </div>
 
       <label class="flex items-center gap-8 fw-normal mb-8 mt-14">
-        <input type="radio" name="mode_${s.id}" class="checkbox-input mode-exclude" value="EXCLUDE" ${s.codePrefixFilterMode === 'EXCLUDE' ? 'checked' : ''} />
+        <input type="radio" name="mode_${s.id}" class="checkbox-input mode-exclude" value="EXCLUDE" ${s.codePrefixFilterMode === 'EXCLUDE' ? 'checked' : ''} ${disabledAttr} />
         <span><strong>Loại trừ (blacklist)</strong> — mã trùng tiền tố liệt kê sẽ <strong>KHÔNG</strong> quét/thu hồi được, còn lại quét bình thường.</span>
       </label>
       <label class="flex items-center gap-8 fw-normal mb-8">
-        <input type="radio" name="mode_${s.id}" class="checkbox-input mode-include" value="INCLUDE" ${s.codePrefixFilterMode === 'INCLUDE' ? 'checked' : ''} />
+        <input type="radio" name="mode_${s.id}" class="checkbox-input mode-include" value="INCLUDE" ${s.codePrefixFilterMode === 'INCLUDE' ? 'checked' : ''} ${disabledAttr} />
         <span><strong>Chỉ chấp nhận (whitelist)</strong> — <strong>CHỈ</strong> mã trùng tiền tố liệt kê mới quét/thu hồi được, còn lại bị từ chối.</span>
       </label>
 
       <div class="exclude-fields" ${s.codePrefixFilterMode === 'INCLUDE' ? 'style="display:none"' : ''}>
         <label>Các tiền tố BỊ LOẠI TRỪ (cách nhau bằng dấu phẩy, để trống = không loại trừ gì)</label>
-        <input class="excluded-input" value="${escapeHtml(s.excludedCodePrefixes.join(', '))}" placeholder="VD: C, TEST, X9" />
+        <input class="excluded-input" value="${escapeHtml(s.excludedCodePrefixes.join(', '))}" placeholder="VD: C, TEST, X9" ${disabledAttr} />
       </div>
       <div class="include-fields" ${s.codePrefixFilterMode === 'EXCLUDE' ? 'style="display:none"' : ''}>
         <label>Các tiền tố ĐƯỢC CHẤP NHẬN (cách nhau bằng dấu phẩy, bắt buộc có ít nhất 1 tiền tố)</label>
-        <input class="allowed-input" value="${escapeHtml(s.allowedCodePrefixes.join(', '))}" placeholder="VD: FJ, CVA" />
+        <input class="allowed-input" value="${escapeHtml(s.allowedCodePrefixes.join(', '))}" placeholder="VD: FJ, CVA" ${disabledAttr} />
       </div>
 
+      ${canEdit ? `
       <div class="flex gap-10 mt-16">
         <button class="btn-primary save-btn">Lưu thay đổi</button>
-      </div>
+      </div>` : ''}
     </div>
   `;
 }
 
-function wireCard(system) {
+function wireCard(system, canEdit) {
   const card = document.querySelector(`.card[data-system-id="${system.id}"]`);
   const excludeRadio = card.querySelector('.mode-exclude');
   const includeRadio = card.querySelector('.mode-include');
@@ -74,7 +79,6 @@ function wireCard(system) {
   const includeFields = card.querySelector('.include-fields');
   const excludedInput = card.querySelector('.excluded-input');
   const allowedInput = card.querySelector('.allowed-input');
-  const saveBtn = card.querySelector('.save-btn');
 
   function updateModeVisibility() {
     excludeFields.style.display = includeRadio.checked ? 'none' : '';
@@ -83,6 +87,9 @@ function wireCard(system) {
   excludeRadio.addEventListener('change', updateModeVisibility);
   includeRadio.addEventListener('change', updateModeVisibility);
 
+  if (!canEdit) return; // CHI XEM - khong gan nut Luu (khong duoc render), khong can wiring them.
+
+  const saveBtn = card.querySelector('.save-btn');
   saveBtn.addEventListener('click', async () => {
     const codePrefixFilterMode = includeRadio.checked ? 'INCLUDE' : 'EXCLUDE';
     const allowedCodePrefixes = allowedInput.value.trim() || null;

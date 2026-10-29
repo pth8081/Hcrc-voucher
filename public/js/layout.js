@@ -46,16 +46,18 @@ const NAV_ITEMS = [
   // chi can kiem tra DUNG quyen nay la du de quyet dinh an/hien menu (truong hop co quyen nay ma
   // khong co quyen bao cao nao la hiem, HCRC/doi tac se cap ca 2 cung luc trong thuc te).
   { key: 'email-schedules', href: '/email-schedules.html', label: 'Lịch gửi email báo cáo', icon: NAV_ICONS.email, permission: 'canManageEmailSchedules' },
-  // sql/049 (theo yeu cau nguoi dung): man hinh RIENG, GON hon "Ket noi API" (khong Base URL/xac
-  // thuc/mapping), CHI cho sua loc ma voucher theo tien to - dung duoc boi CA Quan tri HCRC LAN
-  // Quan tri doi tac, MIEN LA duoc cap 1 trong 2 quyen rieng tuong ung (OR, giong "email-schedules"
-  // o tren) - KHONG tu dong co san cho ai, phai duoc 1 Quan tri HCRC chu dong cap qua man "Tai khoan".
+  // sql/049/050 (theo yeu cau nguoi dung): man hinh RIENG, GON hon "Ket noi API" (khong Base URL/
+  // xac thuc/mapping), cho xem/sua loc ma voucher theo tien to - dung duoc boi CA Quan tri HCRC
+  // LAN Quan tri doi tac, MIEN LA duoc cap 1 trong 4 quyen rieng tuong ung (OR, giong "email-schedules"
+  // o tren) - 2 quyen Sua (AdminCanManageVoucherFilter/PartnerAdminCanManageVoucherFilter) cho ca
+  // xem lan sua, 2 quyen Xem (AdminCanViewVoucherFilter/PartnerAdminCanViewVoucherFilter, sql/050)
+  // CHI cho xem - KHONG tu dong co san cho ai, phai duoc 1 Quan tri HCRC chu dong cap qua man "Tai khoan".
   {
     key: 'voucher-code-filter',
     href: '/voucher-code-filter.html',
     label: 'Lọc mã voucher',
     icon: NAV_ICONS.voucherFilter,
-    permission: ['adminCanManageVoucherFilter', 'partnerAdminCanManageVoucherFilter'],
+    permission: ['adminCanManageVoucherFilter', 'partnerAdminCanManageVoucherFilter', 'adminCanViewVoucherFilter', 'partnerAdminCanViewVoucherFilter'],
   },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];

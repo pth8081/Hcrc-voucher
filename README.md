@@ -2527,7 +2527,21 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.5)**: theo yeu cau nguoi dung - them **man hinh moi "Loc ma voucher"**, GON
+Ban **moi nhat (v4.6)**: theo yeu cau nguoi dung - them **quyen XEM RIENG (chi xem, khong sua)**
+cho man "Loc ma voucher" (v4.5), ben canh 2 quyen SUA da co:
+- `AdminCanViewVoucherFilter` (HCRC) / `PartnerAdminCanViewVoucherFilter` (doi tac) - sql/050,
+  cung DEFAULT 0 (nang luc hoan toan moi) nhu 2 quyen Sua. Vao duoc man hinh neu co IT NHAT 1 trong
+  2 quyen (Sua HOAC Xem) - CHI quyen Sua moi luu duoc thay doi.
+- `requireVoucherFilterAccess.js` gan them `req.voucherFilterCanEdit`; `voucherCodeFilter.controller.js#list`
+  tra THEM `canEdit` (top-level) de frontend biet khoa form; `#update` **chan that o server** (403)
+  neu tai khoan khong co quyen Sua, du dung pham vi - da test rieng: tai khoan chi-xem co gang goi
+  thang API van bi tu choi, khong chi dua vao an nut tren giao dien.
+- `voucher-code-filter.js`: khi `canEdit=false`, khoa (disabled) toan bo radio/o nhap, an nut "Luu
+  thay doi", hien dong thong bao mau am giai thich ro "tai khoan chi co quyen XEM".
+- `users.js`: checkbox "Loc ma voucher" cu doi ten thanh "Loc ma voucher (sua)", them checkbox moi
+  "Loc ma voucher (chi xem)" canh ben, o ca 2 khu vuc gan quyen (Quan tri day du va Quan tri doi tac).
+
+Ban truoc do (v4.5): theo yeu cau nguoi dung - them **man hinh moi "Loc ma voucher"**, GON
 hon "Ket noi API" day du (khong Base URL/xac thuc/mapping), CHI cho sua loc ma voucher theo tien
 to (Loai tru/Chi chap nhan - sql/047), dung duoc boi CA Quan tri HCRC LAN Quan tri doi tac - nhung
 PHAI duoc cap 1 trong 2 quyen MOI moi dung duoc:
@@ -2547,7 +2561,7 @@ PHAI duoc cap 1 trong 2 quyen MOI moi dung duoc:
   duoc man "Ket noi API" that su).
 - Moi lan doi cau hinh loc deu ghi `AdminAuditLog` (ai doi, luc nao, doi gi) de truy vet khi can.
 
-Ban truoc do (v4.4): sua loi nho nguoi dung phat hien ngay sau khi cot "Thoi han" (v4.2) len
+Ban truoc do nua (v4.4): sua loi nho nguoi dung phat hien ngay sau khi cot "Thoi han" (v4.2) len
 that: cot nay tren CA 3 man hinh bao cao dang hien CA GIO ("00:00:00 31/12/2026"), trong khi
 "Thoi han" ve ban chat chi la 1 NGAY (Core luon tra ve dung 00:00:00 kem 1 ngay, khong co y nghia
 gio cu the) - hien ca gio gay roi mat/de nham. Them ham `fmtDateOnly()` (dung `toLocaleDateString`
