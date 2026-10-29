@@ -2527,7 +2527,14 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.2)**: 2 thay doi doc lap, theo yeu cau nguoi dung (kem anh chup man hinh man
+Ban **moi nhat (v4.3)**: theo yeu cau nguoi dung - man hinh **Quet voucher**, hop thoai xac nhan
+thu hoi co san (`#confirmRedeemOverlay`) nay them 1 dong **nhac nho** (mau am, KHONG phai loi) khi
+o "So hoa don (tuy chon)" dang de TRONG: "Ban chua nhap so hoa don. Nen nhap so hoa don hoac ly do
+de de doi chieu sau nay (khong bat buoc)." Dong nhac nay **bien mat ngay** khi da nhap (hien lai
+dung dong "So hoa don: ..." nhu cu) - khong them buoc/bam nao moi, khong chan thu hoi neu bo qua
+(`scan.js#openRedeemConfirm`).
+
+Ban truoc do (v4.2): 2 thay doi doc lap, theo yeu cau nguoi dung (kem anh chup man hinh man
 "Ket noi API").
 
 **(1) Loc ma voucher theo tien to - them che do "Chi chap nhan" (whitelist)**, song song voi
@@ -2562,7 +2569,7 @@ ham xuat Excel nen tu dong co):
 - Voucher thu hoi **truoc** ban nay se co `ExpiryDate = NULL` (hien trong tren bao cao) - giong
   het cach cot He thong (`ConnectionId`/`ConnectionName`) da xu ly cho du lieu cu truoc sql/027.
 
-Ban truoc do (v4.1): sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
+Ban truoc do nua (v4.1): sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
 den tai khoan "Quan tri doi tac":
 - **Pham vi bao cao**: truoc ban nay, tai khoan "Quan tri doi tac" CHI mac dinh xem duoc TOAN BO
   bao cao he thong cua ho KHI CHUA duoc gan "Nhom quyen xem bao cao" nao (M20, v3.82) - 1 nhom

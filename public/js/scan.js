@@ -19,6 +19,7 @@ const confirmAmount = document.getElementById('confirmAmount');
 const confirmSystem = document.getElementById('confirmSystem');
 const confirmInvoiceLine = document.getElementById('confirmInvoiceLine');
 const confirmInvoiceNumber = document.getElementById('confirmInvoiceNumber');
+const confirmInvoiceReminder = document.getElementById('confirmInvoiceReminder');
 const confirmRedeemYesBtn = document.getElementById('confirmRedeemYesBtn');
 const confirmRedeemNoBtn = document.getElementById('confirmRedeemNoBtn');
 
@@ -303,12 +304,18 @@ function openRedeemConfirm() {
   confirmAmount.textContent = fmtMoney(total);
   confirmSystem.textContent = selectedConnectionName || 'mặc định';
 
+  // Theo yeu cau nguoi dung: nhac thu ngan NEN nhap So hoa don (hoac ly do, neu khong co hoa don)
+  // de de doi chieu sau nay - KHONG bat buoc, chi la 1 dong nhac nho o CUNG hop xac nhan co san
+  // (khong them buoc/bam nao moi). Bo trong -> hien nhac nho; co nhap -> hien lai dung gia tri
+  // da nhap (hanh vi cu, bo nhac nho).
   const invoice = invoiceNumberInput.value.trim();
   if (invoice) {
     confirmInvoiceNumber.textContent = invoice;
     confirmInvoiceLine.classList.remove('hidden');
+    confirmInvoiceReminder.classList.add('hidden');
   } else {
     confirmInvoiceLine.classList.add('hidden');
+    confirmInvoiceReminder.classList.remove('hidden');
   }
 
   confirmRedeemOverlay.classList.remove('hidden');
