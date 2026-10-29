@@ -2527,7 +2527,42 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.1)**: sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
+Ban **moi nhat (v4.2)**: 2 thay doi doc lap, theo yeu cau nguoi dung (kem anh chup man hinh man
+"Ket noi API").
+
+**(1) Loc ma voucher theo tien to - them che do "Chi chap nhan" (whitelist)**, song song voi
+"Loai tru" (blacklist, sql/030) da co tu truoc tren man hinh "Ket noi API":
+- Them cot `CodePrefixFilterMode` (`EXCLUDE`/`INCLUDE`, mac dinh `EXCLUDE` - giu nguyen hanh vi
+  cu cho moi ket noi da co) va `AllowedCodePrefixes` (sql/047) vao `ApiConnections` (bang app tu
+  tao). Chi 1 che do co hieu luc tai 1 thoi diem, chon qua 2 nut tich (radio) tren form sua ket
+  noi. Chon "Chi chap nhan" ma de trong danh sach se bi **tu choi khi luu** (ca FE lan server,
+  `apiConnectionService.js#validateCodePrefixFilterConfig`) - tranh truong hop vo tinh chan chet
+  100% ma voucher cua ca ket noi.
+- `voucherService.js#checkPrefixFilter` (truoc la `checkExclusion`) ap dung dung logic theo che
+  do dang chon, dung CHUNG 1 diem chan truoc moi phat sinh truoc khi goi Core API (ca luc quet
+  kiem tra lan thu hoi that).
+- Phat hien them: man "Test truc tiep voucher that" (nut "Test kiem tra" VA "Test thu hoi") **bo
+  qua hoan toan** bo loc tien to, cho phep kiem tra/thu hoi duoc ca ma dang bi chan qua luong
+  that - nay ca 2 nut deu ap dung dung cau hinh loc dang chon (`apiConnection.controller.js#respondIfPrefixFiltered`),
+  giong het hanh vi quet/thu hoi thuc te, de dung man hinh nay kiem chung duoc tinh nang loc.
+
+**(2) Them cot "Thoi han" (han su dung voucher) canh cot "Ma voucher"** tren ca 3 man hinh bao
+cao (Doi soat/Tong hop/Da su dung) + file Excel xuat ra va file dinh kem gui email (dung chung
+ham xuat Excel nen tu dong co):
+- `VOUCHER_SYNC` (bang legacy dung chung Core, KHONG duoc sua cau truc) khong co cot nao luu han
+  su dung - them cot `ExpiryDate` (sql/048) vao `VoucherRedemptionConnections` (bang app tu tao,
+  da khoa theo `TRANS_NUM` va da duoc JOIN san vao ca 3 truy van bao cao tu sql/027) thay vi tao
+  bang/JOIN moi. Ghi tai `voucherService.js#redeemAndInsertGuarded`, lay tu ket qua KIEM TRA Core
+  NGAY TRUOC luc thu hoi (ban than lenh thu hoi khong tra ve truong nay). Qua ham `toSafeDate()`
+  moi de KHONG lam that bai ca giao dich thu hoi (dang trong CUNG 1 transaction voi `VOUCHER_SYNC`)
+  neu Core tra ve dinh dang ngay la.
+- Cot nay ghi truc tiep tu 1 Date object JS (khong qua `GETDATE()` SQL Server nhu `Created_Date`),
+  nen KHONG gap loi lech 7 tieng kieu v3.89/v3.99 - khong can `DATEADD(HOUR, -7, ...)` khi doc lai,
+  da kiem tra rieng de tranh lap lai dung loi cu.
+- Voucher thu hoi **truoc** ban nay se co `ExpiryDate = NULL` (hien trong tren bao cao) - giong
+  het cach cot He thong (`ConnectionId`/`ConnectionName`) da xu ly cho du lieu cu truoc sql/027.
+
+Ban truoc do (v4.1): sua 2 loi that nguoi dung bao cao (kem anh chup man hinh) lien quan
 den tai khoan "Quan tri doi tac":
 - **Pham vi bao cao**: truoc ban nay, tai khoan "Quan tri doi tac" CHI mac dinh xem duoc TOAN BO
   bao cao he thong cua ho KHI CHUA duoc gan "Nhom quyen xem bao cao" nao (M20, v3.82) - 1 nhom
@@ -2547,7 +2582,7 @@ den tai khoan "Quan tri doi tac":
   khau/Quyen tinh nang sang **CHI XEM** (ap dung dung quy tac da co san cho Khoa/Mo khoa/Diem
   tieu/Nhom quyen bao cao tu truoc) - chi quan tri day du HCRC moi sua duoc.
 
-Ban truoc do (v4.0): theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
+Ban truoc do nua (v4.0): theo yeu cau nguoi dung - them **Email**/**So dien thoai** (deu TUY
 CHON) cho tai khoan dang nhap, dung de **tich chon nhanh nguoi nhan** o man "Lich gui email bao
 cao" thay vi phai go tay tung dia chi email. Lam dong thoi cho CA 2 man tao/sua tai khoan: `users.html`
 (HCRC) va `partner-admin.html` (tu phuc vu cua doi tac).
