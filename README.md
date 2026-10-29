@@ -2523,7 +2523,27 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.96)**: o **"Diem thu hoi"** o CA 3 man hinh bao cao xem truc tiep (Doi soat/
+Ban **moi nhat (v3.97)**: theo yeu cau nguoi dung - **"Quan tri doi tac" (man `partner-admin.html`)
+KHONG con duoc TU tao/chuyen "Cong ty doi tac" hay tu BAT "Tai khoan doi tac" cho tai khoan cua ho
+nua, CHI HCRC moi lam duoc** (qua `units.html`/`users.html`). Truoc ban nay, tu v3.94, doi tac
+dang co toan quyen tu lam ca 2 viec tren qua chinh man tu phuc vu cua ho - nguoi dung xac nhan day
+KHONG phai y muon, nen bo han 2 kha nang nay khoi pham vi doi tac:
+- Form "Tao/Sua cong ty" (`partner-admin.html`): bo han o chon "Loai cong ty" - cong ty moi tao
+  LUON la "Cong ty thu hoi" (mac dinh), sua cong ty san co KHONG con doi duoc loai nua. Rieng cong
+  ty DANG la "Cong ty doi tac" (do HCRC thiet lap tu truoc, hoac gan rieng cho doi tac nay) van
+  hien 1 dong CHI XEM khi sua, de doi tac van biet ro ma khong sua duoc.
+- Bang "Sua tai khoan": o chon "Cong ty" + checkbox "Tai khoan doi tac" (them o v3.94) doi thanh
+  **CHI XEM** (khong con select/checkbox sua duoc) - chi hien dong nay khi tai khoan THAT SU dang
+  gan Cong ty hoac da la Tai khoan doi tac (giu giao dien gon cho da so tai khoan thuong, dung nhu
+  truoc khi co tinh nang nay).
+- Chan them o tang server (`partnerAdminService.js#createOwnCompany`/`updateOwnCompany`/
+  `updateScopedUserCompany`): bo qua hoan toan `companyType` nguoi goi gui len khi tao/sua cong ty
+  qua duong tu phuc vu (du goi thang API, khong qua giao dien), va nem loi 403 ro rang neu co y
+  gui `isPartnerAccount=true` qua duong nay - phong truong hop lach qua giao dien da an. Man hinh
+  chinh cua HCRC (`units.html`/`users.html`, `company.controller.js`/`user.controller.js`) giu
+  nguyen KHONG doi gi - HCRC van toan quyen tao/chuyen ca 2 loai nay nhu truoc.
+
+Ban truoc do (v3.96): o **"Diem thu hoi"** o CA 3 man hinh bao cao xem truc tiep (Doi soat/
 Tong hop/Voucher da su dung) doi tu o chon DON sang **tick checkbox NHIEU diem CUNG luc** - theo
 yeu cau nguoi dung sau khi thay man "Lich gui email bao cao" (v3.95) da doi kieu nay, hoi lai
 "Sao ko tich ma lai chon ban nhi?" cho chinh 3 man hinh nay. Ve mat UI: o "Diem thu hoi" gio la 1
@@ -2541,7 +2561,7 @@ sua gi them o 3 ham sinh bao cao chinh (`reportService.js`/`summaryReportService
 ket qua cua tung diem da chon, khong phai giao (vd tick 2 diem thi "Tai khoan thu hoi" hien tai
 khoan cua CA 2 diem do gop lai).
 
-Ban truoc do (v3.95): man "Lich gui email bao cao" - o "Diem thu hoi" doi tu 1 o chon DON
+Ban truoc do nua (v3.95): man "Lich gui email bao cao" - o "Diem thu hoi" doi tu 1 o chon DON
 (chi duoc dung 1 diem/1 lich) sang **checkbox NHIEU diem** (sql/044), theo yeu cau nguoi dung:
 truoc day chon 1 Cong ty roi chi chon duoc DUNG 1 Diem thu hoi cua cong ty do, muon gui nhieu
 diem cung 1 cong ty phai tao nhieu lich rieng le - bat tien. Gio: chon 1 Cong ty se loc lai danh

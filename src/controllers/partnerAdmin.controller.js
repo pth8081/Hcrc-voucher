@@ -175,15 +175,18 @@ async function listCompanies(req, res, next) {
   }
 }
 
+// v3.97: doi tac khong con tu chon duoc companyType nua (xem partnerAdminService.js#createOwnCompany/
+// updateOwnCompany) - bo luon khoi detail audit log de khong ghi nham thong tin KHONG thuc su duoc
+// ap dung (truoc day log theo dung gia tri client gui len, du server co the da bo qua no).
 async function createCompany(req, res, next) {
   try {
-    const { companyCode, companyName, address, companyType } = req.body;
-    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName, address, companyType }, req.partnerAdminConnectionId);
+    const { companyCode, companyName, address } = req.body;
+    const id = await partnerAdminService.createOwnCompany({ companyCode, companyName, address }, req.partnerAdminConnectionId);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_CREATE_COMPANY',
       targetUsername: companyName,
-      detail: { before: null, after: { id, companyCode, companyType: companyType || 'REDEMPTION' } },
+      detail: { before: null, after: { id, companyCode } },
     });
     res.status(201).json({ success: true, data: { id } });
   } catch (err) {
@@ -194,13 +197,13 @@ async function createCompany(req, res, next) {
 async function updateCompany(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const { companyCode, companyName, address, companyType } = req.body;
-    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName, address, companyType }, req.partnerAdminConnectionId, req.user.username);
+    const { companyCode, companyName, address } = req.body;
+    await partnerAdminService.updateOwnCompany(id, { companyCode, companyName, address }, req.partnerAdminConnectionId, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_UPDATE_COMPANY',
       targetUsername: companyName,
-      detail: { before: null, after: { id, companyCode, companyType: companyType || undefined } },
+      detail: { before: null, after: { id, companyCode } },
     });
     res.json({ success: true });
   } catch (err) {
