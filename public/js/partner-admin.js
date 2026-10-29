@@ -521,6 +521,10 @@ function renderEditPanel(u) {
     <h4>Sửa tài khoản: ${escapeHtml(u.username)}</h4>
     <label>Họ tên</label>
     <input class="edit-fullname" value="${escapeHtml(u.fullName || '')}" />
+    <label>Email (tùy chọn)</label>
+    <input class="edit-email" type="email" value="${escapeHtml((u.permissions && u.permissions.email) || '')}" />
+    <label>Số điện thoại (tùy chọn)</label>
+    <input class="edit-phone" type="tel" value="${escapeHtml((u.permissions && u.permissions.phone) || '')}" />
     <label>Đặt lại mật khẩu (để trống = giữ nguyên)</label>
     <input class="edit-password" type="password" placeholder="Nhập mật khẩu mới nếu muốn đổi" />
 
@@ -557,6 +561,8 @@ async function saveEdit(panel) {
   const row = scopedUsersCache.find((u) => u.userId === userId);
   const username = row ? row.username : String(userId);
   const fullName = panel.querySelector('.edit-fullname').value.trim();
+  const email = panel.querySelector('.edit-email').value.trim() || null;
+  const phone = panel.querySelector('.edit-phone').value.trim() || null;
   const password = panel.querySelector('.edit-password').value;
   const perms = {};
   panel.querySelectorAll('.edit-perm').forEach((cb) => {
@@ -570,7 +576,7 @@ async function saveEdit(panel) {
   try {
     await apiFetch(`/partner-admin/users/${userId}/profile`, {
       method: 'PUT',
-      body: JSON.stringify({ fullName, password, username }),
+      body: JSON.stringify({ fullName, password, email, phone, username }),
     });
     await apiFetch(`/partner-admin/users/${userId}/permissions`, {
       method: 'PUT',
@@ -1055,6 +1061,8 @@ createForm.addEventListener('submit', async (e) => {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const fullName = document.getElementById('newFullName').value.trim();
+  const email = document.getElementById('newEmail').value.trim() || null;
+  const phone = document.getElementById('newPhone').value.trim() || null;
   const redemptionUnitId = newUserUnit.value || null;
   const companyId = newUserCompany.value || null;
 
@@ -1062,7 +1070,7 @@ createForm.addEventListener('submit', async (e) => {
   try {
     await apiFetch('/partner-admin/users', {
       method: 'POST',
-      body: JSON.stringify({ username, password, fullName, redemptionUnitId, companyId }),
+      body: JSON.stringify({ username, password, fullName, email, phone, redemptionUnitId, companyId }),
     });
     showToast(`Đã tạo tài khoản "${username}"`);
     createForm.reset();

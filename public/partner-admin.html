@@ -42,6 +42,11 @@
             đăng nhập (không xóa tài khoản), "Mở khóa" cấp lại quyền dùng ngay. "Sửa" cho phép đổi
             họ tên, đặt lại mật khẩu, quyền tính năng, điểm tiêu và nhóm quyền xem báo cáo của nhân viên.
           </p>
+          <p class="hint mb-10">
+            <strong>Email</strong>/<strong>Số điện thoại</strong> (đều tùy chọn) dùng để
+            <strong>tích chọn nhanh người nhận</strong> ở màn "Lịch gửi email báo cáo" - thay vì
+            phải gõ tay từng địa chỉ email mỗi lần tạo lịch gửi.
+          </p>
           <form id="createForm">
             <div class="form-grid">
               <div>
@@ -55,6 +60,14 @@
               <div>
                 <label>Họ tên *</label>
                 <input id="newFullName" required />
+              </div>
+              <div>
+                <label>Email (tùy chọn)</label>
+                <input id="newEmail" type="email" placeholder="vd: nva@fuji.vn" />
+              </div>
+              <div>
+                <label>Số điện thoại (tùy chọn)</label>
+                <input id="newPhone" type="tel" placeholder="vd: 0912345678" />
               </div>
               <div>
                 <label>Công ty (tùy chọn)</label>

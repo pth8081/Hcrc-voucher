@@ -13,9 +13,9 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName, redemptionUnitId, companyId } = req.body;
+    const { username, password, fullName, redemptionUnitId, companyId, email, phone } = req.body;
     const created = await partnerAdminService.createScopedUser(
-      { username, password, fullName, redemptionUnitId, companyId },
+      { username, password, fullName, redemptionUnitId, companyId, email, phone },
       req.partnerAdminConnectionId,
       req.user.username
     );
@@ -95,8 +95,8 @@ async function removeOwnConnection(req, res, next) {
 async function updateUserProfile(req, res, next) {
   try {
     const userId = Number(req.params.userId);
-    const { fullName, password, username } = req.body;
-    await partnerAdminService.updateScopedUserProfile(userId, req.partnerAdminConnectionId, { fullName, password });
+    const { fullName, password, username, email, phone } = req.body;
+    await partnerAdminService.updateScopedUserProfile(userId, req.partnerAdminConnectionId, { fullName, password, email, phone }, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'PARTNER_ADMIN_UPDATE_PROFILE',

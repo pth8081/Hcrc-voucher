@@ -54,10 +54,10 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { username, password, fullName, locationsGroup, redemptionUnitId, role, companyId } = req.body;
+    const { username, password, fullName, locationsGroup, redemptionUnitId, role, companyId, email, phone } = req.body;
     const locationsDetail = await resolveLocationsDetail({ redemptionUnitId, locationsDetail: req.body.locationsDetail });
     const created = await userAdminService.createUser(
-      { username, password, fullName, locationsGroup, locationsDetail, role },
+      { username, password, fullName, locationsGroup, locationsDetail, role, email, phone },
       req.user.username
     );
     // v3.94 (xem sql/043): "Cong ty" chon o form tao tai khoan TRUOC DAY chi dung de loc o chon
@@ -164,8 +164,11 @@ async function updateProfile(req, res, next) {
       err.publicMessage = 'Khong tim thay tai khoan nay (co the da bi xoa hoac id khong dung)';
       throw err;
     }
-    const { fullName, password, username } = req.body;
+    const { fullName, password, username, email, phone } = req.body;
     await userAdminService.updateProfile(userId, { fullName, password });
+    // v3.100: Email/So dien thoai (sql/046) - doc lap voi FullName/Password (bang Users goc),
+    // luu vao VoucherAppPermissions qua ham rieng, giong cach CompanyId/IsPartnerAccount da lam.
+    await permissionService.setContactInfo(userId, { email, phone }, req.user.username);
     await auditLogService.log({
       actorUsername: req.user.username,
       action: 'UPDATE_USER_PROFILE',
