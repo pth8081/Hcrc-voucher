@@ -2527,14 +2527,23 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.3)**: theo yeu cau nguoi dung - man hinh **Quet voucher**, hop thoai xac nhan
+Ban **moi nhat (v4.4)**: sua loi nho nguoi dung phat hien ngay sau khi cot "Thoi han" (v4.2) len
+that: cot nay tren CA 3 man hinh bao cao dang hien CA GIO ("00:00:00 31/12/2026"), trong khi
+"Thoi han" ve ban chat chi la 1 NGAY (Core luon tra ve dung 00:00:00 kem 1 ngay, khong co y nghia
+gio cu the) - hien ca gio gay roi mat/de nham. Them ham `fmtDateOnly()` (dung `toLocaleDateString`
+thay vi `toLocaleString`, cung co che chong XSS nhu `fmtDate()` co san) va doi ca 3 man hinh dung
+ham nay rieng cho cot "Thoi han" (cac cot ngay gio khac - "Ngay gio"/"Ngay tieu"... - KHONG doi,
+van can hien gio). File Excel xuat ra/dinh kem email KHONG bi anh huong (da dinh dang `dd/mm/yyyy`
+tu luc lam v4.2, chi man hinh web bi sot).
+
+Ban truoc do (v4.3): theo yeu cau nguoi dung - man hinh **Quet voucher**, hop thoai xac nhan
 thu hoi co san (`#confirmRedeemOverlay`) nay them 1 dong **nhac nho** (mau am, KHONG phai loi) khi
 o "So hoa don (tuy chon)" dang de TRONG: "Ban chua nhap so hoa don. Nen nhap so hoa don hoac ly do
 de de doi chieu sau nay (khong bat buoc)." Dong nhac nay **bien mat ngay** khi da nhap (hien lai
 dung dong "So hoa don: ..." nhu cu) - khong them buoc/bam nao moi, khong chan thu hoi neu bo qua
 (`scan.js#openRedeemConfirm`).
 
-Ban truoc do (v4.2): 2 thay doi doc lap, theo yeu cau nguoi dung (kem anh chup man hinh man
+Ban truoc do nua (v4.2): 2 thay doi doc lap, theo yeu cau nguoi dung (kem anh chup man hinh man
 "Ket noi API").
 
 **(1) Loc ma voucher theo tien to - them che do "Chi chap nhan" (whitelist)**, song song voi

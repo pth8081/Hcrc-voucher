@@ -79,7 +79,7 @@ function render(data) {
             <td data-label="Người tiêu">${escapeHtml(row.userName || '-')}</td>
             <td data-label="Mã giao dịch">${escapeHtml(row.transNum || '-')}</td>
             <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}${row.synced ? '' : ' <span class="text-muted">(chờ đồng bộ)</span>'}</td>
-            <td data-label="Thời hạn">${fmtDate(row.expiryDate)}</td>
+            <td data-label="Thời hạn">${fmtDateOnly(row.expiryDate)}</td>
             <td></td>
             <td data-label="Mệnh giá">${fmtMoney(row.valueAmt)}</td>
             <td data-label="Số hóa đơn">${row.invoiceNumber ? escapeHtml(row.invoiceNumber) : '<span class="text-muted">-</span>'}</td>
