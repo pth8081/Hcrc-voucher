@@ -341,7 +341,10 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
   detailSheet.getRow(1).font = { bold: true };
   details.forEach((row) => {
     detailSheet.addRow({
-      createdDate: row.Created_Date ? new Date(row.Created_Date) : null,
+      // v3.99 (loi that da bao cao): Created_Date da bi DATEADD(HOUR, -7, ...) o SQL (v3.89) -
+      // ExcelJS doc gio truc tiep tu getTime() (khong tu doi mui gio nhu trinh duyet lam cho web),
+      // phai cong lai dung 7 tieng o day - xem ghi chu day du o usedVoucherReportService.js.
+      createdDate: row.Created_Date ? new Date(row.Created_Date.getTime() + 7 * 60 * 60 * 1000) : null,
       transNum: sanitizeExcelText(row.TRANS_NUM),
       voucherCode: sanitizeExcelText(row.Voucher_Code),
       voucherSerial: sanitizeExcelText(row.Voucher_Serial),
