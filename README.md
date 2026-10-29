@@ -2523,7 +2523,23 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.98)**: theo yeu cau nguoi dung - tai khoan duoc gan **"Quan tri doi tac"** gio
+Ban **moi nhat (v3.99)**: sua loi that nguoi dung bao cao - **xuat Excel bi LECH 7 TIENG** so voi
+man hinh xem truc tiep (vd web hien dung "08:47" nhung file Excel xuat ra lai hien "01:42" cho
+CUNG 1 giao dich) o **CA 3 bao cao** (Doi soat/Tong hop/Voucher da su dung) VA file dinh kem khi
+gui qua email (dung lai chung 3 ham xuat Excel nay, xem muc 18b). Nguyen nhan: migration v3.89 da
+sua loi mssql/tedious doc nham gio VN thanh UTC bang cach `DATEADD(HOUR, -7, ...)` ngay trong cau
+SQL - ben WEB khong sao vi JSON tra ve dang chuoi ISO ("...Z"), trinh duyet TU DONG cong lai 7
+tieng khi hien theo gio dia phuong; nhung thu vien **ExcelJS doc gio TRUC TIEP tu cac UTC-getter
+cua object Date** (khong tu doi mui gio nhu trinh duyet) - ghi thang Date "da bi tru 7 tieng" do
+vao file se hien THIEU 7 tieng, khong co buoc cong bu lai o ben xuat Excel. Sua: cong lai dung 7
+tieng (`.getTime() + 7*60*60*1000`) ngay truoc khi dua gia tri Date vao file Excel, o CA 5 cho co
+cung mau loi nay (ra soat them 2 cho **ngoai pham vi nguoi dung bao - Nhat ky quan tri va Nhat ky
+he thong cung bi y het, da sua luon cho nhat quan**): `usedVoucherReportService.js`,
+`reportService.js`, `summaryReportService.js`, `auditLogService.js`, `scanLogService.js`. Da kiem
+chung lai bang script doc that noi dung file Excel sinh ra (khong chi doc code), xac nhan gio hien
+dung cho ca 5 cho sau khi sua.
+
+Ban truoc do (v3.98): theo yeu cau nguoi dung - tai khoan duoc gan **"Quan tri doi tac"** gio
 **TU DONG co san CA 3 quyen xem bao cao** (Doi soat/Tong hop/Voucher da su dung) ngay luc duoc gan,
 khong can HCRC vao man "Tai khoan" tick tay tung quyen rieng nua. Truoc ban nay, gan "Quan tri doi
 tac" chi tu bat san `CanViewReconciliation` (theo `DEFAULT_PERMISSIONS`) - `CanViewSummary`/
@@ -2536,7 +2552,7 @@ du** (role=1, HCRC) **khong can sua gi** - `resolvePermissions()` da LUON tra ve
 cho ho tu truoc gio, khong phu thuoc du lieu luu trong CSDL (xac nhan lai qua demo, khong phai loi
 thuc su nhu nguoi dung ban dau nghi).
 
-Ban truoc do (v3.97): theo yeu cau nguoi dung - **"Quan tri doi tac" (man `partner-admin.html`)
+Ban truoc do nua (v3.97): theo yeu cau nguoi dung - **"Quan tri doi tac" (man `partner-admin.html`)
 KHONG con duoc TU tao/chuyen "Cong ty doi tac" hay tu BAT "Tai khoan doi tac" cho tai khoan cua ho
 nua, CHI HCRC moi lam duoc** (qua `units.html`/`users.html`). Truoc ban nay, tu v3.94, doi tac
 dang co toan quyen tu lam ca 2 viec tren qua chinh man tu phuc vu cua ho - nguoi dung xac nhan day

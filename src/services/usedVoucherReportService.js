@@ -194,7 +194,13 @@ async function buildExcelBuffer(rows) {
       connectionName: sanitizeExcelText(row.connectionName || '-'),
       locationsDetail: sanitizeExcelText(row.locationsDetail),
       invoiceNumber: sanitizeExcelText(row.invoiceNumber || '-'),
-      createdDate: row.createdDate ? new Date(row.createdDate) : null,
+      // v3.99 (loi that da bao cao): row.createdDate la Date da bi DATEADD(HOUR, -7, ...) o SQL
+      // (v3.89, xem ghi chu o listUsedVouchers() o tren). Ben web khong sao vi JSON gui di dang
+      // ISO string (co "Z"), trinh duyet TU doi lai +7 khi hien thi theo gio dia phuong. Nhung
+      // ExcelJS doc gio TRUC TIEP tu getTime()/cac UTC-getter cua Date (khong tu doi mui gio nhu
+      // trinh duyet) - phai CONG lai dung 7 tieng O DAY truoc khi dua vao file Excel, neu khong
+      // cell se hien THIEU 7 tieng so voi web (dung quy uoc VN_OFFSET_MS nhu emailScheduleService.js).
+      createdDate: row.createdDate ? new Date(row.createdDate.getTime() + 7 * 60 * 60 * 1000) : null,
       syncedLabel: row.synced ? 'Da dong bo' : 'Cho dong bo',
     });
   });

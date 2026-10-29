@@ -244,7 +244,11 @@ async function buildSummaryExcelBuffer({ companies, grandTotal }) {
           companyName: sanitizeExcelText(company.companyName),
           locationName: sanitizeExcelText(point.locationName),
           pointName: sanitizeExcelText(point.pointName),
-          createdDate: row.createdDate ? new Date(row.createdDate) : null,
+          // v3.99 (loi that da bao cao): row.createdDate da bi DATEADD(HOUR, -7, ...) o SQL
+          // (v3.89) - ExcelJS doc gio truc tiep tu getTime() (khong tu doi mui gio nhu trinh
+          // duyet lam cho web), phai cong lai dung 7 tieng o day - xem ghi chu day du o
+          // usedVoucherReportService.js.
+          createdDate: row.createdDate ? new Date(row.createdDate.getTime() + 7 * 60 * 60 * 1000) : null,
           userName: sanitizeExcelText(row.userName),
           transNum: sanitizeExcelText(row.transNum),
           voucherCode: sanitizeExcelText(row.voucherCode),

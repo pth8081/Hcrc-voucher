@@ -123,7 +123,11 @@ async function buildExcelBuffer(rows) {
   sheet.getRow(1).font = { bold: true };
   rows.forEach((row) => {
     sheet.addRow({
-      createdDate: row.CreatedDate ? new Date(row.CreatedDate) : null,
+      // v3.99 (loi that da bao cao, cung loi voi 3 bao cao - xem ghi chu day du o
+      // usedVoucherReportService.js): CreatedDate da bi DATEADD(HOUR, -7, ...) o SQL (v3.89) -
+      // ExcelJS doc gio truc tiep tu getTime() (khong tu doi mui gio nhu trinh duyet lam cho
+      // web), phai cong lai dung 7 tieng o day.
+      createdDate: row.CreatedDate ? new Date(row.CreatedDate.getTime() + 7 * 60 * 60 * 1000) : null,
       actor: sanitizeExcelText(row.ActorUsername),
       action: sanitizeExcelText(row.Action),
       target: sanitizeExcelText(row.TargetUsername),
