@@ -2523,7 +2523,20 @@ so version vao tieu de commit nen khong doi chieu lai duoc chinh xac). Thieu `v3
 2 lan merge do bi **revert** trong qua trinh phat trien (phat hien loi ngay sau khi merge),
 khong phai bo sot.
 
-Ban **moi nhat (v3.97)**: theo yeu cau nguoi dung - **"Quan tri doi tac" (man `partner-admin.html`)
+Ban **moi nhat (v3.98)**: theo yeu cau nguoi dung - tai khoan duoc gan **"Quan tri doi tac"** gio
+**TU DONG co san CA 3 quyen xem bao cao** (Doi soat/Tong hop/Voucher da su dung) ngay luc duoc gan,
+khong can HCRC vao man "Tai khoan" tick tay tung quyen rieng nua. Truoc ban nay, gan "Quan tri doi
+tac" chi tu bat san `CanViewReconciliation` (theo `DEFAULT_PERMISSIONS`) - `CanViewSummary`/
+`CanViewUsedVouchers` van phai tick tay rieng, gay bat tien dung nhu nguoi dung phan anh. Them
+`permissionService.js#grantReportViewAccess` (cung mau `grantEmailScheduleAccess` da co - CHI cap
+khi GAN, KHONG BAO GIO GO khi thu hoi quyen Quan tri doi tac), goi tu
+`user.controller.js#updatePartnerAdmin`. `sql/045` backfill du 3 quyen nay cho CAC tai khoan Quan
+tri doi tac DA CO SAN tu truoc, khong can doi lai tung tai khoan. Rieng tai khoan **Quan tri day
+du** (role=1, HCRC) **khong can sua gi** - `resolvePermissions()` da LUON tra ve ca 3 quyen = true
+cho ho tu truoc gio, khong phu thuoc du lieu luu trong CSDL (xac nhan lai qua demo, khong phai loi
+thuc su nhu nguoi dung ban dau nghi).
+
+Ban truoc do (v3.97): theo yeu cau nguoi dung - **"Quan tri doi tac" (man `partner-admin.html`)
 KHONG con duoc TU tao/chuyen "Cong ty doi tac" hay tu BAT "Tai khoan doi tac" cho tai khoan cua ho
 nua, CHI HCRC moi lam duoc** (qua `units.html`/`users.html`). Truoc ban nay, tu v3.94, doi tac
 dang co toan quyen tu lam ca 2 viec tren qua chinh man tu phuc vu cua ho - nguoi dung xac nhan day
@@ -2543,7 +2556,7 @@ KHONG phai y muon, nen bo han 2 kha nang nay khoi pham vi doi tac:
   chinh cua HCRC (`units.html`/`users.html`, `company.controller.js`/`user.controller.js`) giu
   nguyen KHONG doi gi - HCRC van toan quyen tao/chuyen ca 2 loai nay nhu truoc.
 
-Ban truoc do (v3.96): o **"Diem thu hoi"** o CA 3 man hinh bao cao xem truc tiep (Doi soat/
+Ban truoc do nua (v3.96): o **"Diem thu hoi"** o CA 3 man hinh bao cao xem truc tiep (Doi soat/
 Tong hop/Voucher da su dung) doi tu o chon DON sang **tick checkbox NHIEU diem CUNG luc** - theo
 yeu cau nguoi dung sau khi thay man "Lich gui email bao cao" (v3.95) da doi kieu nay, hoi lai
 "Sao ko tich ma lai chon ban nhi?" cho chinh 3 man hinh nay. Ve mat UI: o "Diem thu hoi" gio la 1
