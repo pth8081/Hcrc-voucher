@@ -238,27 +238,28 @@ async function updateScopedUserPermissions(userId, connectionId, perms, updatedB
 }
 
 /**
- * v3.94 (xem sql/043): gan/doi "Cong ty" TRUC TIEP + bat/tat "Tai khoan doi tac" cho 1 tai khoan
- * DA THUOC pham vi connectionId nay. CUNG dieu kien voi user.controller.js#updateCompany (quan
- * tri day du): CHI duoc BAT isPartnerAccount khi cong ty da chon DA LA "Cong ty doi tac"
- * (companyService.assertCanBePartnerAccount) - VA cong ty do phai THUOC DUNG pham vi doi tac nay.
- * BAT thanh cong se tu dong ep CanRedeemVoucher = 0 va go Diem tieu/dia diem hien co.
+ * v3.94 (xem sql/043): gan/doi "Cong ty" TRUC TIEP cho 1 tai khoan DA THUOC pham vi connectionId
+ * nay.
+ *
+ * v3.97 (theo yeu cau nguoi dung): doi tac KHONG con duoc tu BAT "Tai khoan doi tac" (isPartnerAccount)
+ * cho tai khoan cua ho qua duong nay nua - CHI HCRC moi lam duoc (qua users.html/
+ * user.controller.js#updateCompany, khong di qua ham nay). Nem loi 403 RO RANG ngay neu nguoi goi
+ * (du tu giao dien hay goi thang API) co gui isPartnerAccount=true, thay vi am tham bo qua - giao
+ * dien partner-admin.js cung da bo han o tick nay, day la lop chan o tang server (phong truong
+ * hop goi thang API, khong qua giao dien). Van giu nguyen cho phep gan/doi CompanyId don thuan
+ * (khong kem bat IsPartnerAccount) - vo hai, khong tu tao ra "Tai khoan doi tac" nao ca.
  */
 async function updateScopedUserCompany(userId, connectionId, { companyId, isPartnerAccount }, updatedBy) {
-  const before = await assertInScope(userId, connectionId);
+  await assertInScope(userId, connectionId);
+  if (isPartnerAccount) {
+    throw forbidden('Chi HCRC moi duoc chuyen tai khoan thanh "Tai khoan doi tac" - lien he HCRC de duoc ho tro');
+  }
   const normalizedCompanyId = companyId ? Number(companyId) : null;
   if (normalizedCompanyId) {
     const owned = await companyService.isOwnedByConnection(normalizedCompanyId, connectionId);
     if (!owned) throw forbidden('Cong ty da chon khong thuoc pham vi quan tri cua ban');
   }
-  if (isPartnerAccount) {
-    await companyService.assertCanBePartnerAccount(normalizedCompanyId);
-  }
-  await permissionService.setCompanyAndPartnerAccount(userId, { companyId: normalizedCompanyId, isPartnerAccount: !!isPartnerAccount }, updatedBy);
-  if (isPartnerAccount) {
-    await permissionService.setPermissions(userId, { ...before.permissions, canRedeemVoucher: false }, updatedBy);
-    await userAdminService.updateLocation(userId, null);
-  }
+  await permissionService.setCompanyAndPartnerAccount(userId, { companyId: normalizedCompanyId, isPartnerAccount: false }, updatedBy);
 }
 
 /** Nem loi neu redemptionUnitId KHONG thuoc dung pham vi cua connectionId nay (ke thua "chu so
@@ -331,8 +332,14 @@ async function listOwnCompanies(connectionId) {
 
 /** Tao 1 cong ty MOI, LUON danh dau CreatedByPartnerConnectionId = connectionId cua doi tac dang
  * tao (v3.76) - bo qua hoan toan gia tri nguoi goi co the gui len, dam bao cong ty moi tao luon
- * thuoc dung pham vi, hien ngay trong danh sach cua chinh doi tac do. */
-async function createOwnCompany({ companyCode, companyName, address, companyType }, connectionId) {
+ * thuoc dung pham vi, hien ngay trong danh sach cua chinh doi tac do.
+ *
+ * v3.97 (theo yeu cau nguoi dung): doi tac KHONG con duoc tu tao "Cong ty doi tac" nua - CHI HCRC
+ * (qua units.html/company.controller.js, khong di qua ham nay) moi duoc tao/chuyen loai cong ty
+ * nay. BO QUA hoan toan companyType nguoi goi co the gui len (du doi tac co y goi thang API voi
+ * companyType='PARTNER') - khong nhan tham so nay nua, companyService.create() tu mac dinh ve
+ * REDEMPTION khi khong truyen gi (xem normalizeCompanyType()). */
+async function createOwnCompany({ companyCode, companyName, address }, connectionId) {
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
   if (!companyName || !String(companyName).trim()) throw badRequest('Thieu ten cong ty');
   return companyService.create({
@@ -340,7 +347,6 @@ async function createOwnCompany({ companyCode, companyName, address, companyType
     companyName: String(companyName).trim(),
     address: address ? String(address).trim() : null,
     createdByPartnerConnectionId: connectionId,
-    companyType,
   });
 }
 
@@ -355,8 +361,14 @@ async function createOwnCompany({ companyCode, companyName, address, companyType
  * KHONG BAO GIO nhan/ghi `createdByPartnerConnectionId` qua duong nay (chi liet ke ro 3 truong
  * duoc sua: companyCode, companyName, address) - tranh doi tac tu doi "chu so huu" cua chinh
  * cong ty minh dang sua (vd tu nhan cong ty do la cua doi tac khac, hoac tu "tra lai" cho HCRC).
+ *
+ * v3.97 (theo yeu cau nguoi dung): doi tac KHONG con tu doi CompanyType qua duong nay nua (ca 2
+ * chieu REDEMPTION<->PARTNER) - CHI HCRC moi doi duoc (qua units.html/company.controller.js).
+ * KHONG nhan tham so companyType nua - companyService.update() da san co hanh vi "khong truyen
+ * companyType = KHONG DONG GI den cot nay" (xem setCompanyTypeClause), nen cong ty giu nguyen
+ * dung loai hien co du doi tac co sua cac truong khac.
  */
-async function updateOwnCompany(id, { companyCode, companyName, address, companyType }, connectionId, updatedBy) {
+async function updateOwnCompany(id, { companyCode, companyName, address }, connectionId, updatedBy) {
   const owned = await companyService.isOwnedByConnection(Number(id), connectionId);
   if (!owned) throw forbidden('Cong ty nay khong thuoc pham vi quan ly cua ban');
   if (!companyCode || !String(companyCode).trim()) throw badRequest('Thieu ma cong ty');
@@ -367,7 +379,6 @@ async function updateOwnCompany(id, { companyCode, companyName, address, company
       companyCode: String(companyCode).trim(),
       companyName: String(companyName).trim(),
       address: address ? String(address).trim() : null,
-      companyType,
     },
     updatedBy
   );

@@ -447,7 +447,20 @@ function renderEditPanel(u) {
     ${selectHtml}
     ${hintHtml || ''}`;
 
-  const locationField = u.exclusiveToThisSystem
+  // v3.97: doi tac khong con tu BAT "Tai khoan doi tac" duoc nua (xem partnerAdminService.js#
+  // updateScopedUserCompany) - nhung 1 tai khoan DA duoc HCRC chuyen thanh "Tai khoan doi tac" tu
+  // truoc van co the xuat hien trong danh sach nay (tai khoan do CHINH doi tac tao, duoc HCRC sua
+  // sau do). Voi tai khoan nay, Diem tieu LUON rong (server da go khi chuyen) nen khong con y
+  // nghia gi de cho chon/sua - hien RO RANG la tai khoan doi tac thay vi 1 o chon rong kho hieu.
+  const isPartnerAcct = !!(u.permissions && u.permissions.isPartnerAccount);
+  const locationField = isPartnerAcct
+    ? `
+    <label>Điểm tiêu</label>
+    <div class="loc-readonly">
+      Đây là <strong>Tài khoản đối tác</strong> (do HCRC chuyển) - không gán Điểm tiêu, không thu hồi được voucher.
+      Chỉ <strong>quản trị viên HCRC</strong> mới đổi được trạng thái này.
+    </div>`
+    : u.exclusiveToThisSystem
     ? extraField(
         'Điểm tiêu',
         `<select class="edit-location-select">
@@ -467,6 +480,21 @@ function renderEditPanel(u) {
       Điểm tiêu hiện tại: <strong>${escapeHtml(u.locationName || '(chưa gán)')}</strong> — tài khoản này đang dùng chung hệ thống khác,
       chỉ <strong>quản trị viên HCRC</strong> mới đổi được điểm tiêu cho tài khoản dùng chung. Liên hệ HCRC nếu cần thay đổi.
     </div>`;
+
+  // v3.97: "Cong ty"/"Tai khoan doi tac" chuyen thanh CHI XEM (truoc day la select + checkbox cho
+  // doi tac tu sua) - chi hien dong nay khi co gi do THAT SU dang gan (companyId hoac da la tai
+  // khoan doi tac), giu giao dien gon nhu truoc khi co tinh nang nay (v3.94) cho da so tai khoan
+  // thuong (khong gan Cong ty truc tiep).
+  const linkedCompany = u.permissions && u.permissions.companyId ? ownCompaniesCache.find((c) => c.Id === u.permissions.companyId) : null;
+  const companyField =
+    linkedCompany || isPartnerAcct
+      ? `
+    <label class="mt-10">Công ty</label>
+    <div class="loc-readonly">
+      ${linkedCompany ? escapeHtml(linkedCompany.CompanyName) : '(chưa gán)'}${isPartnerAcct ? ' — <strong>Tài khoản đối tác</strong>' : ''}
+      — chỉ <strong>quản trị viên HCRC</strong> mới gán/đổi được.
+    </div>`
+      : '';
 
   const reportAccessField = u.exclusiveToThisSystem
     ? extraField(
@@ -507,20 +535,7 @@ function renderEditPanel(u) {
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canManageEmailSchedules" ${u.permissions && u.permissions.canManageEmailSchedules ? 'checked' : ''} /> Lịch gửi email báo cáo</label>
     </div>
 
-    <label class="mt-10">Công ty</label>
-    <select class="edit-company-select">
-      <option value="">-- Chưa gán công ty --</option>
-      ${ownCompaniesCache
-        .map(
-          (c) =>
-            `<option value="${c.Id}" ${u.permissions && u.permissions.companyId === c.Id ? 'selected' : ''}>${escapeHtml(c.CompanyName)}${c.CompanyType === 'PARTNER' ? ' (Công ty đối tác)' : ''}</option>`
-        )
-        .join('')}
-    </select>
-    <label class="perm-item mt-6">
-      <input type="checkbox" class="checkbox-input edit-is-partner-account" ${u.permissions && u.permissions.isPartnerAccount ? 'checked' : ''} /> Tài khoản đối tác
-    </label>
-    <p class="hint" style="margin:4px 0 0;">Chỉ bật được khi Công ty ở trên đã là "Công ty đối tác" - tài khoản sẽ mất chức năng thu hồi và không gán được Điểm tiêu.</p>
+    ${companyField}
 
     ${locationField}
     ${reportAccessField}
@@ -534,16 +549,6 @@ function renderEditPanel(u) {
 function wireEditPanelHandlers() {
   accList.querySelectorAll('.save-edit-btn').forEach((btn) => {
     btn.addEventListener('click', () => saveEdit(btn.closest('.edit-panel')));
-  });
-  accList.querySelectorAll('.edit-is-partner-account').forEach((cb) => {
-    const panel = cb.closest('.edit-panel');
-    const locationSelect = panel ? panel.querySelector('.edit-location-select') : null;
-    if (!locationSelect) return;
-    locationSelect.disabled = cb.checked;
-    cb.addEventListener('change', () => {
-      locationSelect.disabled = cb.checked;
-      if (cb.checked) locationSelect.value = '';
-    });
   });
 }
 
@@ -559,8 +564,6 @@ async function saveEdit(panel) {
   });
   const locationSelect = panel.querySelector('.edit-location-select');
   const reportAccessSelect = panel.querySelector('.edit-report-access-select');
-  const companyId = panel.querySelector('.edit-company-select').value || null;
-  const isPartnerAccount = panel.querySelector('.edit-is-partner-account').checked;
 
   const btn = panel.querySelector('.save-edit-btn');
   btn.disabled = true;
@@ -573,13 +576,10 @@ async function saveEdit(panel) {
       method: 'PUT',
       body: JSON.stringify({ ...perms, username }),
     });
-    await apiFetch(`/partner-admin/users/${userId}/company`, {
-      method: 'PUT',
-      body: JSON.stringify({ companyId, isPartnerAccount, username }),
-    });
-    // "Tai khoan doi tac" -> server tu go Diem tieu (xem partnerAdminService.js#updateScopedUserCompany) -
-    // BO QUA goi nay de tranh 2 request doi Locations_Detail dong thoi (giong users.js#saveUser).
-    if (locationSelect && !isPartnerAccount) {
+    // v3.97: doi tac khong con tu gan Cong ty/bat "Tai khoan doi tac" duoc nua (xem
+    // partnerAdminService.js#updateScopedUserCompany) - bo luon request nay, chi HCRC moi lam
+    // duoc qua man "Tai khoan" (users.html).
+    if (locationSelect) {
       await apiFetch(`/partner-admin/users/${userId}/location`, {
         method: 'PUT',
         body: JSON.stringify({ redemptionUnitId: locationSelect.value || null, username }),
@@ -764,13 +764,24 @@ function applyOrgFilter() {
 }
 orgSearchInput.addEventListener('input', applyOrgFilter);
 
+// v3.97 (theo yeu cau nguoi dung): doi tac khong con tu tao/chuyen "Cong ty doi tac" duoc nua -
+// chi HCRC moi lam duoc. O "Loai cong ty" bo han khoi form (khong con chon duoc), thay bang 1
+// dong CHI XEM khi cong ty dang sua DA la "Cong ty doi tac" (do HCRC thiet lap) de doi tac van
+// biet ro, chi khong sua duoc.
+const companyTypeNotice = document.getElementById('companyTypeNotice');
+
 function populateCompanyEditForm(c) {
   editingOwnCompanyId = c.Id;
   companyFormTitle.textContent = `Sửa công ty: ${c.CompanyName}`;
   document.getElementById('newCompanyCode').value = c.CompanyCode || '';
   document.getElementById('newCompanyName').value = c.CompanyName || '';
   document.getElementById('newCompanyAddress').value = c.Address || '';
-  document.getElementById('newCompanyType').value = c.CompanyType === 'PARTNER' ? 'PARTNER' : 'REDEMPTION';
+  if (c.CompanyType === 'PARTNER') {
+    companyTypeNotice.textContent = 'Đây là "Công ty đối tác" (do HCRC thiết lập) - không có điểm tiêu, tài khoản gắn vào không thu hồi được. Chỉ HCRC mới đổi lại loại công ty này.';
+    companyTypeNotice.classList.remove('hidden');
+  } else {
+    companyTypeNotice.classList.add('hidden');
+  }
   createCompanyBtn.textContent = 'Cập nhật công ty';
   cancelCompanyEditBtn.classList.remove('hidden');
   createCompanyBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -782,7 +793,7 @@ function resetCompanyEditForm() {
   document.getElementById('newCompanyCode').value = '';
   document.getElementById('newCompanyName').value = '';
   document.getElementById('newCompanyAddress').value = '';
-  document.getElementById('newCompanyType').value = 'REDEMPTION';
+  companyTypeNotice.classList.add('hidden');
   createCompanyBtn.textContent = 'Tạo công ty';
   cancelCompanyEditBtn.classList.add('hidden');
 }
@@ -837,50 +848,24 @@ async function deleteOwnUnit(id) {
   }
 }
 
-/** Giong het units.js#confirmConvertToPartnerIfNeeded - hoi xac nhan TRUOC khi CHUYEN 1 cong ty
- * cua doi tac DANG co Diem tieu/tai khoan sang "Cong ty doi tac" (xem sql/043). */
-async function confirmConvertToPartnerIfNeeded(companyId, newType) {
-  if (!companyId || newType !== 'PARTNER') return true;
-  const current = ownCompaniesCache.find((c) => c.Id === companyId);
-  if (!current || current.CompanyType === 'PARTNER') return true;
-  let preview;
-  try {
-    preview = await apiFetch(`/partner-admin/companies/${companyId}/convert-preview`);
-  } catch (err) {
-    showToast(err.message);
-    return false;
-  }
-  if (!preview.unitCount && !preview.accountCount) return true;
-  return confirm(
-    `Công ty "${current.CompanyName}" hiện đang có ${preview.unitCount} điểm tiêu và ${preview.accountCount} tài khoản đang gắn vào. ` +
-      `Chuyển sang "Công ty đối tác" sẽ GỠ hết điểm tiêu khỏi công ty này (không xóa, chỉ gỡ liên kết) ` +
-      `và TẮT chức năng thu hồi voucher của các tài khoản đó (tự động đổi thành "Tài khoản đối tác"). ` +
-      `Dữ liệu đã thu hồi trước đó vẫn được giữ nguyên trong lịch sử. Bạn có chắc chắn muốn chuyển?`
-  );
-}
-
 createCompanyBtn.addEventListener('click', async () => {
   const companyCode = document.getElementById('newCompanyCode').value.trim();
   const companyName = document.getElementById('newCompanyName').value.trim();
   const address = document.getElementById('newCompanyAddress').value.trim();
-  const companyType = document.getElementById('newCompanyType').value;
   if (!companyCode || !companyName) return showToast('Vui lòng nhập Mã công ty và Tên công ty');
-
-  if (!(await confirmConvertToPartnerIfNeeded(editingOwnCompanyId, companyType))) return;
 
   createCompanyBtn.disabled = true;
   try {
     if (editingOwnCompanyId) {
-      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName, address, companyType }) });
+      await apiFetch(`/partner-admin/companies/${editingOwnCompanyId}`, { method: 'PUT', body: JSON.stringify({ companyCode, companyName, address }) });
       showToast(`Đã cập nhật công ty "${companyName}"`);
       resetCompanyEditForm();
     } else {
-      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName, address, companyType }) });
+      await apiFetch('/partner-admin/companies', { method: 'POST', body: JSON.stringify({ companyCode, companyName, address }) });
       showToast(`Đã tạo công ty "${companyName}"`);
       document.getElementById('newCompanyCode').value = '';
       document.getElementById('newCompanyName').value = '';
       document.getElementById('newCompanyAddress').value = '';
-      document.getElementById('newCompanyType').value = 'REDEMPTION';
     }
     await loadOrg();
   } catch (err) {
