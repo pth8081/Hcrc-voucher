@@ -196,7 +196,7 @@ async function dailyReconciliation({ fromDate, toDate, locationsDetail, visibleL
       DATEADD(HOUR, -7, vs.Created_Date) AS Created_Date,
       vs.Status, vs.Locations_Group, vs.Location_GroupName, vs.Locations_Detail, vs.Location_DetailName,
       rc.CompanyName, ru.PartnerName AS UnitName,
-      vs.VALUE_AMT, vs.Sync, vrc.ConnectionName, vri.InvoiceNumber
+      vs.VALUE_AMT, vs.Sync, vrc.ConnectionName, vri.InvoiceNumber, vrc.ExpiryDate
     FROM dbo.VOUCHER_SYNC vs
     ${LOCATION_MAPPING_JOIN}
     ${VOUCHER_CONNECTION_JOIN}
@@ -327,6 +327,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     { header: 'Ngay gio', key: 'createdDate', width: 20 },
     { header: 'Ma giao dich', key: 'transNum', width: 22 },
     { header: 'Ma voucher', key: 'voucherCode', width: 18 },
+    { header: 'Thoi han', key: 'expiryDate', width: 16 },
     { header: 'Serial', key: 'voucherSerial', width: 18 },
     { header: 'Nguoi thu hoi', key: 'userName', width: 24 },
     { header: 'Cong ty', key: 'companyName', width: 24 },
@@ -347,6 +348,10 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
       createdDate: row.Created_Date ? new Date(row.Created_Date.getTime() + 7 * 60 * 60 * 1000) : null,
       transNum: sanitizeExcelText(row.TRANS_NUM),
       voucherCode: sanitizeExcelText(row.Voucher_Code),
+      // Khac voi createdDate o tren: ExpiryDate KHONG di qua GETDATE() SQL (ghi truc tiep tu 1
+      // Date object JS luc thu hoi - xem voucherService.js), nen KHONG bi loi lech 7 tieng kieu
+      // v3.89/v3.99 - giu nguyen khong cong/tru gio.
+      expiryDate: row.ExpiryDate || null,
       voucherSerial: sanitizeExcelText(row.Voucher_Serial),
       userName: sanitizeExcelText(row.User_Name),
       companyName: sanitizeExcelText(row.CompanyName || '-'),
@@ -360,6 +365,7 @@ async function buildReconciliationExcelBuffer({ summary, details }) {
     });
   });
   detailSheet.getColumn('createdDate').numFmt = 'dd/mm/yyyy hh:mm';
+  detailSheet.getColumn('expiryDate').numFmt = 'dd/mm/yyyy';
   detailSheet.getColumn('valueAmt').numFmt = '#,##0';
 
   return workbook.xlsx.writeBuffer();

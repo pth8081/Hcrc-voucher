@@ -26,7 +26,7 @@ function buildQuery() {
 
 async function loadReport() {
   summaryBody.innerHTML = '<tr><td colspan="5" class="text-muted">Đang tải...</td></tr>';
-  detailBody.innerHTML = '<tr><td colspan="10" class="text-muted">Đang tải...</td></tr>';
+  detailBody.innerHTML = '<tr><td colspan="11" class="text-muted">Đang tải...</td></tr>';
   try {
     const data = await apiFetch(`/reports/daily?${buildQuery()}`);
     renderSummary(data.summary, data.unassignedLocation);
@@ -35,7 +35,7 @@ async function loadReport() {
     showToast(err.message);
     const errHtml = `<td colspan="COLSPAN" class="text-danger">Lỗi tải dữ liệu: ${escapeHtml(err.message)}. Vui lòng thử lại.</td>`;
     summaryBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '5')}</tr>`;
-    detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '10')}</tr>`;
+    detailBody.innerHTML = `<tr>${errHtml.replace('COLSPAN', '11')}</tr>`;
   }
 }
 
@@ -64,11 +64,11 @@ function renderSummary(rows, unassignedLocation) {
 
 function renderDetails(rows, unassignedLocation) {
   if (unassignedLocation) {
-    detailBody.innerHTML = '<tr><td colspan="10" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="11" class="text-danger">Tài khoản của bạn chưa được gán địa điểm/nhóm quyền xem báo cáo - vui lòng liên hệ quản trị viên.</td></tr>';
     return;
   }
   if (!rows.length) {
-    detailBody.innerHTML = '<tr><td colspan="10" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
+    detailBody.innerHTML = '<tr><td colspan="11" class="text-muted">Không có giao dịch trong khoảng ngày đã chọn</td></tr>';
     return;
   }
   detailBody.innerHTML = rows
@@ -78,6 +78,7 @@ function renderDetails(rows, unassignedLocation) {
         <td data-label="Ngày giờ">${fmtDate(r.Created_Date)}</td>
         <td data-label="Mã giao dịch">${escapeHtml(r.TRANS_NUM || '-')}</td>
         <td data-label="Mã voucher">${escapeHtml(r.Voucher_Code)}</td>
+        <td data-label="Thời hạn">${fmtDate(r.ExpiryDate)}</td>
         <td data-label="Người thu hồi">${escapeHtml(r.User_Name || '-')}</td>
         <td data-label="Công ty">${escapeHtml(r.CompanyName || '-')}</td>
         <td data-label="Địa điểm">${escapeHtml(r.Location_DetailName || r.Locations_Detail)}</td>

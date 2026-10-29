@@ -38,6 +38,8 @@ async function create(req, res, next) {
     if (!validateBody(req.body, res)) return;
     const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
     if (caError) return res.status(400).json({ success: false, message: caError });
+    const filterError = apiConnectionService.validateCodePrefixFilterConfig(req.body);
+    if (filterError) return res.status(400).json({ success: false, message: filterError });
     const id = await apiConnectionService.create({ ...req.body, updatedBy: req.user.username });
     await auditLogService.log({
       actorUsername: req.user.username,
@@ -58,6 +60,8 @@ async function update(req, res, next) {
     if (!validateBody(req.body, res)) return;
     const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
     if (caError) return res.status(400).json({ success: false, message: caError });
+    const filterError = apiConnectionService.validateCodePrefixFilterConfig(req.body);
+    if (filterError) return res.status(400).json({ success: false, message: filterError });
     // L6: getById() tra ve DTO da mask secret - an toan de ghi vao audit log. Lay TRUOC khi sua.
     const before = await apiConnectionService.getById(req.params.id);
     await apiConnectionService.update(req.params.id, { ...req.body, updatedBy: req.user.username });
@@ -171,6 +175,26 @@ async function resolveTestConnection(req, res) {
   return null;
 }
 
+/**
+ * Theo yeu cau nguoi dung (sau khi phat hien qua "Test kiem tra" van kiem tra duoc 1 ma dang bi
+ * loai tru): CA 2 cong cu test ("Test kiem tra" la ngon_doc, "Test thu hoi" tieu that) deu PHAI
+ * tuan theo dung cau hinh loc tien to dang ap dung cho ket noi, giong het luong quet/thu hoi
+ * thuc te (xem voucherService.js#checkPrefixFilter) - de 2 man hinh test duoc CHINH tinh nang
+ * loc nay cho dung nhu khi dung that, khong con lech hanh vi giua "test" va "that".
+ */
+function respondIfPrefixFiltered(connection, voucherCode, res) {
+  const blocked = apiConnectionService.matchPrefixFilter(connection, voucherCode);
+  if (!blocked) return false;
+  res.status(400).json({
+    success: false,
+    message:
+      blocked.mode === 'INCLUDE'
+        ? `Ma khong trung tien to nao duoc chap nhan (${blocked.allowedPrefixes.join(', ')}) - tu choi test de dung cau hinh loc hien tai cua ket noi.`
+        : `Ma trung tien to bi loai tru "${blocked.matchedPrefix}" - tu choi test de dung cau hinh loc hien tai cua ket noi.`,
+  });
+  return true;
+}
+
 /** Test kiem tra voucher (an toan - chi doc, khong lam thay doi trang thai voucher that). */
 async function testCheck(req, res, next) {
   try {
@@ -179,6 +203,7 @@ async function testCheck(req, res, next) {
 
     const connection = await resolveTestConnection(req, res);
     if (!connection) return;
+    if (respondIfPrefixFiltered(connection, voucherCode, res)) return;
 
     try {
       const result = await callDynamic(connection, 'check', { code: voucherCode });
@@ -230,6 +255,7 @@ async function testRedeem(req, res, next) {
 
     const connection = await resolveTestConnection(req, res);
     if (!connection) return;
+    if (respondIfPrefixFiltered(connection, voucherCode, res)) return;
 
     const transNum = generateTransNum();
     const vars = {

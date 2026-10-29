@@ -52,16 +52,28 @@ async function resolveAllowedConnectionId(userId, requestedConnectionId) {
 }
 
 /**
- * Kiem tra ma voucher co trung 1 tien to BI LOAI TRU cua ket noi (connectionId, hoac ket noi
- * active neu connectionId rong) hay khong - so khop CHINH XAC tung ky tu bang voucherCode.startsWith(),
- * KHONG phai gan dung/khong phan biet hoa thuong. Tra ve null neu khong trung tien to nao (duoc
- * quet/thu hoi binh thuong), hoac { matchedPrefix, connectionName } neu trung - dung de tu choi
- * NGAY truoc khi goi Core API, xem checkVoucher()/redeemVoucher() ben duoi.
+ * Kiem tra ma voucher co bi CHAN boi cau hinh loc tien to cua ket noi (connectionId, hoac ket noi
+ * active neu connectionId rong) hay khong - 2 che do loai tru nhau (xem apiConnectionService.js):
+ * EXCLUDE (blacklist, mac dinh) - chan ma trung 1 trong cac tien to BI LOAI TRU; INCLUDE
+ * (whitelist) - chan ma KHONG trung bat ky tien to nao trong danh sach DUOC CHAP NHAN. So khop
+ * CHINH XAC tung ky tu bang voucherCode.startsWith(), KHONG phai gan dung/khong phan biet hoa
+ * thuong. Tra ve null neu khong bi chan (duoc quet/thu hoi binh thuong), hoac thong tin ly do chan
+ * - dung de tu choi NGAY truoc khi goi Core API, xem checkVoucher()/redeemVoucher() ben duoi.
  */
-async function checkExclusion(connectionId, voucherCode) {
-  const { connectionName, prefixes } = await apiConnectionService.getExclusionConfig(connectionId);
-  const matchedPrefix = prefixes.find((p) => voucherCode.startsWith(p));
-  return matchedPrefix ? { matchedPrefix, connectionName } : null;
+async function checkPrefixFilter(connectionId, voucherCode) {
+  const config = await apiConnectionService.getPrefixFilterConfig(connectionId);
+  const blocked = apiConnectionService.matchPrefixFilter(config, voucherCode);
+  if (!blocked) return null;
+  return { ...blocked, connectionName: config.connectionName };
+}
+
+/** Dong log mo ta ly do bi chan (dung chung cho checkVoucher/redeemOneVoucher) - xem checkPrefixFilter(). */
+function describePrefixFilterBlock(blocked) {
+  const connName = blocked.connectionName || '';
+  if (blocked.mode === 'INCLUDE') {
+    return `Ma khong trung tien to nao duoc chap nhan theo cau hinh he thong "${connName}" (danh sach chap nhan: "${blocked.allowedPrefixes.join(', ')}"), khong goi Core API`;
+  }
+  return `Ma bi loai tru theo cau hinh he thong "${connName}" (trung tien to "${blocked.matchedPrefix}"), khong goi Core API`;
 }
 
 /**
@@ -165,6 +177,19 @@ const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
  * THEO HUONG KHONG CHAN NHAM (Core van la nguon xac nhan chinh cho trang thai UNUSED/USED, kiem
  * tra nay chi la 1 lop phong ho THEM, khong thay the).
  */
+/**
+ * Chuyen 1 gia tri ngay (chuoi tho tu Core, qua mapping do admin tu cau hinh) thanh Date object
+ * HOP LE, hoac null neu thieu/khong parse duoc - dung truoc khi ghi vao cot SQL DateTime (vd
+ * ExpiryDate o VoucherRedemptionConnections) de tranh truyen 1 Invalid Date lam that bai CA
+ * GIAO DICH thu hoi dang trong CUNG 1 transaction chi vi Core tra ve dinh dang ngay la (tinh nang
+ * hien thi "Thoi han" KHONG duoc phep anh huong nghiep vu thu hoi chinh).
+ */
+function toSafeDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function isExpiredByDate(expiryDateStr) {
   if (!expiryDateStr) return false;
   const expiry = new Date(expiryDateStr);
@@ -198,7 +223,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
     );
 
-    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    const excluded = await withDiagnostic('kiem tra cau hinh loc tien to ma', () => checkPrefixFilter(connectionId, voucherCode));
     if (excluded) {
       guessGuard.recordResult(user.userId, false);
       await logScan({
@@ -207,7 +232,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
         scanMethod,
         action: 'CHECK',
         resultStatus: 'EXCLUDED',
-        message: `Ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        message: describePrefixFilterBlock(excluded),
         connectionName: excluded.connectionName,
       });
       return {
@@ -344,7 +369,7 @@ async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, conne
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
     );
 
-    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    const excluded = await withDiagnostic('kiem tra cau hinh loc tien to ma', () => checkPrefixFilter(connectionId, voucherCode));
     if (excluded) {
       guessGuard.recordResult(user.userId, false);
       await logScan({
@@ -354,7 +379,7 @@ async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, conne
         action: 'REDEEM',
         resultStatus: 'EXCLUDED',
         clientIp,
-        message: `Tu choi thu hoi: ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        message: `Tu choi thu hoi: ${describePrefixFilterBlock(excluded)}`,
         connectionName: excluded.connectionName,
       });
       return {
@@ -840,14 +865,21 @@ async function redeemAndInsertGuarded({ user, transNum, voucherCode, precheck, c
       // TRANS_NUM - CUNG transaction voi INSERT VOUCHER_SYNC o tren, de 2 ban ghi luon nhat quan
       // voi nhau. Can thiet de syncRetryService.js biet goi lai DUNG he thong khi giao dich nay
       // dang "cho dong bo" (xem sql/027_create_voucher_redemption_connections.sql).
+      //
+      // ExpiryDate (sql/048): han su dung voucher, lay tu KET QUA KIEM TRA Core NGAY TRUOC luc
+      // thu hoi (precheck - cung 1 request da dung de xac nhan UNUSED/chua het han o tren), vi
+      // ban than lenh thu hoi (redeemResult/Core redeem response) KHONG tra ve truong nay (xem
+      // apiConnectionService.js - redeemMapping khong co expiryDatePath). Dung cho cot "Thoi han"
+      // tren 3 man hinh bao cao (xem reportService.js/summaryReportService.js/usedVoucherReportService.js).
       await transaction
         .request()
         .input('transNum', sql.Char(18), transNum)
         .input('connectionId', sql.Int, connectionId || null)
         .input('connectionName', sql.NVarChar(100), redeemResult.connectionName || null)
+        .input('expiryDate', sql.DateTime, toSafeDate(precheck.expiryDate))
         .query(`
-          INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName)
-          VALUES (@transNum, @connectionId, @connectionName)
+          INSERT INTO dbo.VoucherRedemptionConnections (TransNum, ConnectionId, ConnectionName, ExpiryDate)
+          VALUES (@transNum, @connectionId, @connectionName, @expiryDate)
         `);
 
       // So hoa don (v3.80, TUY CHON): CUNG transaction voi 2 INSERT o tren, de nhat quan - chi
