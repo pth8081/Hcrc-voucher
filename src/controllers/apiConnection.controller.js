@@ -38,6 +38,8 @@ async function create(req, res, next) {
     if (!validateBody(req.body, res)) return;
     const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
     if (caError) return res.status(400).json({ success: false, message: caError });
+    const filterError = apiConnectionService.validateCodePrefixFilterConfig(req.body);
+    if (filterError) return res.status(400).json({ success: false, message: filterError });
     const id = await apiConnectionService.create({ ...req.body, updatedBy: req.user.username });
     await auditLogService.log({
       actorUsername: req.user.username,
@@ -58,6 +60,8 @@ async function update(req, res, next) {
     if (!validateBody(req.body, res)) return;
     const caError = apiConnectionService.validateCustomCaCert(req.body.customCaCert);
     if (caError) return res.status(400).json({ success: false, message: caError });
+    const filterError = apiConnectionService.validateCodePrefixFilterConfig(req.body);
+    if (filterError) return res.status(400).json({ success: false, message: filterError });
     // L6: getById() tra ve DTO da mask secret - an toan de ghi vao audit log. Lay TRUOC khi sua.
     const before = await apiConnectionService.getById(req.params.id);
     await apiConnectionService.update(req.params.id, { ...req.body, updatedBy: req.user.username });
@@ -230,6 +234,24 @@ async function testRedeem(req, res, next) {
 
     const connection = await resolveTestConnection(req, res);
     if (!connection) return;
+
+    // Theo phan anh nguoi dung: "Test thu hoi" TIEU VOUCHER THAT (khac han "Test kiem tra" chi
+    // doc) nen PHAI tuan theo dung cau hinh loc tien to dang ap dung cho ket noi nay, giong luong
+    // quet/thu hoi thuc te (xem voucherService.js#checkPrefixFilter) - neu khong, admin test co
+    // the vo tinh tieu mat 1 voucher dang nam trong danh sach bi chan. "Test kiem tra" (testCheck
+    // ben duoi) CO TINH giu nguyen KHONG loc, vi no la cong cu CHAN DOAN read-only, dung de kiem
+    // tra chinh xac 1 ma dang bi loai co dung nhu mong doi hay khong - loc o do se tu lam mat kha
+    // nang chan doan nay.
+    const blocked = apiConnectionService.matchPrefixFilter(connection, voucherCode);
+    if (blocked) {
+      return res.status(400).json({
+        success: false,
+        message:
+          blocked.mode === 'INCLUDE'
+            ? `Ma khong trung tien to nao duoc chap nhan (${blocked.allowedPrefixes.join(', ')}) - tu choi thu hoi de dung cau hinh loc hien tai cua ket noi.`
+            : `Ma trung tien to bi loai tru "${blocked.matchedPrefix}" - tu choi thu hoi de dung cau hinh loc hien tai cua ket noi.`,
+      });
+    }
 
     const transNum = generateTransNum();
     const vars = {

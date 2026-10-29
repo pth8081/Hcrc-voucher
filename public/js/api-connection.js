@@ -12,6 +12,8 @@ init();
 
 async function init() {
   el('f_authType').addEventListener('change', updateAuthFieldsVisibility);
+  el('f_filterModeExclude').addEventListener('change', updatePrefixFilterModeVisibility);
+  el('f_filterModeInclude').addEventListener('change', updatePrefixFilterModeVisibility);
   el('f_checkParamMode').addEventListener('change', updateCheckParamNameVisibility);
   el('f_redeemParamMode').addEventListener('change', updateRedeemParamNameVisibility);
   el('addCheckMapRow').addEventListener('click', () => addMapRow('checkStatusMapRows'));
@@ -62,7 +64,12 @@ async function loadList() {
             <strong>${escapeHtml(c.name)}</strong>${c.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}${c.isLocked ? '<span class="badge-locked">ĐÃ KHÓA</span>' : ''}
             <div class="conn-row-url">${escapeHtml(c.baseUrl)}</div>
             ${
-              c.excludedCodePrefixes && c.excludedCodePrefixes.length
+              c.codePrefixFilterMode === 'INCLUDE' && c.allowedCodePrefixes && c.allowedCodePrefixes.length
+                ? `<div class="conn-row-url">Chỉ chấp nhận tiền tố: ${c.allowedCodePrefixes.map((p) => `<code>${escapeHtml(p)}</code>`).join(', ')}</div>`
+                : ''
+            }
+            ${
+              c.codePrefixFilterMode !== 'INCLUDE' && c.excludedCodePrefixes && c.excludedCodePrefixes.length
                 ? `<div class="conn-row-url">Loại trừ tiền tố: ${c.excludedCodePrefixes.map((p) => `<code>${escapeHtml(p)}</code>`).join(', ')}</div>`
                 : ''
             }
@@ -172,7 +179,10 @@ function resetForm() {
   el('f_name').value = '';
   el('f_baseUrl').value = '';
   el('f_timeoutMs').value = 8000;
+  el('f_filterModeExclude').checked = true;
   el('f_excludedCodePrefixes').value = '';
+  el('f_allowedCodePrefixes').value = '';
+  updatePrefixFilterModeVisibility();
   el('f_customCaCert').value = '';
   el('f_customCaCertFile').value = '';
 
@@ -232,6 +242,9 @@ function populateForm(conn) {
   el('f_baseUrl').value = conn.baseUrl || '';
   el('f_timeoutMs').value = conn.timeoutMs || 8000;
   el('f_excludedCodePrefixes').value = (conn.excludedCodePrefixes || []).join(', ');
+  el('f_allowedCodePrefixes').value = (conn.allowedCodePrefixes || []).join(', ');
+  el(conn.codePrefixFilterMode === 'INCLUDE' ? 'f_filterModeInclude' : 'f_filterModeExclude').checked = true;
+  updatePrefixFilterModeVisibility();
   el('f_customCaCert').value = conn.customCaCert || '';
   el('f_customCaCertFile').value = '';
   el('f_authType').value = conn.authType || 'NONE';
@@ -314,6 +327,16 @@ function updateRedeemParamNameVisibility() {
   el('redeemParamNameWrap').classList.toggle('hidden', mode !== 'QUERY');
 }
 
+function getCodePrefixFilterMode() {
+  return el('f_filterModeInclude').checked ? 'INCLUDE' : 'EXCLUDE';
+}
+
+function updatePrefixFilterModeVisibility() {
+  const mode = getCodePrefixFilterMode();
+  el('excludeModeFields').classList.toggle('hidden', mode === 'INCLUDE');
+  el('includeModeFields').classList.toggle('hidden', mode !== 'INCLUDE');
+}
+
 function addMapRow(containerId, rawKey = '', mappedValue = '') {
   const container = el(containerId);
   const row = document.createElement('div');
@@ -367,7 +390,9 @@ function collectFormData() {
     name: el('f_name').value.trim(),
     baseUrl: el('f_baseUrl').value.trim(),
     timeoutMs: Number(el('f_timeoutMs').value) || 8000,
+    codePrefixFilterMode: getCodePrefixFilterMode(),
     excludedCodePrefixes: el('f_excludedCodePrefixes').value.trim() || null,
+    allowedCodePrefixes: el('f_allowedCodePrefixes').value.trim() || null,
     customCaCert: el('f_customCaCert').value.trim() || null,
     authType: el('f_authType').value,
     authToken: readAuthTokenField(),
@@ -416,6 +441,10 @@ async function save(activateAfter) {
   }
   if (!payload.name || !payload.baseUrl || !payload.checkPath || !payload.redeemPath) {
     showToast('Vui lòng nhập Tên, Base URL, Path kiểm tra và Path thu hồi');
+    return;
+  }
+  if (payload.codePrefixFilterMode === 'INCLUDE' && !payload.allowedCodePrefixes) {
+    showToast('Đã chọn "Chỉ chấp nhận tiền tố" nhưng chưa nhập tiền tố nào - vui lòng nhập ít nhất 1 tiền tố được chấp nhận.');
     return;
   }
 

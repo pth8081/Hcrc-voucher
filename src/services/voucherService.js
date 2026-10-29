@@ -52,16 +52,28 @@ async function resolveAllowedConnectionId(userId, requestedConnectionId) {
 }
 
 /**
- * Kiem tra ma voucher co trung 1 tien to BI LOAI TRU cua ket noi (connectionId, hoac ket noi
- * active neu connectionId rong) hay khong - so khop CHINH XAC tung ky tu bang voucherCode.startsWith(),
- * KHONG phai gan dung/khong phan biet hoa thuong. Tra ve null neu khong trung tien to nao (duoc
- * quet/thu hoi binh thuong), hoac { matchedPrefix, connectionName } neu trung - dung de tu choi
- * NGAY truoc khi goi Core API, xem checkVoucher()/redeemVoucher() ben duoi.
+ * Kiem tra ma voucher co bi CHAN boi cau hinh loc tien to cua ket noi (connectionId, hoac ket noi
+ * active neu connectionId rong) hay khong - 2 che do loai tru nhau (xem apiConnectionService.js):
+ * EXCLUDE (blacklist, mac dinh) - chan ma trung 1 trong cac tien to BI LOAI TRU; INCLUDE
+ * (whitelist) - chan ma KHONG trung bat ky tien to nao trong danh sach DUOC CHAP NHAN. So khop
+ * CHINH XAC tung ky tu bang voucherCode.startsWith(), KHONG phai gan dung/khong phan biet hoa
+ * thuong. Tra ve null neu khong bi chan (duoc quet/thu hoi binh thuong), hoac thong tin ly do chan
+ * - dung de tu choi NGAY truoc khi goi Core API, xem checkVoucher()/redeemVoucher() ben duoi.
  */
-async function checkExclusion(connectionId, voucherCode) {
-  const { connectionName, prefixes } = await apiConnectionService.getExclusionConfig(connectionId);
-  const matchedPrefix = prefixes.find((p) => voucherCode.startsWith(p));
-  return matchedPrefix ? { matchedPrefix, connectionName } : null;
+async function checkPrefixFilter(connectionId, voucherCode) {
+  const config = await apiConnectionService.getPrefixFilterConfig(connectionId);
+  const blocked = apiConnectionService.matchPrefixFilter(config, voucherCode);
+  if (!blocked) return null;
+  return { ...blocked, connectionName: config.connectionName };
+}
+
+/** Dong log mo ta ly do bi chan (dung chung cho checkVoucher/redeemOneVoucher) - xem checkPrefixFilter(). */
+function describePrefixFilterBlock(blocked) {
+  const connName = blocked.connectionName || '';
+  if (blocked.mode === 'INCLUDE') {
+    return `Ma khong trung tien to nao duoc chap nhan theo cau hinh he thong "${connName}" (danh sach chap nhan: "${blocked.allowedPrefixes.join(', ')}"), khong goi Core API`;
+  }
+  return `Ma bi loai tru theo cau hinh he thong "${connName}" (trung tien to "${blocked.matchedPrefix}"), khong goi Core API`;
 }
 
 /**
@@ -198,7 +210,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
     );
 
-    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    const excluded = await withDiagnostic('kiem tra cau hinh loc tien to ma', () => checkPrefixFilter(connectionId, voucherCode));
     if (excluded) {
       guessGuard.recordResult(user.userId, false);
       await logScan({
@@ -207,7 +219,7 @@ async function checkVoucher({ voucherCode, user, scanMethod, connectionId: reque
         scanMethod,
         action: 'CHECK',
         resultStatus: 'EXCLUDED',
-        message: `Ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        message: describePrefixFilterBlock(excluded),
         connectionName: excluded.connectionName,
       });
       return {
@@ -344,7 +356,7 @@ async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, conne
       resolveAllowedConnectionId(user.userId, requestedConnectionId)
     );
 
-    const excluded = await withDiagnostic('kiem tra tien to ma bi loai tru', () => checkExclusion(connectionId, voucherCode));
+    const excluded = await withDiagnostic('kiem tra cau hinh loc tien to ma', () => checkPrefixFilter(connectionId, voucherCode));
     if (excluded) {
       guessGuard.recordResult(user.userId, false);
       await logScan({
@@ -354,7 +366,7 @@ async function redeemOneVoucher({ voucherCode, user, scanMethod, clientIp, conne
         action: 'REDEEM',
         resultStatus: 'EXCLUDED',
         clientIp,
-        message: `Tu choi thu hoi: ma bi loai tru theo cau hinh he thong "${excluded.connectionName || ''}" (trung tien to "${excluded.matchedPrefix}"), khong goi Core API`,
+        message: `Tu choi thu hoi: ${describePrefixFilterBlock(excluded)}`,
         connectionName: excluded.connectionName,
       });
       return {

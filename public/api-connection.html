@@ -47,17 +47,31 @@
         </div>
       </div>
 
-      <div class="section-title">Loại trừ mã voucher theo tiền tố (tùy chọn)</div>
+      <div class="section-title">Lọc mã voucher theo tiền tố (tùy chọn)</div>
       <p class="hint">
-        Khai báo các tiền tố <strong>KHÔNG được quét/thu hồi</strong> qua kết nối này. Mã quét được
-        sẽ bị từ chối <strong>NGAY</strong> (không gửi sang Core, không tạo giao dịch) nếu <strong>bắt
-        đầu ĐÚNG</strong> bằng 1 trong các tiền tố liệt kê dưới đây — so khớp <strong>chính xác
-        từng ký tự</strong> (phân biệt hoa/thường), không phải khớp gần đúng. VD: tiền tố
-        "<code>E123</code>" sẽ loại mã "<code>E1230001</code>", nhưng <strong>KHÔNG</strong> loại mã
-        "<code>E124...</code>" (không khớp tiền tố).
+        So khớp <strong>chính xác từng ký tự</strong> (phân biệt hoa/thường) với phần <strong>bắt
+        đầu</strong> của mã — VD tiền tố "<code>E123</code>" khớp mã "<code>E1230001</code>" nhưng
+        <strong>KHÔNG</strong> khớp "<code>E124...</code>". Chỉ <strong>1 trong 2 cách</strong> dưới
+        đây có hiệu lực tại 1 thời điểm cho kết nối này — chọn cách đang áp dụng:
       </p>
-      <label>Các tiền tố bị loại trừ (cách nhau bằng dấu phẩy, để trống = không loại trừ gì)</label>
-      <input id="f_excludedCodePrefixes" placeholder="VD: C, TEST, X9" />
+      <label class="flex items-center gap-8 fw-normal mb-8">
+        <input type="radio" name="f_codePrefixFilterMode" id="f_filterModeExclude" value="EXCLUDE" class="checkbox-input" checked />
+        <span><strong>Loại trừ (blacklist)</strong> — mã trùng tiền tố liệt kê sẽ <strong>KHÔNG</strong> quét/thu hồi được, còn lại quét bình thường.</span>
+      </label>
+      <label class="flex items-center gap-8 fw-normal mb-8">
+        <input type="radio" name="f_codePrefixFilterMode" id="f_filterModeInclude" value="INCLUDE" class="checkbox-input" />
+        <span><strong>Chỉ chấp nhận (whitelist)</strong> — <strong>CHỈ</strong> mã trùng tiền tố liệt kê mới quét/thu hồi được, còn lại bị từ chối.</span>
+      </label>
+
+      <div id="excludeModeFields">
+        <label>Các tiền tố BỊ LOẠI TRỪ (cách nhau bằng dấu phẩy, để trống = không loại trừ gì)</label>
+        <input id="f_excludedCodePrefixes" placeholder="VD: C, TEST, X9" />
+      </div>
+      <div id="includeModeFields" class="hidden">
+        <label>Các tiền tố ĐƯỢC CHẤP NHẬN (cách nhau bằng dấu phẩy, bắt buộc có ít nhất 1 tiền tố)</label>
+        <input id="f_allowedCodePrefixes" placeholder="VD: FJ, CVA" />
+        <p class="hint">Để trống mục này mà vẫn chọn "Chỉ chấp nhận" sẽ bị từ chối khi lưu, vì nghĩa là chặn toàn bộ mã.</p>
+      </div>
 
       <div class="section-title">Chứng chỉ CA của đối tác (chỉ cần khi gọi HTTPS bị lỗi xác minh)</div>
       <p class="hint">

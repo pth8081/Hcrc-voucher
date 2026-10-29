@@ -114,23 +114,45 @@ function getDefaults() {
 }
 
 /**
- * Chuan hoa danh sach "tien to ma bi loai tru" tu form (chuoi cach nhau boi dau phay, hoac mang
- * san) ve 1 chuoi luu DB: trim tung phan tu, bo phan tu rong, bo trung, GIU NGUYEN hoa/thuong
- * (so khop sau nay la CHINH XAC tung ky tu, khong chuan hoa ve 1 kieu chu).
+ * Chuan hoa danh sach tien to (dung chung cho CA "bi loai tru" va "duoc chap nhan") tu form
+ * (chuoi cach nhau boi dau phay, hoac mang san) ve 1 chuoi luu DB: trim tung phan tu, bo phan tu
+ * rong, bo trung, GIU NGUYEN hoa/thuong (so khop sau nay la CHINH XAC tung ky tu, khong chuan hoa
+ * ve 1 kieu chu).
  */
-function normalizeExcludedPrefixes(raw) {
+function normalizePrefixList(raw) {
   if (!raw) return null;
   const parts = Array.isArray(raw) ? raw : String(raw).split(',');
   const cleaned = Array.from(new Set(parts.map((p) => String(p).trim()).filter(Boolean)));
   return cleaned.length ? cleaned.join(', ') : null;
 }
 
-function parseExcludedPrefixes(stored) {
+function parsePrefixList(stored) {
   if (!stored) return [];
   return String(stored)
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
+}
+
+const CODE_PREFIX_FILTER_MODES = ['EXCLUDE', 'INCLUDE'];
+
+/** Khong hop le (hoac rong) -> mac dinh 'EXCLUDE' - giu nguyen hanh vi cu cho moi ket noi da co. */
+function normalizeCodePrefixFilterMode(value) {
+  return CODE_PREFIX_FILTER_MODES.includes(value) ? value : 'EXCLUDE';
+}
+
+/**
+ * Chi khi dung che do INCLUDE (chap nhan/whitelist) moi can kiem tra: bat buoc phai co IT NHAT 1
+ * tien to duoc chap nhan, tranh truong hop admin bam chon "Chi chap nhan" nhung de trong o nhap -
+ * neu cho luu se khoa CHET 100% luot quet/thu hoi that cua ca ket noi (khong co tien to nao duoc
+ * chap nhan = khong ma nao qua duoc), rat de xay ra ngoai y muon va kho phat hien ngay luc luu.
+ */
+function validateCodePrefixFilterConfig({ codePrefixFilterMode, allowedCodePrefixes }) {
+  if (normalizeCodePrefixFilterMode(codePrefixFilterMode) !== 'INCLUDE') return null;
+  if (!normalizePrefixList(allowedCodePrefixes)) {
+    return 'Da chon che do "Chi chap nhan tien to" nhung chua nhap tien to nao duoc chap nhan - can nhap it nhat 1 tien to, neu khong TOAN BO ma voucher qua ket noi nay se bi tu choi.';
+  }
+  return null;
 }
 
 function toRow(data) {
@@ -157,7 +179,9 @@ function toRow(data) {
     redeemMapping: JSON.stringify(data.redeemMapping || DEFAULT_REDEEM_MAPPING),
 
     customCaCert: data.customCaCert ? String(data.customCaCert).trim() : null,
-    excludedCodePrefixes: normalizeExcludedPrefixes(data.excludedCodePrefixes),
+    excludedCodePrefixes: normalizePrefixList(data.excludedCodePrefixes),
+    allowedCodePrefixes: normalizePrefixList(data.allowedCodePrefixes),
+    codePrefixFilterMode: normalizeCodePrefixFilterMode(data.codePrefixFilterMode),
   };
 }
 
@@ -201,7 +225,9 @@ function toMaskedDto(row) {
     // Khong phai bi mat (khac AuthTokenEncrypted/BasicPasswordEncrypted o tren) - tra ve nguyen
     // van de admin xem/sua lai duoc, khong can co che "giu nguyen neu de trong" nhu 2 truong secret.
     customCaCert: row.CustomCaCert || null,
-    excludedCodePrefixes: parseExcludedPrefixes(row.ExcludedCodePrefixes),
+    excludedCodePrefixes: parsePrefixList(row.ExcludedCodePrefixes),
+    allowedCodePrefixes: parsePrefixList(row.AllowedCodePrefixes),
+    codePrefixFilterMode: normalizeCodePrefixFilterMode(row.CodePrefixFilterMode),
 
     createdDate: row.CreatedDate,
     updatedDate: row.UpdatedDate,
@@ -267,26 +293,53 @@ async function listOptions() {
 }
 
 /**
- * Danh sach tien to bi loai tru cua 1 ket noi CU THE (connectionId), hoac cua ket noi dang ACTIVE
- * neu khong truyen connectionId - dung CHUNG 1 quy tac "khong truyen = dung ket noi active" voi
- * coreVoucherService.js#resolveConnection, de dam bao danh sach loai tru dung VOI DUNG he thong
- * voucherService.js sap goi, khong bi lech. Chi doc Name + ExcludedCodePrefixes (khong can giai
- * ma secret), dung o buoc chan SOM truoc khi goi Core API that su - xem voucherService.js.
+ * Cau hinh loc tien to ma voucher cua 1 ket noi CU THE (connectionId), hoac cua ket noi dang
+ * ACTIVE neu khong truyen connectionId - dung CHUNG 1 quy tac "khong truyen = dung ket noi active"
+ * voi coreVoucherService.js#resolveConnection, de dam bao cau hinh loc dung VOI DUNG he thong
+ * voucherService.js sap goi, khong bi lech. Chi doc Name + 2 cot loc (khong can giai ma secret),
+ * dung o buoc chan SOM truoc khi goi Core API that su - xem voucherService.js.
  */
-async function getExclusionConfig(connectionId) {
+async function getPrefixFilterConfig(connectionId) {
   const pool = await getPool();
   const request = pool.request();
   let query;
   if (connectionId) {
     request.input('id', sql.Int, connectionId);
-    query = 'SELECT Name, ExcludedCodePrefixes FROM dbo.ApiConnections WHERE Id = @id';
+    query = 'SELECT Name, ExcludedCodePrefixes, AllowedCodePrefixes, CodePrefixFilterMode FROM dbo.ApiConnections WHERE Id = @id';
   } else {
-    query = 'SELECT TOP 1 Name, ExcludedCodePrefixes FROM dbo.ApiConnections WHERE IsActive = 1';
+    query = 'SELECT TOP 1 Name, ExcludedCodePrefixes, AllowedCodePrefixes, CodePrefixFilterMode FROM dbo.ApiConnections WHERE IsActive = 1';
   }
   const result = await request.query(query);
   const row = result.recordset[0];
-  if (!row) return { connectionName: null, prefixes: [] };
-  return { connectionName: row.Name, prefixes: parseExcludedPrefixes(row.ExcludedCodePrefixes) };
+  if (!row) return { connectionName: null, codePrefixFilterMode: 'EXCLUDE', excludedCodePrefixes: [], allowedCodePrefixes: [] };
+  return {
+    connectionName: row.Name,
+    codePrefixFilterMode: normalizeCodePrefixFilterMode(row.CodePrefixFilterMode),
+    excludedCodePrefixes: parsePrefixList(row.ExcludedCodePrefixes),
+    allowedCodePrefixes: parsePrefixList(row.AllowedCodePrefixes),
+  };
+}
+
+/**
+ * Logic THUAN (khong doc DB) doi chieu 1 ma voucher voi cau hinh loc tien to - nhan vao CUNG 1
+ * hinh dang du lieu (codePrefixFilterMode/excludedCodePrefixes/allowedCodePrefixes) voi ca ket
+ * noi da luu (qua getPrefixFilterConfig() hoac toMaskedDto()) VA ban nhap dang test tren form
+ * chua luu (apiConnection.controller.js#testRedeem dung truc tiep DTO connection, khong can query
+ * DB rieng). Tra ve null neu ma duoc quet/thu hoi binh thuong, hoac { mode, matchedPrefix?,
+ * allowedPrefixes? } neu bi chan.
+ *
+ * Che do INCLUDE nhung allowedCodePrefixes dang RONG: coi nhu CHUA cau hinh gi (khong chan) thay
+ * vi chan het - an toan hon (validateCodePrefixFilterConfig da chan truong hop nay o luc LUU, day
+ * chi la lop phong ve thu 2 cho du lieu cu/ban nhap chua qua buoc kiem tra do).
+ */
+function matchPrefixFilter({ codePrefixFilterMode, excludedCodePrefixes = [], allowedCodePrefixes = [] }, voucherCode) {
+  if (normalizeCodePrefixFilterMode(codePrefixFilterMode) === 'INCLUDE') {
+    if (!allowedCodePrefixes.length) return null;
+    const matched = allowedCodePrefixes.some((p) => voucherCode.startsWith(p));
+    return matched ? null : { mode: 'INCLUDE', allowedPrefixes: allowedCodePrefixes };
+  }
+  const matchedPrefix = excludedCodePrefixes.find((p) => voucherCode.startsWith(p));
+  return matchedPrefix ? { mode: 'EXCLUDE', matchedPrefix } : null;
 }
 
 async function getActiveDecrypted() {
@@ -322,19 +375,23 @@ async function create(data) {
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
     .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
     .input('excludedCodePrefixes', sql.NVarChar(500), row.excludedCodePrefixes)
+    .input('allowedCodePrefixes', sql.NVarChar(500), row.allowedCodePrefixes)
+    .input('codePrefixFilterMode', sql.NVarChar(10), row.codePrefixFilterMode)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null)
     .query(`
       INSERT INTO dbo.ApiConnections
         (Name, IsActive, BaseUrl, AuthType, AuthTokenEncrypted, ApiKeyHeaderName, BasicUsername,
          BasicPasswordEncrypted, TimeoutMs, CheckMethod, CheckPath, CheckParamMode, CheckParamName,
          CheckBodyTemplate, CheckMapping, RedeemMethod, RedeemPath, RedeemParamMode, RedeemParamName,
-         RedeemBodyTemplate, RedeemMapping, CustomCaCert, ExcludedCodePrefixes, CreatedDate, UpdatedBy)
+         RedeemBodyTemplate, RedeemMapping, CustomCaCert, ExcludedCodePrefixes, AllowedCodePrefixes,
+         CodePrefixFilterMode, CreatedDate, UpdatedBy)
       OUTPUT INSERTED.Id
       VALUES
         (@name, 0, @baseUrl, @authType, @authTokenEncrypted, @apiKeyHeaderName, @basicUsername,
          @basicPasswordEncrypted, @timeoutMs, @checkMethod, @checkPath, @checkParamMode, @checkParamName,
          @checkBodyTemplate, @checkMapping, @redeemMethod, @redeemPath, @redeemParamMode, @redeemParamName,
-         @redeemBodyTemplate, @redeemMapping, @customCaCert, @excludedCodePrefixes, GETDATE(), @updatedBy)
+         @redeemBodyTemplate, @redeemMapping, @customCaCert, @excludedCodePrefixes, @allowedCodePrefixes,
+         @codePrefixFilterMode, GETDATE(), @updatedBy)
     `);
   return result.recordset[0].Id;
 }
@@ -365,6 +422,8 @@ async function update(id, data) {
     .input('redeemMapping', sql.NVarChar(sql.MAX), row.redeemMapping)
     .input('customCaCert', sql.NVarChar(sql.MAX), row.customCaCert)
     .input('excludedCodePrefixes', sql.NVarChar(500), row.excludedCodePrefixes)
+    .input('allowedCodePrefixes', sql.NVarChar(500), row.allowedCodePrefixes)
+    .input('codePrefixFilterMode', sql.NVarChar(10), row.codePrefixFilterMode)
     .input('updatedBy', sql.NVarChar(100), data.updatedBy || null);
 
   // L8 (loi that da xay ra): form Sua tren FE luon gui authToken/basicPassword la CHUOI RONG
@@ -396,6 +455,7 @@ async function update(id, data) {
       RedeemMethod = @redeemMethod, RedeemPath = @redeemPath, RedeemParamMode = @redeemParamMode,
       RedeemParamName = @redeemParamName, RedeemBodyTemplate = @redeemBodyTemplate, RedeemMapping = @redeemMapping,
       CustomCaCert = @customCaCert, ExcludedCodePrefixes = @excludedCodePrefixes,
+      AllowedCodePrefixes = @allowedCodePrefixes, CodePrefixFilterMode = @codePrefixFilterMode,
       UpdatedDate = GETDATE(), UpdatedBy = @updatedBy
       ${secretSet}
     WHERE Id = @id
@@ -540,6 +600,9 @@ function resolveDraftConfig(data) {
     redeemMapping: data.redeemMapping || DEFAULT_REDEEM_MAPPING,
 
     customCaCert: data.customCaCert ? String(data.customCaCert).trim() : null,
+    excludedCodePrefixes: parsePrefixList(data.excludedCodePrefixes),
+    allowedCodePrefixes: parsePrefixList(data.allowedCodePrefixes),
+    codePrefixFilterMode: normalizeCodePrefixFilterMode(data.codePrefixFilterMode),
   };
 }
 
@@ -577,7 +640,9 @@ module.exports = {
   getById,
   getByIdDecrypted,
   getActiveDecrypted,
-  getExclusionConfig,
+  getPrefixFilterConfig,
+  matchPrefixFilter,
+  validateCodePrefixFilterConfig,
   create,
   update,
   activate,
