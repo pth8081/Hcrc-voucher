@@ -20,6 +20,7 @@ const NAV_ICONS = {
   guide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15.5"/><path d="M6 22a2 2 0 0 1-2-2.5C4 18.5 5 18 6 18h13"/><path d="M9 8h7M9 11h5"/></svg>',
   email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
   partners: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="7" height="11"/><rect x="14" y="6" width="7" height="15"/><path d="M6 14h1M6 17h1M17 10h1M17 13h1M17 16h1"/></svg>',
+  voucherFilter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
@@ -45,6 +46,17 @@ const NAV_ITEMS = [
   // chi can kiem tra DUNG quyen nay la du de quyet dinh an/hien menu (truong hop co quyen nay ma
   // khong co quyen bao cao nao la hiem, HCRC/doi tac se cap ca 2 cung luc trong thuc te).
   { key: 'email-schedules', href: '/email-schedules.html', label: 'Lịch gửi email báo cáo', icon: NAV_ICONS.email, permission: 'canManageEmailSchedules' },
+  // sql/049 (theo yeu cau nguoi dung): man hinh RIENG, GON hon "Ket noi API" (khong Base URL/xac
+  // thuc/mapping), CHI cho sua loc ma voucher theo tien to - dung duoc boi CA Quan tri HCRC LAN
+  // Quan tri doi tac, MIEN LA duoc cap 1 trong 2 quyen rieng tuong ung (OR, giong "email-schedules"
+  // o tren) - KHONG tu dong co san cho ai, phai duoc 1 Quan tri HCRC chu dong cap qua man "Tai khoan".
+  {
+    key: 'voucher-code-filter',
+    href: '/voucher-code-filter.html',
+    label: 'Lọc mã voucher',
+    icon: NAV_ICONS.voucherFilter,
+    permission: ['adminCanManageVoucherFilter', 'partnerAdminCanManageVoucherFilter'],
+  },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];
 

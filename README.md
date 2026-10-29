@@ -2527,7 +2527,27 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.4)**: sua loi nho nguoi dung phat hien ngay sau khi cot "Thoi han" (v4.2) len
+Ban **moi nhat (v4.5)**: theo yeu cau nguoi dung - them **man hinh moi "Loc ma voucher"**, GON
+hon "Ket noi API" day du (khong Base URL/xac thuc/mapping), CHI cho sua loc ma voucher theo tien
+to (Loai tru/Chi chap nhan - sql/047), dung duoc boi CA Quan tri HCRC LAN Quan tri doi tac - nhung
+PHAI duoc cap 1 trong 2 quyen MOI moi dung duoc:
+- `AdminCanManageVoucherFilter` (HCRC) / `PartnerAdminCanManageVoucherFilter` (doi tac) - sql/049.
+  KHAC 9 cot AdminCanXxx/PartnerAdminCanXxx cu (DEFAULT 1, vi la GIOI HAN BOT 1 nang luc da co san
+  tu truoc), 2 quyen nay la nang luc HOAN TOAN MOI nen DEFAULT 0 - KHONG tu dong co san cho bat ky
+  tai khoan nao, ke ca Quan tri day du dang co san. HCRC phai chu dong tick cap tung tai khoan qua
+  man "Tai khoan" (them 1 checkbox "Loc ma voucher" o ca 2 khu vuc gan quyen: Quan tri day du va
+  Quan tri doi tac).
+- `requireVoucherFilterAccess.js` (middleware moi): phuc vu CA 2 doi tuong tren CUNG 1 route - HCRC
+  co quyen: sua duoc MOI he thong (`scope='all'`); doi tac co quyen: CHI sua duoc DUNG 1 he thong
+  da gan cho ho (`scope='own'`), KHONG duoc dung he thong cua doi tac khac du co quyen nay. Pham vi
+  nay duoc kiem tra lai LAN NUA ngay tai controller (double-check, khong chi dua vao middleware).
+- `apiConnectionService.js`: them `listPrefixFilterOnly`/`getPrefixFilterOnly`/`updatePrefixFilterOnly`
+  - DTO rut gon (ten + cau hinh loc), KHONG tra ve/khong cho sua Base URL/xac thuc/mapping - tach
+  biet hoan toan khoi `list()`/`update()` day du (chi nguoi co `adminCanManageConnections` moi vao
+  duoc man "Ket noi API" that su).
+- Moi lan doi cau hinh loc deu ghi `AdminAuditLog` (ai doi, luc nao, doi gi) de truy vet khi can.
+
+Ban truoc do (v4.4): sua loi nho nguoi dung phat hien ngay sau khi cot "Thoi han" (v4.2) len
 that: cot nay tren CA 3 man hinh bao cao dang hien CA GIO ("00:00:00 31/12/2026"), trong khi
 "Thoi han" ve ban chat chi la 1 NGAY (Core luon tra ve dung 00:00:00 kem 1 ngay, khong co y nghia
 gio cu the) - hien ca gio gay roi mat/de nham. Them ham `fmtDateOnly()` (dung `toLocaleDateString`
@@ -2536,7 +2556,7 @@ ham nay rieng cho cot "Thoi han" (cac cot ngay gio khac - "Ngay gio"/"Ngay tieu"
 van can hien gio). File Excel xuat ra/dinh kem email KHONG bi anh huong (da dinh dang `dd/mm/yyyy`
 tu luc lam v4.2, chi man hinh web bi sot).
 
-Ban truoc do (v4.3): theo yeu cau nguoi dung - man hinh **Quet voucher**, hop thoai xac nhan
+Ban truoc do nua (v4.3): theo yeu cau nguoi dung - man hinh **Quet voucher**, hop thoai xac nhan
 thu hoi co san (`#confirmRedeemOverlay`) nay them 1 dong **nhac nho** (mau am, KHONG phai loi) khi
 o "So hoa don (tuy chon)" dang de TRONG: "Ban chua nhap so hoa don. Nen nhap so hoa don hoac ly do
 de de doi chieu sau nay (khong bat buoc)." Dong nhac nay **bien mat ngay** khi da nhap (hien lai
