@@ -7,7 +7,10 @@
 }
 .section-title { font-size: 12.5px; font-weight: 700; color: var(--primary-dark); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 8px; border-bottom: 1px solid var(--ink-100); }
 .hint { font-size: 12.5px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; }
-.conn-row-url { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; }
+/* Base URL/tien to loc co the rat dai, khong co khoang trang de tu ngat dong (VD URL day du) -
+   thieu overflow-wrap se day ca .conn-row tran ngang tren dien thoai, giong loi da gap o "Nhat
+   ky he thong" (xem style.css#.table-responsive td). */
+.conn-row-url { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; overflow-wrap: anywhere; }
 .maprow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
 /* Man hinh hep: 3 cot (2 o nhap + nut Xoa) canh nhau lam gia tri dai (VD "CANCELLED") bi cat
    cut trong o nhap - giu 2 o nhap canh nhau (van du rong) nhung cho nut Xoa xuong dong rieng. */
@@ -18,8 +21,13 @@
 .maprow input { margin-bottom: 0; }
 textarea.code { width: 100%; min-height: 90px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; border: 1px solid var(--ink-300); border-radius: var(--radius-md); padding: 12px; }
 pre.result { background: var(--ink-900); color: #d7ead0; padding: 14px; border-radius: var(--radius-md); overflow: auto; font-size: 12px; max-height: 260px; }
-.conn-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--ink-100); }
+/* flex-wrap de cum nut hanh dong (Bat/Tat + Sua + Kich hoat/Xoa...) tu xuong dong rieng khi
+   khong du cho ben canh ten/URL ket noi tren man hinh hep, thay vi bi bop/tran ngang. Khoi ten/
+   URL (div dau, khong co class rieng) can min-width:0 de co the thu nho duoi do rong noi dung
+   trong 1 flex row - mac dinh flex item khong tu thu nho duoc (min-width:auto). */
+.conn-row { display:flex; flex-wrap: wrap; justify-content:space-between; align-items:center; gap: 10px; padding:12px 0; border-bottom:1px solid var(--ink-100); }
 .conn-row:last-child { border-bottom:none; }
+.conn-row > div:first-child { min-width: 0; flex: 1 1 220px; }
 .badge-active { background: var(--green-light); color: var(--green-dark); font-size:11.5px; padding:3px 10px; border-radius:999px; font-weight:700; margin-left:8px; }
 .badge-locked { background: var(--warn-light); color: var(--warn); font-size:11.5px; padding:3px 10px; border-radius:999px; font-weight:700; margin-left:8px; }
 /* Ket noi bi khoa: lam MO ca hang di de admin thay ro ngay la dang KHONG duoc dung (vo hieu
