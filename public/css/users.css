@@ -44,6 +44,12 @@
   text-align: right;
   padding: 8px 0;
   border-bottom: 1px solid var(--ink-100);
+  /* Phong ngua cung loi da gap o "Nhat ky he thong" (gia tri dai khong co khoang trang de ngat
+     dong day tran ca the <td>/the <tr> ra ngoai man hinh) - xem style.css#.table-responsive td.
+     Bang nay chua co gia tri nao du dai de thay loi ngay (ten/email thuong ngan), nhung them san
+     cho an toan neu ve sau co ten cong ty/diem tieu dai dinh lien. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 #usersTable td:last-child { border-bottom: none; }
 #usersTable td:empty { display: none; }

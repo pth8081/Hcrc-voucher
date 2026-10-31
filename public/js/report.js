@@ -76,7 +76,7 @@ function renderDetails(rows, unassignedLocation) {
       (r) => `
       <tr>
         <td data-label="Ngày giờ">${fmtDate(r.Created_Date)}</td>
-        <td data-label="Mã giao dịch">${escapeHtml(r.TRANS_NUM || '-')}</td>
+        <td data-label="TRANS_NUM">${escapeHtml(r.TRANS_NUM || '-')}</td>
         <td data-label="Mã voucher">${escapeHtml(r.Voucher_Code)}</td>
         <td data-label="Thời hạn">${fmtDateOnly(r.ExpiryDate)}</td>
         <td data-label="Người thu hồi">${escapeHtml(r.User_Name || '-')}</td>
