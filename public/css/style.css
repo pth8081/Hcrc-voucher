@@ -526,6 +526,13 @@ tbody tr:hover { background: var(--ink-100); }
     text-align: right;
     padding: 8px 0;
     border-bottom: 1px solid var(--ink-100);
+    /* Gia tri dai khong co khoang trang de ngat dong tu nhien (vd JSON "Chi tiet" cua Nhat ky
+       he thong: {"before":null,"after":{...}}) se khong bi gioi han boi min-width mac dinh cua
+       flex item, day CA the <td> (va ca card <tr> chua no) tran ngang ra ngoai man hinh, khien
+       nhung cot KHAC trong CUNG the <tr> (vd "Nguoi thuc hien" ngan gon) cung bi day gia tri ra
+       khoi vung nhin thay - day la loi nguoi dung bao cao tren dien thoai. */
+    overflow-wrap: anywhere;
+    min-width: 0;
   }
   .table-responsive td:last-child { border-bottom: none; }
   .table-responsive td:empty { display: none; }

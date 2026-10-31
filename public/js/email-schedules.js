@@ -20,15 +20,22 @@ const WEEKDAY_LABEL = { 0: 'CN', 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6:
 
 let editingId = null;
 
-// v4.8 (dieu tra loi nguoi dung bao cao): Quan tri day du thay TOAN BO lich (xem
-// emailScheduleService.js#listSchedules) nen them cot "Nguoi tao" CHI cho ho de doi chieu
-// truc tiep CreatedByUsername thuc su luu trong CSDL - tranh phai doan mo hinh nhu truoc day.
-// Tai khoan thuong/Quan tri doi tac chi thay lich cua chinh minh nen khong can cot nay (luon
-// la chinh ho, them vao chi gay roi mat).
-const IS_ADMIN_VIEW = Number((getUser() || {}).role) === 1;
-if (IS_ADMIN_VIEW) {
+// v4.9 (theo yeu cau nguoi dung, tiep noi dieu tra v4.8): Quan tri doi tac GIO thay duoc TOAN
+// BO cau hinh lien quan toi DUNG he thong cua ho (khong rieng lich do chinh ho tao - xem
+// emailScheduleService.js#resolveViewerScope), giong Quan tri day du thay TOAN BO - ca 2 doi
+// tuong nay deu co the thay lich do NGUOI KHAC tao nen deu can cot "Nguoi tao" de phan biet.
+// Nhan vien thuong (duoc cap rieng quyen "Lich gui email bao cao", KHONG phai Quan tri doi tac)
+// van CHI thay lich cua chinh minh nen khong can cot nay (luon la chinh ho, them vao chi roi mat).
+const CURRENT_USER = getUser() || {};
+const SEES_OTHERS_SCHEDULES = Number(CURRENT_USER.role) === 1 || !!(CURRENT_USER.permissions && CURRENT_USER.permissions.isPartnerAdmin);
+if (SEES_OTHERS_SCHEDULES) {
   document.getElementById('listHeadRow').insertAdjacentHTML('beforeend', '<th>Người tạo</th>');
 }
+document.getElementById('listScopeHint').textContent = Number(CURRENT_USER.role) === 1
+  ? 'Quản trị đầy đủ thấy toàn bộ lịch gửi của mọi hệ thống.'
+  : (CURRENT_USER.permissions && CURRENT_USER.permissions.isPartnerAdmin
+    ? 'Quản trị đối tác thấy toàn bộ lịch gửi liên quan tới hệ thống của mình, kể cả do đồng nghiệp khác tạo.'
+    : 'Bạn chỉ thấy lịch do chính tài khoản này tạo.');
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({
@@ -256,7 +263,7 @@ async function loadList() {
 
 function renderList(rows) {
   if (!rows.length) {
-    listBody.innerHTML = `<tr><td colspan="${IS_ADMIN_VIEW ? 6 : 5}" class="text-muted">Chưa có lịch nào - tạo mới ở form bên trên</td></tr>`;
+    listBody.innerHTML = `<tr><td colspan="${SEES_OTHERS_SCHEDULES ? 6 : 5}" class="text-muted">Chưa có lịch nào - tạo mới ở form bên trên</td></tr>`;
     return;
   }
   listBody.innerHTML = rows
@@ -274,7 +281,7 @@ function renderList(rows) {
             <button class="btn-danger delete-btn" type="button">Xóa</button>
           </div>
         </td>
-        ${IS_ADMIN_VIEW ? `<td data-label="Người tạo">${escapeHtml(s.createdByUsername || '')} <span class="text-muted fs-13">(id ${s.createdByUserId})</span></td>` : ''}
+        ${SEES_OTHERS_SCHEDULES ? `<td data-label="Người tạo">${escapeHtml(s.createdByUsername || '')} <span class="text-muted fs-13">(id ${s.createdByUserId})</span></td>` : ''}
       </tr>`)
     .join('');
 
