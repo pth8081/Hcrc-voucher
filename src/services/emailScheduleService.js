@@ -78,16 +78,35 @@ function rowToDto(row) {
   };
 }
 
-/** Admin (role=1) thay TOAN BO lich; tai khoan khac (ke ca "Quan tri doi tac") CHI thay lich DO
- * CHINH MINH tao - dung quy uoc giong het partnerAdminService.js (moi nguoi chi quan ly pham vi
- * cua rieng minh). */
+/** Nguoi dung bao cao thuc te (v4.9): 1 nhan vien duoc cap rieng quyen "Lich gui email bao cao"
+ * (KHONG phai Quan tri doi tac) tao 1 lich gui cho CONG TY cua minh, Quan tri doi tac CUNG cong
+ * ty do dang nhap lai thi KHONG thay - vi truoc day quy uoc "ai tao nguoi do moi thay" ap dung
+ * CHUNG cho ca Quan tri doi tac, khien ho khong biet dong nghiep da tao gi, de tao trung lap.
+ * Theo yeu cau nguoi dung: Quan tri doi tac phai thay duoc TOAN BO cau hinh lien quan toi DUNG
+ * he thong cua minh, du ai tao - khac voi nhan vien thuong (khong phai Quan tri doi tac, chi
+ * duoc cap rieng quyen nay) van CHI thay lich cua chinh ho, giu nguyen quy uoc cu. Xac dinh pham
+ * vi 1 lan, dung lai o ca listSchedules() va assertOwnership() (update/xoa/bat-tat/gui-ngay) de
+ * luon nhat quan - thay duoc thi phai thao tac duoc, khong de tinh trang thay nhung bam Sua/Xoa
+ * lai bi 403. */
+async function resolveViewerScope(userId, role) {
+  if (Number(role) === 1) return { kind: 'ALL' };
+  const permissions = await permissionService.getPermissions(userId);
+  if (permissions.isPartnerAdmin && permissions.partnerAdminConnectionId) {
+    return { kind: 'CONNECTION', connectionId: Number(permissions.partnerAdminConnectionId) };
+  }
+  return { kind: 'OWN', userId };
+}
+
 async function listSchedules({ userId, role }) {
   const pool = await getPool();
-  const isAdmin = Number(role) === 1;
+  const scope = await resolveViewerScope(userId, role);
   const request = pool.request();
   let filter = '';
-  if (!isAdmin) {
-    request.input('userId', sql.Int, userId);
+  if (scope.kind === 'CONNECTION') {
+    request.input('connId', sql.Int, scope.connectionId);
+    filter = "WHERE (',' + ISNULL(ConnectionIds, '') + ',') LIKE ('%,' + CAST(@connId AS VARCHAR(20)) + ',%')";
+  } else if (scope.kind === 'OWN') {
+    request.input('userId', sql.Int, scope.userId);
     filter = 'WHERE CreatedByUserId = @userId';
   }
   const result = await request.query(`
@@ -137,7 +156,10 @@ async function getScheduleRow(id) {
   return result.recordset[0] || null;
 }
 
-/** Nem loi 404/403 neu lich khong ton tai hoac khong thuoc quyen cua user nay (admin luon qua). */
+/** Nem loi 404/403 neu lich khong ton tai hoac khong thuoc pham vi user nay (dung CHUNG 1 quy
+ * uoc pham vi voi listSchedules()#resolveViewerScope - thay duoc thi phai thao tac duoc, khong
+ * de tinh trang Quan tri doi tac THAY lich cua dong nghiep (vi cung he thong) nhung bam Sua/Tat/
+ * Xoa/Gui ngay lai bi 403 vi ho khong phai nguoi tao). */
 async function assertOwnership(id, { userId, role }) {
   const row = await getScheduleRow(id);
   if (!row) {
@@ -146,7 +168,11 @@ async function assertOwnership(id, { userId, role }) {
     err.publicMessage = err.message;
     throw err;
   }
-  if (Number(role) !== 1 && row.CreatedByUserId !== userId) {
+  const scope = await resolveViewerScope(userId, role);
+  const inScope = scope.kind === 'ALL'
+    || (scope.kind === 'CONNECTION' && parseConnectionIdsColumn(row.ConnectionIds).includes(scope.connectionId))
+    || (scope.kind === 'OWN' && row.CreatedByUserId === scope.userId);
+  if (!inScope) {
     throw forbidden('Ban khong co quyen thao tac tren lich gui nay');
   }
   return row;
