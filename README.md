@@ -2527,7 +2527,24 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.7)**: theo yeu cau nguoi dung - doi ten man "Loc ma voucher" (v4.5/v4.6) thanh
+Ban **moi nhat (v4.8)**: dieu tra bao cao cua nguoi dung - 1 tai khoan Quan tri doi tac tao lich
+gui email nhung sau do dang nhap lai khong con thay lai lich cua chinh minh (trong khi email van
+gui dung, va Quan tri HCRC day du van thay duoc). Da doi chieu va LOAI TRU dan 3 gia thuyet (du
+lieu + logic deu dung, khong tim thay bug code):
+- Logic loc danh sach (`emailScheduleService.js#listSchedules`, admin thay het/con lai chi thay
+  lich cua chinh minh) dung nhu thiet ke, da xac minh lai.
+- KHONG phai do 2 tai khoan trung Username (nguoi dung da kiem tra ca tai khoan da xoa, chi co 1).
+- KHONG phai do sua/khoa tai khoan tu man "Tai khoan" (tat ca deu la `UPDATE ... WHERE UserID`,
+  khong bao gio doi/tao lai `UserID`) - da doc lai toan bo code xac nhan.
+- KHONG phai do tinh nang "chon nhanh nguoi nhan" (muc 18c) - email nguoi NHAN hoan toan tach
+  biet voi `CreatedByUserId` (lay tu phien dang nhap dang thao tac, khong lien quan du lieu nguoi
+  nhan duoc chon/go).
+- Them cot **"Nguoi tao"** (hien `CreatedByUsername` + `CreatedByUserId` that luu trong CSDL) vao
+  danh sach lich gui email - CHI hien voi Quan tri day du (nguoi von da thay toan bo lich) de doi
+  chieu truc tiep voi du lieu that, thay vi tiep tuc suy doan qua code - dang cho nguoi dung doi
+  chieu de xac dinh huong dieu tra tiep theo.
+
+Ban truoc do (v4.7): theo yeu cau nguoi dung - doi ten man "Loc ma voucher" (v4.5/v4.6) thanh
 **"Cau hinh ma voucher"** cho ro nghia hon (chi doi CHU, KHONG doi logic/quyen):
 - Tieu de trang + tab trinh duyet (`voucher-code-filter.html`): "Loc ma voucher theo he thong" ->
   "Cau hinh ma voucher duoc phep thu hoi".
@@ -2540,7 +2557,7 @@ Ban **moi nhat (v4.7)**: theo yeu cau nguoi dung - doi ten man "Loc ma voucher" 
 - KHONG dong den muc "Loc ma voucher theo tien to (tuy chon)" trong man "Ket noi API" day du -
   khac pham vi, nguoi dung chua yeu cau doi cho do.
 
-Ban truoc do (v4.6): theo yeu cau nguoi dung - them **quyen XEM RIENG (chi xem, khong sua)**
+Ban truoc do nua (v4.6): theo yeu cau nguoi dung - them **quyen XEM RIENG (chi xem, khong sua)**
 cho man "Loc ma voucher" (v4.5), ben canh 2 quyen SUA da co:
 - `AdminCanViewVoucherFilter` (HCRC) / `PartnerAdminCanViewVoucherFilter` (doi tac) - sql/050,
   cung DEFAULT 0 (nang luc hoan toan moi) nhu 2 quyen Sua. Vao duoc man hinh neu co IT NHAT 1 trong
