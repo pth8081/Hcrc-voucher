@@ -2527,7 +2527,27 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.9)**: ket qua dieu tra tiep noi v4.8 (dung cot "Nguoi tao" moi them) - lich
+Ban **moi nhat (v4.10)**: theo yeu cau nguoi dung ("kiem tra tat ca man hinh khac xem co cai nao
+chua xu ly responsive thi xu ly luon") - ra soat CHU DONG toan bo 20 trang cua app (khong doi
+nguoi dung tu phat hien tung loi) de tim cac loi hien thi tren dien thoai CUNG LOAI voi loi da
+sua o "Nhat ky he thong" (v4.9) - gia tri dai khong co khoang trang de ngat dong day tran ca
+the/card ra ngoai man hinh. Tim va sua duoc 3 cho:
+- `api-connection.css` (`.conn-row-url`, `.conn-row`): man "Ket noi API" VA "Cau hinh ma voucher"
+  (dung chung CSS nay) - Base URL/tien to loc dai tran ngang that su - da xac nhan bang Playwright
+  o viewport 375px (iPhone SE) truoc/sau khi sua. Them `overflow-wrap: anywhere` cho `.conn-row-url`,
+  `flex-wrap` + `min-width: 0` cho `.conn-row` de nhom nut "Bat/Sua/Xoa" tu xuong dong rieng khi
+  khong du cho canh ten/URL dai.
+- `users.css` (`#usersTable td`): them cung 1 lop bao ve phong ngua (chua co du lieu du dai de
+  gay loi NGAY, nhung dong bo voi `.table-responsive` de tranh rui ro ve sau neu co ten cong
+  ty/diem tieu dai dinh lien khong co khoang trang).
+- `report.js`: sua 1 nhan cot tren mobile bi LECH voi tieu de that tren desktop ("Mã giao dịch"
+  thay vi "TRANS_NUM" cua dung cot do) - khong phai tran ngang, nhung gay nham lan khi doi qua
+  lai 2 kich co man hinh.
+
+17 trang con lai da kiem tra ky, khong co van de (da dung dung pattern `.table-responsive` +
+`data-label`, hoac khong co bang/layout nhieu cot can lo).
+
+Ban truoc do (v4.9): ket qua dieu tra tiep noi v4.8 (dung cot "Nguoi tao" moi them) - lich
 gui email goc KHONG phai do Quan tri doi tac (men.bt) tao, ma do 1 tai khoan KHAC (FJM479) cung
 cong ty tao va dien email men.bt lam nguoi NHAN - he thong truoc do hoat dong DUNG thiet ke (chi
 nguoi tao moi thay lai), khong phai bug. Nguoi dung xac nhan muon DOI thiet ke: Quan tri doi tac
@@ -2548,7 +2568,7 @@ phai thay+quan ly duoc CA cau hinh do dong nghiep cung he thong tao, khong chi c
   man hinh dang nay, khong rieng Nhat ky he thong) de gia tri dai tu xuong dong thay vi day man
   hinh tran ra ngoai.
 
-Ban truoc do (v4.8): dieu tra bao cao cua nguoi dung - 1 tai khoan Quan tri doi tac tao lich
+Ban truoc do nua (v4.8): dieu tra bao cao cua nguoi dung - 1 tai khoan Quan tri doi tac tao lich
 gui email nhung sau do dang nhap lai khong con thay lai lich cua chinh minh (trong khi email van
 gui dung, va Quan tri HCRC day du van thay duoc). Da doi chieu va LOAI TRU dan 3 gia thuyet (du
 lieu + logic deu dung, khong tim thay bug code):
