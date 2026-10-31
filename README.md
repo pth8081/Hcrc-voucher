@@ -2527,7 +2527,20 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.6)**: theo yeu cau nguoi dung - them **quyen XEM RIENG (chi xem, khong sua)**
+Ban **moi nhat (v4.7)**: theo yeu cau nguoi dung - doi ten man "Loc ma voucher" (v4.5/v4.6) thanh
+**"Cau hinh ma voucher"** cho ro nghia hon (chi doi CHU, KHONG doi logic/quyen):
+- Tieu de trang + tab trinh duyet (`voucher-code-filter.html`): "Loc ma voucher theo he thong" ->
+  "Cau hinh ma voucher duoc phep thu hoi".
+- Nhan tren menu dieu huong (`layout.js`): "Loc ma voucher" -> "Cau hinh ma voucher".
+- 4 checkbox phan quyen o man "Tai khoan" (`users.js`, ca khu vuc Quan tri day du lan Quan tri doi
+  tac): "Loc ma voucher (sua)"/"(chi xem)" -> "Cau hinh ma voucher (sua)"/"(chi xem)", dong ghi chu
+  giai thich ben duoi cung cap nhat theo.
+- Dong thong bao "chi co quyen XEM" tren `voucher-code-filter.js` va 3 thong bao loi 403 o backend
+  (`requireVoucherFilterAccess.js`, `voucherCodeFilter.controller.js`) cung doi theo cho dong bo.
+- KHONG dong den muc "Loc ma voucher theo tien to (tuy chon)" trong man "Ket noi API" day du -
+  khac pham vi, nguoi dung chua yeu cau doi cho do.
+
+Ban truoc do (v4.6): theo yeu cau nguoi dung - them **quyen XEM RIENG (chi xem, khong sua)**
 cho man "Loc ma voucher" (v4.5), ben canh 2 quyen SUA da co:
 - `AdminCanViewVoucherFilter` (HCRC) / `PartnerAdminCanViewVoucherFilter` (doi tac) - sql/050,
   cung DEFAULT 0 (nang luc hoan toan moi) nhu 2 quyen Sua. Vao duoc man hinh neu co IT NHAT 1 trong
@@ -2541,7 +2554,7 @@ cho man "Loc ma voucher" (v4.5), ben canh 2 quyen SUA da co:
 - `users.js`: checkbox "Loc ma voucher" cu doi ten thanh "Loc ma voucher (sua)", them checkbox moi
   "Loc ma voucher (chi xem)" canh ben, o ca 2 khu vuc gan quyen (Quan tri day du va Quan tri doi tac).
 
-Ban truoc do (v4.5): theo yeu cau nguoi dung - them **man hinh moi "Loc ma voucher"**, GON
+Ban truoc do nua (v4.5): theo yeu cau nguoi dung - them **man hinh moi "Loc ma voucher"**, GON
 hon "Ket noi API" day du (khong Base URL/xac thuc/mapping), CHI cho sua loc ma voucher theo tien
 to (Loai tru/Chi chap nhan - sql/047), dung duoc boi CA Quan tri HCRC LAN Quan tri doi tac - nhung
 PHAI duoc cap 1 trong 2 quyen MOI moi dung duoc:

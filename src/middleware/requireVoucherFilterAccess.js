@@ -29,7 +29,7 @@ async function requireVoucherFilterAccess(req, res, next) {
       if (!perms.adminCanManageVoucherFilter && !perms.adminCanViewVoucherFilter) {
         return res.status(403).json({
           success: false,
-          message: 'Tai khoan cua ban khong co quyen xem/cau hinh loc ma voucher - lien he 1 Quan tri khac de duoc cap quyen',
+          message: 'Tai khoan cua ban khong co quyen xem/cau hinh ma voucher - lien he 1 Quan tri khac de duoc cap quyen',
         });
       }
       req.voucherFilterScope = 'all';
@@ -41,7 +41,7 @@ async function requireVoucherFilterAccess(req, res, next) {
     if (!permissions.isPartnerAdmin || (!permissions.partnerAdminCanManageVoucherFilter && !permissions.partnerAdminCanViewVoucherFilter)) {
       return res.status(403).json({
         success: false,
-        message: 'Tai khoan cua ban khong co quyen xem/cau hinh loc ma voucher - lien he HCRC de duoc cap quyen',
+        message: 'Tai khoan cua ban khong co quyen xem/cau hinh ma voucher - lien he HCRC de duoc cap quyen',
       });
     }
     req.voucherFilterScope = 'own';

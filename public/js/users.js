@@ -366,10 +366,10 @@ function renderUsers(users) {
               (f) => `
               <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="${f.key}" ${perms[prefixedPermKey('partnerAdmin', f.key)] !== false ? 'checked' : ''} /> ${f.label}</label>`
             ).join('')}
-            <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canManageVoucherFilter" ${perms.partnerAdminCanManageVoucherFilter === true ? 'checked' : ''} /> Lọc mã voucher (sửa)</label>
-            <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canViewVoucherFilter" ${perms.partnerAdminCanViewVoucherFilter === true ? 'checked' : ''} /> Lọc mã voucher (chỉ xem)</label>
+            <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canManageVoucherFilter" ${perms.partnerAdminCanManageVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (sửa)</label>
+            <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canViewVoucherFilter" ${perms.partnerAdminCanViewVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (chỉ xem)</label>
           </div>
-          <p class="hint" style="margin:4px 0 0;">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Riêng 2 mục "Lọc mã voucher" mặc định TẮT (khác 4 mục trên) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
+          <p class="hint" style="margin:4px 0 0;">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Riêng 2 mục "Cấu hình mã voucher" mặc định TẮT (khác 4 mục trên) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
         </td>
         <td data-label="Quyền quản trị hệ thống">
           ${isAdmin ? (
@@ -380,8 +380,8 @@ function renderUsers(users) {
                     (f) => `
                     <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="${f.key}" ${perms[prefixedPermKey('admin', f.key)] !== false ? 'checked' : ''} /> ${f.label}</label>`
                   ).join('')}
-                  <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canManageVoucherFilter" ${perms.adminCanManageVoucherFilter === true ? 'checked' : ''} /> Lọc mã voucher (sửa)</label>
-                  <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canViewVoucherFilter" ${perms.adminCanViewVoucherFilter === true ? 'checked' : ''} /> Lọc mã voucher (chỉ xem)</label>
+                  <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canManageVoucherFilter" ${perms.adminCanManageVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (sửa)</label>
+                  <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canViewVoucherFilter" ${perms.adminCanViewVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (chỉ xem)</label>
                 </div>`
           ) : '<span class="text-muted">-</span>'}
         </td>

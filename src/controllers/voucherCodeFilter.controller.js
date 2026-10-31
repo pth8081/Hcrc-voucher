@@ -29,7 +29,7 @@ async function update(req, res, next) {
   try {
     const id = Number(req.params.id);
     if (!req.voucherFilterCanEdit) {
-      return res.status(403).json({ success: false, message: 'Tai khoan cua ban chi co quyen XEM, khong co quyen sua cau hinh loc ma voucher' });
+      return res.status(403).json({ success: false, message: 'Tai khoan cua ban chi co quyen XEM, khong co quyen sua cau hinh ma voucher' });
     }
     if (!assertInScope(req, id)) {
       return res.status(403).json({ success: false, message: 'Ban khong co quyen sua he thong nay' });

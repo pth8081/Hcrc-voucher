@@ -31,7 +31,7 @@ function renderSystems(systems, canEdit) {
     return;
   }
   if (!canEdit) {
-    mainCard.insertAdjacentHTML('beforeend', '<p class="invoice-reminder-line">Tài khoản của bạn chỉ có quyền <strong>XEM</strong> cấu hình lọc mã voucher - liên hệ quản trị viên nếu cần quyền sửa.</p>');
+    mainCard.insertAdjacentHTML('beforeend', '<p class="invoice-reminder-line">Tài khoản của bạn chỉ có quyền <strong>XEM</strong> cấu hình mã voucher - liên hệ quản trị viên nếu cần quyền sửa.</p>');
   }
   systemsWrap.innerHTML = systems.map((s) => systemCardHtml(s, canEdit)).join('');
   systems.forEach((s) => wireCard(s, canEdit));
