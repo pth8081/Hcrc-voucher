@@ -2527,7 +2527,28 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.8)**: dieu tra bao cao cua nguoi dung - 1 tai khoan Quan tri doi tac tao lich
+Ban **moi nhat (v4.9)**: ket qua dieu tra tiep noi v4.8 (dung cot "Nguoi tao" moi them) - lich
+gui email goc KHONG phai do Quan tri doi tac (men.bt) tao, ma do 1 tai khoan KHAC (FJM479) cung
+cong ty tao va dien email men.bt lam nguoi NHAN - he thong truoc do hoat dong DUNG thiet ke (chi
+nguoi tao moi thay lai), khong phai bug. Nguoi dung xac nhan muon DOI thiet ke: Quan tri doi tac
+phai thay+quan ly duoc CA cau hinh do dong nghiep cung he thong tao, khong chi cua chinh minh:
+- `emailScheduleService.js`: them `resolveViewerScope()` dung CHUNG cho `listSchedules()` (danh
+  sach) va `assertOwnership()` (sua/xoa/bat-tat/gui-ngay) - Quan tri day du (role=1) = thay TOAN
+  BO (khong doi); Quan tri doi tac (`isPartnerAdmin` + co `partnerAdminConnectionId`) = thay+thao
+  tac duoc MOI lich co `ConnectionIds` chua dung he thong cua ho, DU AI TAO; nhan vien thuong
+  (duoc cap rieng quyen "Lich gui email bao cao", KHONG phai Quan tri doi tac) = giu nguyen CHI
+  thay lich cua chinh minh, khong doi.
+- `email-schedules.js`: cot "Nguoi tao" (v4.8) mo rong hien them cho Quan tri doi tac (truoc chi
+  Quan tri day du) vi gio ho cung thay duoc lich nguoi khac tao; dong ghi chu duoi tieu de doi
+  theo dung vai tro dang xem (3 truong hop: Quan tri day du / Quan tri doi tac / nhan vien thuong).
+- Sua them 1 loi giao dien nguoi dung bao cao kem anh chup trong luc dieu tra: man **"Nhat ky he
+  thong"** tren dien thoai bi TRAN NGANG, cac cot ngan gon (vd "Nguoi thuc hien") cung mat theo du
+  ban than khong dai - do cot "Chi tiet" (JSON khong co khoang trang de ngat dong) ep ca the <td>/
+  card tran rong. Them `overflow-wrap: anywhere` cho `.table-responsive td` (CSS dung chung moi
+  man hinh dang nay, khong rieng Nhat ky he thong) de gia tri dai tu xuong dong thay vi day man
+  hinh tran ra ngoai.
+
+Ban truoc do (v4.8): dieu tra bao cao cua nguoi dung - 1 tai khoan Quan tri doi tac tao lich
 gui email nhung sau do dang nhap lai khong con thay lai lich cua chinh minh (trong khi email van
 gui dung, va Quan tri HCRC day du van thay duoc). Da doi chieu va LOAI TRU dan 3 gia thuyet (du
 lieu + logic deu dung, khong tim thay bug code):
@@ -2539,12 +2560,11 @@ lieu + logic deu dung, khong tim thay bug code):
 - KHONG phai do tinh nang "chon nhanh nguoi nhan" (muc 18c) - email nguoi NHAN hoan toan tach
   biet voi `CreatedByUserId` (lay tu phien dang nhap dang thao tac, khong lien quan du lieu nguoi
   nhan duoc chon/go).
-- Them cot **"Nguoi tao"** (hien `CreatedByUsername` + `CreatedByUserId` that luu trong CSDL) vao
-  danh sach lich gui email - CHI hien voi Quan tri day du (nguoi von da thay toan bo lich) de doi
-  chieu truc tiep voi du lieu that, thay vi tiep tuc suy doan qua code - dang cho nguoi dung doi
-  chieu de xac dinh huong dieu tra tiep theo.
+- Them cot "Nguoi tao" (hien `CreatedByUsername` + `CreatedByUserId` that luu trong CSDL) vao
+  danh sach lich gui email de doi chieu truc tiep voi du lieu that, thay vi tiep tuc suy doan qua
+  code - chinh cot nay giup tim ra nguyen nhan that o v4.9.
 
-Ban truoc do (v4.7): theo yeu cau nguoi dung - doi ten man "Loc ma voucher" (v4.5/v4.6) thanh
+Ban truoc do nua (v4.7): theo yeu cau nguoi dung - doi ten man "Loc ma voucher" (v4.5/v4.6) thanh
 **"Cau hinh ma voucher"** cho ro nghia hon (chi doi CHU, KHONG doi logic/quyen):
 - Tieu de trang + tab trinh duyet (`voucher-code-filter.html`): "Loc ma voucher theo he thong" ->
   "Cau hinh ma voucher duoc phep thu hoi".
