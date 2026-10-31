@@ -55,7 +55,7 @@ const NAV_ITEMS = [
   {
     key: 'voucher-code-filter',
     href: '/voucher-code-filter.html',
-    label: 'Lọc mã voucher',
+    label: 'Cấu hình mã voucher',
     icon: NAV_ICONS.voucherFilter,
     permission: ['adminCanManageVoucherFilter', 'partnerAdminCanManageVoucherFilter', 'adminCanViewVoucherFilter', 'partnerAdminCanViewVoucherFilter'],
   },
