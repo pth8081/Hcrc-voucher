@@ -170,7 +170,7 @@ function renderRecipientPanel() {
       </label>`
         )
         .join('')
-    : '<p class="text-muted" style="margin:4px 8px;">Chưa có tài khoản nào có sẵn email - vào màn "Tài khoản" để gán email cho tài khoản.</p>';
+    : '<p class="text-muted m-4-8">Chưa có tài khoản nào có sẵn email - vào màn "Tài khoản" để gán email cho tài khoản.</p>';
   panel.querySelectorAll('.recipient-checkbox').forEach((cb) => {
     cb.addEventListener('change', () => {
       let emails = currentRecipientEmails();

@@ -645,6 +645,7 @@ tbody tr:hover { background: var(--ink-100); }
 .flex-1 { flex: 1; }
 .flex-wrap { flex-wrap: wrap; }
 .items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
 .gap-8 { gap: 8px; }
 .gap-10 { gap: 10px; }
 .gap-14 { gap: 14px; }
@@ -660,13 +661,28 @@ tbody tr:hover { background: var(--ink-100); }
 .mb-4 { margin-bottom: 4px; }
 .mb-8 { margin-bottom: 8px; }
 .mb-10 { margin-bottom: 10px; }
+.ml-2 { margin-left: 2px; }
+.ml-4 { margin-left: 4px; }
+.ml-6 { margin-left: 6px; }
 .fw-normal { font-weight: 400; }
 .fw-600 { font-weight: 600; }
 .checkbox-inline { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 6px 0; }
 .checkbox-inline input { width: auto; }
+.fs-12 { font-size: 12px; }
 .fs-13 { font-size: 13px; }
 .text-muted { color: var(--muted); }
 .text-danger { color: var(--danger); }
 .w-auto { width: auto; }
 .m-0 { margin: 0; }
+.m-4-8 { margin: 4px 8px; }
+.hint-tight { margin: 4px 0 0; }
+.d-block { display: block; }
+/* Phien ban nho gon cua .btn-secondary/.btn-danger (dung cho nut "Sua"/"Xoa" nam ngay trong 1
+   dong du lieu, vd danh sach cong ty/nhom quyen o partner-admin.js) - ghep them class nay canh
+   .btn-secondary/.btn-danger co san, khong thay the. */
+.btn-sm { padding: 4px 10px; font-size: 12.5px; }
+.btn-xs { padding: 2px 8px; font-size: 12px; }
+/* Nut chi co icon (vd but sua/dau X xoa canh 1 dong), khong vien/khong nen, chi hien icon - dung
+   cho cac hanh dong phu rat nho (vd sua/xoa tung "Diem tieu" trong danh sach con cua partner-admin.js). */
+.icon-btn { border: none; background: none; cursor: pointer; padding: 0; }
 .checkbox-input { width: auto; margin: 0; }
