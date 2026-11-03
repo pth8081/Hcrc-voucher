@@ -41,8 +41,8 @@ function systemCardHtml(s, canEdit) {
   const disabledAttr = canEdit ? '' : 'disabled';
   return `
     <div class="card" data-system-id="${s.id}">
-      <div class="flex items-center gap-8" style="justify-content:space-between;">
-        <h3 style="margin:0;">${escapeHtml(s.name)}${s.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}${s.isLocked ? '<span class="badge-locked">ĐÃ KHÓA</span>' : ''}</h3>
+      <div class="flex items-center gap-8 justify-between">
+        <h3 class="m-0">${escapeHtml(s.name)}${s.isActive ? '<span class="badge-active">ĐANG KÍCH HOẠT</span>' : ''}${s.isLocked ? '<span class="badge-locked">ĐÃ KHÓA</span>' : ''}</h3>
       </div>
 
       <label class="flex items-center gap-8 fw-normal mb-8 mt-14">
@@ -54,11 +54,11 @@ function systemCardHtml(s, canEdit) {
         <span><strong>Chỉ chấp nhận (whitelist)</strong> — <strong>CHỈ</strong> mã trùng tiền tố liệt kê mới quét/thu hồi được, còn lại bị từ chối.</span>
       </label>
 
-      <div class="exclude-fields" ${s.codePrefixFilterMode === 'INCLUDE' ? 'style="display:none"' : ''}>
+      <div class="exclude-fields${s.codePrefixFilterMode === 'INCLUDE' ? ' hidden' : ''}">
         <label>Các tiền tố BỊ LOẠI TRỪ (cách nhau bằng dấu phẩy, để trống = không loại trừ gì)</label>
         <input class="excluded-input" value="${escapeHtml(s.excludedCodePrefixes.join(', '))}" placeholder="VD: C, TEST, X9" ${disabledAttr} />
       </div>
-      <div class="include-fields" ${s.codePrefixFilterMode === 'EXCLUDE' ? 'style="display:none"' : ''}>
+      <div class="include-fields${s.codePrefixFilterMode === 'EXCLUDE' ? ' hidden' : ''}">
         <label>Các tiền tố ĐƯỢC CHẤP NHẬN (cách nhau bằng dấu phẩy, bắt buộc có ít nhất 1 tiền tố)</label>
         <input class="allowed-input" value="${escapeHtml(s.allowedCodePrefixes.join(', '))}" placeholder="VD: FJ, CVA" ${disabledAttr} />
       </div>
@@ -81,8 +81,14 @@ function wireCard(system, canEdit) {
   const allowedInput = card.querySelector('.allowed-input');
 
   function updateModeVisibility() {
-    excludeFields.style.display = includeRadio.checked ? 'none' : '';
-    includeFields.style.display = includeRadio.checked ? '' : 'none';
+    // Dung class "hidden" (CSS ngoai file) thay vi gan truc tiep .style.display - CSP cua app
+    // nay cam HOAN TOAN style noi tuyen (xem src/app.js#styleSrc: ["'self'"]), gan .style.xxx
+    // qua JS cung bi chan y het thuoc tinh style="..." trong HTML. Day chinh la nguyen nhan
+    // THAT SU khien ca 2 o BI LOAI TRU/DUOC CHAP NHAN cung hien tren production (nguoi dung
+    // phat hien qua canh bao CSP trong Console) - sua lai dung quy uoc nhu api-connection.js
+    // da lam dung tu truoc (classList.toggle('hidden', ...)).
+    excludeFields.classList.toggle('hidden', includeRadio.checked);
+    includeFields.classList.toggle('hidden', !includeRadio.checked);
   }
   excludeRadio.addEventListener('change', updateModeVisibility);
   includeRadio.addEventListener('change', updateModeVisibility);

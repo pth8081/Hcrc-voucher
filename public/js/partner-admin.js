@@ -472,7 +472,7 @@ function renderEditPanel(u) {
             )
             .join('')}
         </select>`,
-        '<p class="hint" style="margin-top:4px;">Chỉ hiện các điểm tiêu do bạn tạo, hoặc do HCRC tạo và gán cho bạn (tab "Công ty &amp; Điểm tiêu").</p>'
+        '<p class="hint mt-4">Chỉ hiện các điểm tiêu do bạn tạo, hoặc do HCRC tạo và gán cho bạn (tab "Công ty &amp; Điểm tiêu").</p>'
       )
     : `
     <label>Điểm tiêu</label>
@@ -508,7 +508,7 @@ function renderEditPanel(u) {
             )
             .join('')}
         </select>`,
-        '<p class="hint" style="margin-top:4px;">Chỉ hiện các nhóm quyền do chính bạn tạo (tab "Nhóm quyền xem báo cáo").</p>'
+        '<p class="hint mt-4">Chỉ hiện các nhóm quyền do chính bạn tạo (tab "Nhóm quyền xem báo cáo").</p>'
       )
     : `
     <label>Nhóm quyền xem báo cáo</label>
@@ -541,7 +541,7 @@ function renderEditPanel(u) {
 
   const permField = u.exclusiveToThisSystem
     ? `
-    <label class="mt-10" style="display:block;">Quyền tính năng</label>
+    <label class="mt-10 d-block">Quyền tính năng</label>
     <div class="perm-grid">
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canRedeemVoucher" ${u.permissions && u.permissions.canRedeemVoucher ? 'checked' : ''} /> Thu hồi voucher</label>
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canViewReconciliation" ${u.permissions && u.permissions.canViewReconciliation ? 'checked' : ''} /> Báo cáo đối soát</label>
@@ -552,7 +552,7 @@ function renderEditPanel(u) {
       <label class="perm-item"><input type="checkbox" class="checkbox-input edit-perm" data-perm="canManageEmailSchedules" ${u.permissions && u.permissions.canManageEmailSchedules ? 'checked' : ''} /> Lịch gửi email báo cáo</label>
     </div>`
     : `
-    <label class="mt-10" style="display:block;">Quyền tính năng</label>
+    <label class="mt-10 d-block">Quyền tính năng</label>
     <div class="loc-readonly">Chỉ quản trị viên HCRC mới đổi được quyền tính năng cho tài khoản dùng chung.</div>`;
 
   return `
@@ -751,13 +751,13 @@ function renderOrg() {
       <div class="company-card" data-company-id="${c.Id}" data-search="${escapeHtml(searchTerm)}">
         <div class="company-card-head">
           <span class="company-name">
-            ${escapeHtml(c.CompanyName)}${c.Address ? ` <span class="text-muted" style="font-size:12px; font-weight:400;">· ${escapeHtml(c.Address)}</span>` : ''}
-            <span class="status-badge ${isPartnerCompany ? 'status-other' : 'status-unused'}" style="margin-left:6px;">${isPartnerCompany ? 'CÔNG TY ĐỐI TÁC' : 'CÔNG TY THU HỒI'}</span>
+            ${escapeHtml(c.CompanyName)}${c.Address ? ` <span class="text-muted fs-12 fw-normal">· ${escapeHtml(c.Address)}</span>` : ''}
+            <span class="status-badge ${isPartnerCompany ? 'status-other' : 'status-unused'} ml-6">${isPartnerCompany ? 'CÔNG TY ĐỐI TÁC' : 'CÔNG TY THU HỒI'}</span>
           </span>
-          <span style="display:flex; align-items:center; gap:8px;">
-            <span class="text-muted" style="font-size:12px;">${isPartnerCompany ? 'không áp dụng' : units.length + ' điểm tiêu'}</span>
-            <button type="button" class="btn-secondary edit-company-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
-            <button type="button" class="btn-danger delete-company-btn" style="padding:4px 10px; font-size:12.5px;">Xóa</button>
+          <span class="flex items-center gap-8">
+            <span class="text-muted fs-12">${isPartnerCompany ? 'không áp dụng' : units.length + ' điểm tiêu'}</span>
+            <button type="button" class="btn-secondary btn-sm edit-company-btn">Sửa</button>
+            <button type="button" class="btn-danger btn-sm delete-company-btn">Xóa</button>
           </span>
         </div>
         ${units
@@ -765,11 +765,11 @@ function renderOrg() {
             (u) => `
           <span class="unit-chip"${u.Address ? ` title="${escapeHtml(u.Address)}"` : ''}>
             ${escapeHtml(u.PartnerName)}
-            <button type="button" class="edit-unit-btn" data-id="${u.Id}" title="Sửa điểm tiêu" style="border:none;background:none;cursor:pointer;margin-left:4px;">✎</button>
-            <button type="button" class="delete-unit-btn" data-id="${u.Id}" title="Xóa điểm tiêu" style="border:none;background:none;cursor:pointer;color:var(--danger,#d33);">✕</button>
+            <button type="button" class="edit-unit-btn icon-btn ml-4" data-id="${u.Id}" title="Sửa điểm tiêu">✎</button>
+            <button type="button" class="delete-unit-btn icon-btn text-danger" data-id="${u.Id}" title="Xóa điểm tiêu">✕</button>
           </span>`
           )
-          .join('') || (isPartnerCompany ? '' : '<span class="text-muted" style="font-size:12.5px;">Chưa có điểm tiêu nào</span>')}
+          .join('') || (isPartnerCompany ? '' : '<span class="text-muted fs-13">Chưa có điểm tiêu nào</span>')}
       </div>`;
     })
     .join('');
@@ -974,7 +974,9 @@ function renderGroupCompanyCheckboxes() {
 }
 
 function toggleGroupCompaniesField() {
-  groupCompaniesField.style.display = newGroupScope.value === 'SPECIFIC' ? '' : 'none';
+  // classList thay vi .style.display - CSP cua app chan HOAN TOAN style noi tuyen (xem
+  // src/app.js#styleSrc), gan qua JS cung bi chan y het thuoc tinh style="..." trong HTML.
+  groupCompaniesField.classList.toggle('hidden', newGroupScope.value !== 'SPECIFIC');
 }
 newGroupScope.addEventListener('change', toggleGroupCompaniesField);
 toggleGroupCompaniesField();
@@ -1001,10 +1003,10 @@ function renderGroups() {
       <div class="company-card" data-group-id="${g.Id}">
         <div class="company-card-head">
           <span class="company-name">${escapeHtml(g.GroupName)}</span>
-          <span style="display:flex; align-items:center; gap:8px;">
-            <span class="text-muted" style="font-size:12px;">${g.ScopeType === 'ALL' ? 'Toàn bộ công ty của bạn' : `${g.companies.length} công ty được chọn`}</span>
-            <button type="button" class="btn-secondary edit-group-btn" style="padding:4px 10px; font-size:12.5px;">Sửa</button>
-            <button type="button" class="btn-danger delete-group-btn" style="padding:4px 10px; font-size:12.5px;">Xóa</button>
+          <span class="flex items-center gap-8">
+            <span class="text-muted fs-12">${g.ScopeType === 'ALL' ? 'Toàn bộ công ty của bạn' : `${g.companies.length} công ty được chọn`}</span>
+            <button type="button" class="btn-secondary btn-sm edit-group-btn">Sửa</button>
+            <button type="button" class="btn-danger btn-sm delete-group-btn">Xóa</button>
           </span>
         </div>
         ${g.ScopeType === 'SPECIFIC' ? g.companies.map((c) => `<span class="unit-chip">${escapeHtml(c.companyName)}</span>`).join('') : ''}

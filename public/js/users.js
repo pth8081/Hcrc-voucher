@@ -326,7 +326,7 @@ function renderUsers(users) {
           <label class="perm-item fs-13 mt-6">
             <input type="checkbox" class="checkbox-input edit-is-partner-account" ${perms.isPartnerAccount ? 'checked' : ''} /> Tài khoản đối tác
           </label>
-          <p class="hint" style="margin:4px 0 0;">Chỉ bật được khi Công ty ở trên đã là "Công ty đối tác" - tài khoản sẽ mất chức năng thu hồi và không gán được Đơn vị thu hồi.</p>` : ''}
+          <p class="hint hint-tight">Chỉ bật được khi Công ty ở trên đã là "Công ty đối tác" - tài khoản sẽ mất chức năng thu hồi và không gán được Đơn vị thu hồi.</p>` : ''}
         </td>
         <td data-label="Đơn vị thu hồi">
           <select class="redemption-unit" ${!isAdmin && perms.isPartnerAccount ? 'disabled' : ''}>
@@ -369,7 +369,7 @@ function renderUsers(users) {
             <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canManageVoucherFilter" ${perms.partnerAdminCanManageVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (sửa)</label>
             <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canViewVoucherFilter" ${perms.partnerAdminCanViewVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (chỉ xem)</label>
           </div>
-          <p class="hint" style="margin:4px 0 0;">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Riêng 2 mục "Cấu hình mã voucher" mặc định TẮT (khác 4 mục trên) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
+          <p class="hint hint-tight">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Riêng 2 mục "Cấu hình mã voucher" mặc định TẮT (khác 4 mục trên) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
         </td>
         <td data-label="Quyền quản trị hệ thống">
           ${isAdmin ? (

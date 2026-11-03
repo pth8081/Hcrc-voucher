@@ -224,7 +224,9 @@ function renderTopbar(activeKey) {
   // (co san danh sach + form dang ky, xem security.js) thay vi lam ngay tai day.
   const registerLink = document.getElementById('webauthnRegisterLink');
   if (!(typeof webauthnSupported === 'function' && webauthnSupported())) {
-    registerLink.style.display = 'none';
+    // classList thay vi .style.display - CSP cua app chan HOAN TOAN style noi tuyen (xem
+    // src/app.js#styleSrc), gan qua JS cung bi chan y het thuoc tinh style="..." trong HTML.
+    registerLink.classList.add('hidden');
   }
 }
 

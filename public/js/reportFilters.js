@@ -66,7 +66,7 @@ async function initReportFilters(onChange) {
           </label>`
           )
           .join('')
-      : '<p class="text-muted" style="margin:4px 8px;">Không có điểm thu hồi nào.</p>';
+      : '<p class="text-muted m-4-8">Không có điểm thu hồi nào.</p>';
     unitPanel.querySelectorAll('.unit-checkbox').forEach((cb) => {
       cb.addEventListener('change', async () => {
         updateUnitToggleLabel(units);

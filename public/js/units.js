@@ -407,7 +407,9 @@ function renderGroupCompaniesCheckboxes() {
 }
 
 function toggleGroupCompaniesField() {
-  groupCompaniesField.style.display = scopeTypeSelect.value === 'SPECIFIC' ? '' : 'none';
+  // classList thay vi .style.display - CSP cua app chan HOAN TOAN style noi tuyen (xem
+  // src/app.js#styleSrc), gan qua JS cung bi chan y het thuoc tinh style="..." trong HTML.
+  groupCompaniesField.classList.toggle('hidden', scopeTypeSelect.value !== 'SPECIFIC');
 }
 scopeTypeSelect.addEventListener('change', toggleGroupCompaniesField);
 toggleGroupCompaniesField();
