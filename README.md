@@ -2527,7 +2527,33 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.10)**: theo yeu cau nguoi dung ("kiem tra tat ca man hinh khac xem co cai nao
+Ban **moi nhat (v4.11)**: sua loi THAT nguoi dung bao cao kem nhieu anh chup/dieu tra sau (man
+"Cau hinh ma voucher" - chon "Loai tru" hay "Chi chap nhan" van hien CA 2 o cung luc). Sau nhieu
+vong loai tru gia thuyet (cache trinh duyet, chua deploy dung ban, CDN...) - nguyen nhan THAT
+SU la **CSP (Content Security Policy) chan style noi tuyen**: app nay co cau hinh bao mat
+nghiem ngat KHONG `unsafe-inline` cho `style-src` (`src/app.js`, co tu truoc, cam HOAN TOAN
+`style="..."` trong HTML LAN `.style.xxx = ...` gan qua JS). Man "Cau hinh ma voucher" (xay o
+v4.5) dung dung kieu bi cam nay de an/hien 2 o theo mode - bi trinh duyet CHAN THAT tren
+production nen ca 2 o LUON cung hien, bat ke chon mode nao. Phat hien duoc nho nguoi dung tu
+mo DevTools Console theo huong dan va thay dong canh bao CSP ro rang. Bai hoc rut ra: cac lan
+test truoc do dung server file tinh KHONG bat CSP nen khong phat hien duoc - tu nay se luon
+test tinh nang co an/hien voi CSP that giong production.
+- `voucher-code-filter.js`: doi `.style.display` -> `classList.toggle('hidden', ...)` (class co
+  san, dung quy uoc giong `api-connection.js` da lam dung tu truoc).
+- Theo yeu cau nguoi dung ("ra soat lai xem co cho nao loi CSP khong") - ra soat THEM, tim duoc
+  2 LOI CHUC NANG cung loai: `layout.js` (an link dang ky passkey khi trinh duyet khong ho tro),
+  `units.js` + `partner-admin.js` (toggle o "chon cong ty cu the" trong form "Nhom quyen xem
+  bao cao") - deu doi sang `classList.toggle('hidden', ...)`.
+- Don dep toan bo style noi tuyen THUAN THAM MY con lai (khong gay loi chuc nang nhung van vi
+  pham CSP, khong ap dung dung tren production): `email-schedules.js/html`, `reportFilters.js`,
+  `users.js`, `partner-admin.js`, `partner-admin.html` - thay bang cac class tien ich moi them
+  vao `style.css` (`.justify-between`, `.d-block`, `.fs-12`, `.ml-2/4/6`, `.btn-sm`, `.btn-xs`,
+  `.icon-btn`, `.m-4-8`, `.hint-tight`).
+- Da test lai bang Playwright VOI DUNG header CSP giong production (khac cach test truoc do) -
+  xac nhan het loi CSP tren Console, kiem tra ca hanh vi BAM chuyen doi mode (khong chi render
+  ban dau).
+
+Ban truoc do (v4.10): theo yeu cau nguoi dung ("kiem tra tat ca man hinh khac xem co cai nao
 chua xu ly responsive thi xu ly luon") - ra soat CHU DONG toan bo 20 trang cua app (khong doi
 nguoi dung tu phat hien tung loi) de tim cac loi hien thi tren dien thoai CUNG LOAI voi loi da
 sua o "Nhat ky he thong" (v4.9) - gia tri dai khong co khoang trang de ngat dong day tran ca
@@ -2547,7 +2573,7 @@ the/card ra ngoai man hinh. Tim va sua duoc 3 cho:
 17 trang con lai da kiem tra ky, khong co van de (da dung dung pattern `.table-responsive` +
 `data-label`, hoac khong co bang/layout nhieu cot can lo).
 
-Ban truoc do (v4.9): ket qua dieu tra tiep noi v4.8 (dung cot "Nguoi tao" moi them) - lich
+Ban truoc do nua (v4.9): ket qua dieu tra tiep noi v4.8 (dung cot "Nguoi tao" moi them) - lich
 gui email goc KHONG phai do Quan tri doi tac (men.bt) tao, ma do 1 tai khoan KHAC (FJM479) cung
 cong ty tao va dien email men.bt lam nguoi NHAN - he thong truoc do hoat dong DUNG thiet ke (chi
 nguoi tao moi thay lai), khong phai bug. Nguoi dung xac nhan muon DOI thiet ke: Quan tri doi tac
