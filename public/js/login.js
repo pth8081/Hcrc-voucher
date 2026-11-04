@@ -23,11 +23,20 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const password = document.getElementById('password').value;
     const captchaText = document.getElementById('captchaText').value.trim();
     try {
-      const data = await apiFetch('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password, captchaToken, captchaText }),
-      });
-      continueAfterPrimaryAuth(data);
+      const data = await runLoginStep(() =>
+        apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, captchaToken, captchaText }),
+        })
+      );
+      if (data) {
+        continueAfterPrimaryAuth(data);
+        return;
+      }
+      // data=null: nguoi dung bam "Huy" o hop thoai "co the dang dang nhap o noi khac" - o lai
+      // trang dang nhap. captchaToken DA BI "dung" (captcha chi dung 1 lan) du bam Huy, phai
+      // nap ma moi de thu dang nhap lai duoc.
+      loadCaptcha();
     } catch (err) {
       showToast(err.message);
       loadCaptcha();
@@ -43,8 +52,8 @@ if (typeof webauthnSupported === 'function' && webauthnSupported()) {
 webauthnBtn.addEventListener('click', async () => {
   webauthnBtn.disabled = true;
   try {
-    const data = await loginWithPasskey();
-    continueAfterPrimaryAuth(data);
+    const data = await runLoginStep(loginWithPasskey);
+    if (data) continueAfterPrimaryAuth(data);
   } catch (err) {
     if (err.name !== 'NotAllowedError') {
       // NotAllowedError = nguoi dung tu huy hop thoai van tay/Face ID, khong can bao loi.

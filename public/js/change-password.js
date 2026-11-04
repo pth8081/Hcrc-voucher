@@ -32,11 +32,16 @@ document.getElementById('changePasswordForm').addEventListener('submit', async (
 
   await withSubmitLock(form, async () => {
     try {
-      const data = await twoFaFetch('/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ newPassword }),
-      });
-      continueAfterPrimaryAuth(data);
+      const data = await runLoginStep(() =>
+        twoFaFetch('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ newPassword }),
+        })
+      );
+      if (data) continueAfterPrimaryAuth(data);
+      // data=null: nguoi dung bam Huy o hop thoai "co the dang dang nhap o noi khac" - mat
+      // khau MOI van da duoc luu thanh cong (buoc do xong truoc khi toi luc kiem tra xung dot
+      // phien, xem authService.js#buildLoginOutcome), chi chua cap phien - o lai trang nay.
     } catch (err) {
       showToast(err.message);
     }
