@@ -10,7 +10,8 @@ document.getElementById('verifyForm').addEventListener('submit', async (e) => {
   await withSubmitLock(form, async () => {
     const code = document.getElementById('code').value.trim();
     try {
-      const data = await twoFaLoginVerify(code);
+      const data = await runLoginStep(() => twoFaLoginVerify(code));
+      if (!data) return; // nguoi dung bam Huy o hop thoai "co the dang dang nhap o noi khac".
       clearPendingTwoFactorToken();
       setSession(data.token, data.user);
       window.location.href = '/index.html';

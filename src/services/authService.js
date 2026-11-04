@@ -167,8 +167,21 @@ async function findUserById(userId) {
  * tu truoc. Quyen chi "chup" tai thoi diem dang nhap, admin doi quyen cho nguoi dang co phien
  * se can dang nhap lai moi thay hieu luc - chap nhan duoc, nhat quan voi cach role/lich hieu
  * luc tai khoan da hoat dong (xem userScheduleService.js).
+ *
+ * confirmTakeover: theo yeu cau nguoi dung - TRUOC KHI cap phien moi, neu tai khoan nay co lan
+ * dang nhap gan day CHUA duoc dang xuat ro rang (sessionVersionService.js#hasRecentSession),
+ * CHAN LAI va nem loi sessionConflict() (mang theo 1 confirmToken TAM, xem issuePendingToken)
+ * thay vi cap phien ngay - CHI khi goi lai VOI confirmTakeover=true (tu confirmSessionTakeover()
+ * ben duoi, sau khi nguoi dung dong y o hop thoai) moi thuc su cap phien. Dat o DAY (diem chung
+ * CUOI CUNG truoc khi cap phien that, sau ca mat khau/van tay LAN 2FA) de CHI 1 noi can xu ly,
+ * ap dung dong deu cho ca 3 duong dang nhap (mat khau, van tay, sau khi xac minh 2FA) ma khong
+ * can sua rieng tung noi goi buildLoginOutcome()/issueSession().
  */
-async function issueSession(user) {
+async function issueSession(user, { confirmTakeover = false } = {}) {
+  if (!confirmTakeover && (await sessionVersionService.hasRecentSession(user.UserID))) {
+    throw sessionConflict(user);
+  }
+
   const role = Number(user.status) === 1 ? 'admin' : 'staff';
   const permissions = await permissionService.resolvePermissions({ userId: user.UserID, role: user.status });
   // Nhung san phien ban mat khau HIEN TAI vao token - middleware/auth.js doi chieu lai sau nay
@@ -182,6 +195,7 @@ async function issueSession(user) {
   // (khong doi TTL 30s cua sessionRevalidation.js het han) de phien cu bi tu choi cang som cang
   // tot, cung nguyen tac voi passwordPolicyService.js#setNewPassword/adminResetPassword.
   const sessionVersion = await sessionVersionService.bumpSessionVersion(user.UserID);
+  await sessionVersionService.recordLogin(user.UserID);
   sessionRevalidation.invalidate(user.UserID);
 
   const token = jwt.sign(
@@ -235,6 +249,47 @@ function unauthorized() {
   return err;
 }
 
+/** 409 Conflict + `code: 'SESSION_CONFLICT'` rieng (khac cac loi 401/400 khac) de frontend
+ * phan biet duoc day la hoi-xac-nhan, khong phai loi that su - hien hop thoai Huy/OK thay vi
+ * toast loi thong thuong (xem login.js/twofa.js/webauthn.js). Mang theo `confirmToken` (token
+ * TAM purpose='session_takeover', 2 phut) - bam OK se goi POST /auth/confirm-takeover voi
+ * token nay (xem confirmSessionTakeover() duoi day) de hoan tat dang nhap, KHONG can nhap lai
+ * mat khau/captcha/ma 2FA/vân tay (nhung thu nay deu CHI dung 1 LAN - captcha/ma 2FA da bi
+ * "dung" ngay o lan goi dau tien phat hien xung dot, goi lai se that bai; confirmToken rieng
+ * nay chinh la bang chung "da xac thuc danh tinh thanh cong truoc do", khong can lam lai). */
+function sessionConflict(user) {
+  const err = new Error('Tai khoan nay co the dang dang nhap o noi khac (thiet bi/tab khac). Tiep tuc dang nhap o day se DANG XUAT phien do ngay.');
+  err.statusCode = 409;
+  err.code = 'SESSION_CONFLICT';
+  err.publicMessage = err.message;
+  err.confirmToken = issuePendingToken(user, 'session_takeover');
+  return err;
+}
+
+/** Hoan tat dang nhap sau khi nguoi dung dong y "ghi de" phien cu (bam OK o hop thoai
+ * SESSION_CONFLICT) - xem sessionConflict() o tren. confirmToken da duoc xac thuc purpose boi
+ * middleware (require2FAPending(['session_takeover'])) truoc khi toi duoc day. */
+async function confirmSessionTakeover(userId) {
+  const user = await findUserById(userId);
+  if (!user) {
+    throw unauthorized();
+  }
+  return issueSession(user, { confirmTakeover: true });
+}
+
+/** Dang xuat THAT (goi tu API moi /auth/logout) - khac voi truoc day nut "Dang xuat" CHI xoa
+ * token o trinh duyet (token van con hieu luc tren server den khi tu het han, toi da 8 tieng -
+ * 1 ke chiem duoc token bi lo van dung duoc du chu tai khoan da bam dang xuat). Vo hieu hoa
+ * NGAY phien hien tai (bump SessionVersion - giong het co che "phien moi day phien cu" cua
+ * issueSession(), chi khac la khong co phien MOI nao thay the) VA xoa LastLoginDate ve NULL
+ * (sessionVersionService.js#hasRecentSession) de lan dang nhap tiep theo KHONG bi hoi "co the
+ * dang dang nhap o noi khac" gia - nguoi dung vua chu dong dang xuat that su. */
+async function logout(userId) {
+  await sessionVersionService.bumpSessionVersion(userId);
+  await sessionVersionService.clearLastLoginDate(userId);
+  sessionRevalidation.invalidate(userId);
+}
+
 function isBcryptHash(stored) {
   return !!stored && (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$'));
 }
@@ -271,4 +326,6 @@ module.exports = {
   roleOf,
   comparePassword,
   requiresMandatory2FA,
+  logout,
+  confirmSessionTakeover,
 };

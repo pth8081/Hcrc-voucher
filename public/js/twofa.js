@@ -30,7 +30,12 @@ async function twoFaFetch(path, options = {}) {
   const res = await fetch(`/api${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.success === false) {
-    throw new Error(body.message || `Lỗi API (${res.status})`);
+    const err = new Error(body.message || `Lỗi API (${res.status})`);
+    // code/confirmToken: giong het api.js#apiFetch - de runLoginStep() ben duoi nhan dien duoc
+    // loi SESSION_CONFLICT tu CA duong 2FA (xac minh ma luc dang nhap/thiet lap lan dau).
+    err.code = body.code;
+    err.confirmToken = body.confirmToken;
+    throw err;
   }
   return body.data;
 }
@@ -50,6 +55,44 @@ function twoFaLoginVerify(code) {
  * nhap lai mat khau de xac nhan. */
 function twoFaShowQr(password) {
   return twoFaFetch('/auth/2fa/show-qr', { method: 'POST', body: JSON.stringify({ password }) });
+}
+
+/** Goi /auth/confirm-takeover BANG confirmToken rieng (KHONG phai phien/token tam 2FA dang co,
+ * xem authService.js#sessionConflict) - khong dung apiFetch/twoFaFetch vi 2 ham do tu chon
+ * token theo thu tu co san (getToken()/getPendingTwoFactorToken()), con o day BAT BUOC dung
+ * DUNG confirmToken server vua cap kem loi SESSION_CONFLICT. */
+async function confirmTakeoverFetch(confirmToken) {
+  const res = await fetch('/api/auth/confirm-takeover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${confirmToken}` },
+    body: JSON.stringify({}),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.success === false) {
+    throw new Error(body.message || `Lỗi API (${res.status})`);
+  }
+  return body.data;
+}
+
+/**
+ * Dung CHUNG cho MOI buoc co the cap phien day du (dang nhap mat khau/van tay, xac minh 2FA,
+ * thiet lap 2FA lan dau, doi mat khau bat buoc) - theo yeu cau nguoi dung: canh bao "tai khoan
+ * co the dang dang nhap o noi khac" truoc khi thuc su cap phien (xem authService.js#sessionConflict).
+ * `stepFn` la 1 ham async thuc hien dung buoc do (vd apiFetch('/auth/login', ...)). Neu buoc do
+ * nem loi SESSION_CONFLICT (api.js da gan san err.code/err.confirmToken), hien hop thoai xac
+ * nhan - dong y thi goi /auth/confirm-takeover de HOAN TAT dang nhap NGAY (khong can lam lai
+ * buoc xac thuc, vi captcha/ma 2FA/chu ky van tay deu CHI dung duoc 1 LAN, goi lai se loi).
+ * Tra ve: du lieu phien (truyen thang cho continueAfterPrimaryAuth) neu khong xung dot HOAC da
+ * dong y ghi de; null neu nguoi dung bam Huy (noi goi phai dung lai, khong lam gi them).
+ */
+async function runLoginStep(stepFn) {
+  try {
+    return await stepFn();
+  } catch (err) {
+    if (err.code !== 'SESSION_CONFLICT') throw err;
+    if (!window.confirm(err.message + '\n\nBạn có muốn tiếp tục?')) return null;
+    return confirmTakeoverFetch(err.confirmToken);
+  }
 }
 
 /**

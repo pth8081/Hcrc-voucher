@@ -37,7 +37,14 @@ async function apiFetch(path, options = {}) {
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.success === false) {
-    throw new Error(body.message || `Lỗi API (${res.status})`);
+    const err = new Error(body.message || `Lỗi API (${res.status})`);
+    // code/statusCode: cho phep noi goi phan biet 1 so loi CAN XU LY RIENG (vd SESSION_CONFLICT -
+    // hoi xac nhan dang nhap de "chiem" phien, xem login.js/twofa.js/webauthn.js) voi loi
+    // thong thuong (chi can hien showToast(err.message)).
+    err.code = body.code;
+    err.statusCode = res.status;
+    err.confirmToken = body.confirmToken;
+    throw err;
   }
   return body.data;
 }

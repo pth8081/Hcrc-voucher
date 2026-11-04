@@ -57,7 +57,8 @@ document.getElementById('setupForm').addEventListener('submit', async (e) => {
   await withSubmitLock(form, async () => {
     const code = document.getElementById('code').value.trim();
     try {
-      const data = await twoFaSetupVerify(code);
+      const data = await runLoginStep(() => twoFaSetupVerify(code));
+      if (!data) return; // nguoi dung bam Huy o hop thoai "co the dang dang nhap o noi khac".
       if (data.token) {
         clearPendingTwoFactorToken();
         setSession(data.token, data.user);

@@ -212,8 +212,19 @@ function renderTopbar(activeKey) {
     });
   }
 
-  document.getElementById('logoutLink').addEventListener('click', (e) => {
+  document.getElementById('logoutLink').addEventListener('click', async (e) => {
     e.preventDefault();
+    // Theo yeu cau nguoi dung: goi THAT xuong server de vo hieu hoa phien NGAY (truoc day CHI
+    // xoa token o trinh duyet nay - token van con hieu luc tren server den khi tu het han, toi
+    // da 8 tieng, neu bi lo/ro ri van dung duoc du chu tai khoan da bam "Dang xuat"). Xem
+    // authService.js#logout. Bo qua loi (mat mang, token da het han...) - van tiep tuc dang
+    // xuat o trinh duyet nhu cu, khong de nguoi dung bi "ket" lai vi 1 loi goi API phu.
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' });
+    } catch (err) {
+      // da co 401-handling rieng trong apiFetch (tu dong clearSession+redirect) - loi khac
+      // (mat mang...) chi bo qua, van dang xuat binh thuong o duoi.
+    }
     clearSession();
     window.location.href = '/login.html';
   });
