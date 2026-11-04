@@ -2527,7 +2527,29 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.11)**: sua loi THAT nguoi dung bao cao kem nhieu anh chup/dieu tra sau (man
+Ban **moi nhat (v4.12)**: theo yeu cau nguoi dung (kem anh tham khao tu 1 app khac, hws.hcrc.vn)
+- them hop thoai hoi xac nhan khi dang nhap luc tai khoan co the dang dang nhap o noi khac, va
+lam "Dang xuat" goi THAT xuong server. App truoc do da co san co che "1 tai khoan = 1 phien
+dang nhap" (M17, sql/036) nhung CHAY NGAM, khong hoi truoc - dang nhap thiet bi moi tu dong
+dang xuat thiet bi cu ngay, khong canh bao:
+- `sql/051`: them `LastLoginDate` (moc thoi gian that, khac `SessionVersion` chi la bo dem) vao
+  `UserPasswordPolicy` - ghi luc dang nhap thanh cong, xoa ve NULL luc dang xuat ro rang. Phuc
+  vu suy doan "co the dang dang nhap o noi khac" (trong 8 tieng gan day, khop JWT) - KHONG phai
+  kiem tra bao mat chinh xac tuyet doi, vi app khong theo doi "dang mo tab that su" thoi gian
+  thuc.
+- `authService.js#issueSession()`: diem chung CUOI CUNG truoc khi cap phien that (sau ca mat
+  khau/van tay LAN 2FA, ap dung dong deu CA 3 duong dang nhap) - neu co xung dot, chan lai, nem
+  loi 409 `SESSION_CONFLICT` kem 1 `confirmToken` TAM (2 phut). API moi `POST /auth/confirm-takeover`
+  (CHI nhan confirmToken, khong can nhap lai mat khau/captcha/ma 2FA - vi da xac thuc xong va
+  cac thu nay CHI DUNG 1 LAN) de hoan tat dang nhap khi nguoi dung dong y. API moi
+  `POST /auth/logout` - vo hieu hoa phien NGAY tren server (truoc day "Dang xuat" chi xoa token
+  o trinh duyet, token cu van dung duoc toi 8 tieng du da bam dang xuat).
+- Frontend (`twofa.js#runLoginStep`, dung chung): hien hop thoai Huy/OK luc gap `SESSION_CONFLICT`,
+  goi `/auth/confirm-takeover` neu dong y - ap dung cho `login.js` (mat khau + van tay),
+  `twofa-verify.js`, `twofa-setup.js`, `change-password.js`. `layout.js`: nut "Dang xuat" goi
+  `POST /auth/logout` truoc khi xoa token.
+
+Ban truoc do (v4.11): sua loi THAT nguoi dung bao cao kem nhieu anh chup/dieu tra sau (man
 "Cau hinh ma voucher" - chon "Loai tru" hay "Chi chap nhan" van hien CA 2 o cung luc). Sau nhieu
 vong loai tru gia thuyet (cache trinh duyet, chua deploy dung ban, CDN...) - nguyen nhan THAT
 SU la **CSP (Content Security Policy) chan style noi tuyen**: app nay co cau hinh bao mat
@@ -2553,7 +2575,7 @@ test tinh nang co an/hien voi CSP that giong production.
   xac nhan het loi CSP tren Console, kiem tra ca hanh vi BAM chuyen doi mode (khong chi render
   ban dau).
 
-Ban truoc do (v4.10): theo yeu cau nguoi dung ("kiem tra tat ca man hinh khac xem co cai nao
+Ban truoc do nua (v4.10): theo yeu cau nguoi dung ("kiem tra tat ca man hinh khac xem co cai nao
 chua xu ly responsive thi xu ly luon") - ra soat CHU DONG toan bo 20 trang cua app (khong doi
 nguoi dung tu phat hien tung loi) de tim cac loi hien thi tren dien thoai CUNG LOAI voi loi da
 sua o "Nhat ky he thong" (v4.9) - gia tri dai khong co khoang trang de ngat dong day tran ca
