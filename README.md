@@ -2527,7 +2527,23 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.15)**: theo yeu cau nguoi dung (sau khi doi chieu voi doi tac) - nang cap "Doi
+Ban **moi nhat (v4.16)**: theo yeu cau nguoi dung - "Doi soat cheo Core" hien THEM 1 cot rieng
+**"Thoi gian tieu tai cua hang (Core)"** trong bang ket qua tren web VA file Excel, hien NGUYEN VAN
+gia tri Core tra ve (hoac "(NULL)" neu rong) cho TUNG dong - truoc day (v4.15) chi suy ra qua 1
+dong ghi chu phu khi CHUA KHOP, truong hop KHOP (gia tri rong - dung mong doi) khong thay duoc gia
+tri that su la gi, nguoi dung muon tu kiem tra truc tiep la NULL hay khong NULL thay vi chi tin vao
+ket luan khop/chua khop:
+- `sql/053`: them cot `UsedAtStoreDate` (NVARCHAR, luu THO khong ep parse ngay) vao
+  `CoreReconciliationResults` - can chay migration cho ban nay.
+- `coreReconciliationService.js`: `insertResult()`/`listRunResults()` luu/doc them cot nay;
+  `buildExcelBuffer()` them cot Excel tuong ung.
+- `core-reconciliation.html/js`: them cot bang moi, hien nguyen van gia tri (hoac "(NULL)" mau xam
+  neu rong) - KHONG qua `fmtDate()` vi day la du lieu THO tu he thong doi tac, dinh dang co the
+  khac nhau, ep format co the che giau sai lech thuc te nguoi dung can thay.
+- Da test: 2 test logic moi (luu dung gia tri THO ca 2 truong hop KHOP/CHUA KHOP) + Playwright voi
+  CSP giong production xac nhan cot moi hien dung tren ca 2 dong.
+
+Ban truoc do (v4.15): theo yeu cau nguoi dung (sau khi doi chieu voi doi tac) - nang cap "Doi
 soat cheo Core" de phat hien THEM truong hop voucher bi dung TRUNG qua 2 kenh. Doi tac xac nhan:
 API "Kiem tra" cua Core co 1 truong thoi gian (vd cot RCV_DATE trong database doi tac) **CHI duoc
 ghi khi khach tieu THAT tai quay sieu thi (DSMart POS)** - he thong e-voucher (app nay) KHONG tu
@@ -2549,7 +2565,7 @@ do, giup phat hien dung trung 2 kenh:
   `runReconciliation`) + Playwright voi CSP giong production cho ca 2 man "Doi soat cheo Core" va
   "Ket noi API" (luu/doc dung truong cau hinh, Test kiem tra hien dung gia tri).
 
-Ban truoc do (v4.14): nguoi dung bao cao kem anh chup - sau khi chay thu that "Doi soat cheo
+Ban truoc do nua (v4.14): nguoi dung bao cao kem anh chup - sau khi chay thu that "Doi soat cheo
 Core" (v4.13) voi 143/143 voucher deu KHOP, bang ket qua tren web hien TRONG TRON (chi co nut Xuat
 Excel) - tuong nhu khong liet ke duoc. Nguyen nhan: checkbox "Chi hien dong CHUA KHOP" mac dinh
 TICK SAN, ket hop voi `.table-responsive` AN CA tieu de cot tren dien thoai khi KHONG CON dong nao

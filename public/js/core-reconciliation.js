@@ -235,6 +235,12 @@ function renderResults(results) {
     const channelMismatchNote = row.coreStatus === 'USED' && !isMatch && row.coreMessage
       ? `<div class="fs-13 text-muted mt-2">${escapeHtml(row.coreMessage)}</div>`
       : '';
+    // Hien NGUYEN VAN gia tri Core tra ve (khong qua fmtDate()) - nguoi dung can thay DUNG la
+    // NULL/rong hay co gia tri, dinh dang thuc te co the khac nhau tuy tung Core nen khong ep
+    // format lai o day (xem ghi chu sql/053).
+    const usedAtStoreDateCell = row.usedAtStoreDate
+      ? escapeHtml(row.usedAtStoreDate)
+      : '<span class="text-muted">(NULL)</span>';
     return `
       <tr class="result-row" data-match="${row.matchResult}">
         <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}</td>
@@ -243,6 +249,7 @@ function renderResults(results) {
         <td data-label="Người thu hồi">${escapeHtml(row.redeemedByUserName || '-')}</td>
         <td data-label="Thời gian thu hồi (hệ thống)">${fmtDate(row.redeemedDate)}</td>
         <td data-label="Trạng thái trên Core"><span class="status-badge ${isMatch ? 'status-unused' : 'status-used'}">${coreLabel}</span>${channelMismatchNote}</td>
+        <td data-label="Thời gian tiêu tại cửa hàng (Core)">${usedAtStoreDateCell}</td>
         <td data-label="Kết quả đối soát"><span class="status-badge ${isMatch ? 'status-unused' : 'status-used'}">${isMatch ? 'KHỚP' : 'CHƯA KHỚP'}</span></td>
       </tr>`;
   }).join('');
