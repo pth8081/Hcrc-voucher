@@ -30,7 +30,15 @@ const statMismatch = document.getElementById('statMismatch');
 const resultActions = document.getElementById('resultActions');
 const mismatchOnlyCheckbox = document.getElementById('mismatchOnlyCheckbox');
 const exportBtn = document.getElementById('exportBtn');
+const emailToggleBtn = document.getElementById('emailToggleBtn');
+const emailSendRow = document.getElementById('emailSendRow');
+const emailRecipientsInput = document.getElementById('emailRecipientsInput');
+const emailSendBtn = document.getElementById('emailSendBtn');
+const emailCancelBtn = document.getElementById('emailCancelBtn');
+const emailSentHint = document.getElementById('emailSentHint');
 const resultsCard = document.getElementById('resultsCard');
+const resultsTableWrap = document.getElementById('resultsTableWrap');
+const emptyFilterHint = document.getElementById('emptyFilterHint');
 const resultsBody = document.getElementById('resultsBody');
 const historyBody = document.getElementById('historyBody');
 
@@ -54,6 +62,14 @@ async function init() {
   startBtn.addEventListener('click', startReconciliation);
   mismatchOnlyCheckbox.addEventListener('change', applyMismatchFilter);
   exportBtn.addEventListener('click', exportExcel);
+  emailToggleBtn.addEventListener('click', () => {
+    emailSentHint.classList.add('hidden');
+    emailSendRow.classList.toggle('hidden');
+  });
+  emailCancelBtn.addEventListener('click', () => {
+    emailSendRow.classList.add('hidden');
+  });
+  emailSendBtn.addEventListener('click', sendEmail);
 }
 
 function renderFilters(filters) {
@@ -128,6 +144,8 @@ function showRunning(totalCount) {
   progressCard.classList.remove('hidden');
   resultsCard.classList.add('hidden');
   resultActions.classList.add('hidden');
+  emailSendRow.classList.add('hidden');
+  emailSentHint.classList.add('hidden');
   runStatusBadge.textContent = 'ĐANG CHẠY';
   runStatusBadge.className = 'status-badge status-other';
   progressFill.classList.remove('is-failed');
@@ -202,6 +220,12 @@ let lastResults = [];
 function renderResults(results) {
   lastResults = results;
   resultsCard.classList.remove('hidden');
+  // Mac dinh CHI tick "chi hien CHUA KHOP" khi THAT SU co dong chua khop - neu moi voucher deu
+  // khop (truong hop pho bien, tot nhat), de tick san se khien bang ket qua trong trien va
+  // KHONG CO GI hien ra (thead bi an tren mobile boi .table-responsive) - trong nhu man hinh
+  // dang loi, gay hieu nham "khong liet ke tren web" du du lieu van co, chi la dang bi loc het.
+  const hasMismatch = results.some((r) => r.matchResult === 'MISMATCH');
+  mismatchOnlyCheckbox.checked = hasMismatch;
   resultsBody.innerHTML = results.map((row) => {
     const isMatch = row.matchResult === 'MATCH';
     const coreLabel = CORE_STATUS_LABELS[row.coreStatus] || escapeHtml(row.coreMessage || row.coreStatus || '-');
@@ -221,9 +245,17 @@ function renderResults(results) {
 
 function applyMismatchFilter() {
   const onlyMismatch = mismatchOnlyCheckbox.checked;
+  let visibleCount = 0;
   resultsBody.querySelectorAll('.result-row').forEach((tr) => {
-    tr.classList.toggle('hidden', onlyMismatch && tr.dataset.match === 'MATCH');
+    const hide = onlyMismatch && tr.dataset.match === 'MATCH';
+    tr.classList.toggle('hidden', hide);
+    if (!hide) visibleCount += 1;
   });
+  // Bang trong hoan toan (ca thead cung bi an tren mobile boi .table-responsive) de nguoi dung
+  // biet day la KET QUA LOC (tat ca deu khop), khong phai loi khong liet ke duoc gi.
+  const showEmptyHint = visibleCount === 0 && resultsBody.querySelectorAll('.result-row').length > 0;
+  emptyFilterHint.classList.toggle('hidden', !showEmptyHint);
+  resultsTableWrap.classList.toggle('hidden', showEmptyHint);
 }
 
 async function exportExcel() {
@@ -250,6 +282,29 @@ async function exportExcel() {
     showToast(err.message);
   } finally {
     exportBtn.disabled = false;
+  }
+}
+
+async function sendEmail() {
+  const recipients = emailRecipientsInput.value.trim();
+  if (!recipients) {
+    showToast('Vui lòng nhập ít nhất 1 email người nhận');
+    return;
+  }
+  emailSendBtn.disabled = true;
+  try {
+    await apiFetch(`/core-reconciliation/${encodeURIComponent(currentRunId)}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    emailSendRow.classList.add('hidden');
+    emailRecipientsInput.value = '';
+    emailSentHint.classList.remove('hidden');
+    showToast('Đã gửi email đối soát');
+  } catch (err) {
+    showToast(err.message || 'Gửi email thất bại');
+  } finally {
+    emailSendBtn.disabled = false;
   }
 }
 
@@ -292,6 +347,8 @@ async function viewRun(runId) {
   currentRunId = runId;
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   progressCard.classList.remove('hidden');
+  emailSendRow.classList.add('hidden');
+  emailSentHint.classList.add('hidden');
   try {
     const run = await apiFetch(`/core-reconciliation/${encodeURIComponent(runId)}`);
     renderRunProgress(run);

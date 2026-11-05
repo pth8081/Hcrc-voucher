@@ -13,6 +13,10 @@ const REPORT_TYPE_OPTIONS = [
   { value: 'DAILY', label: 'Báo cáo đối soát (hàng ngày)', permission: 'canViewReconciliation' },
   { value: 'SUMMARY', label: 'Báo cáo tổng hợp', permission: 'canViewSummary' },
   { value: 'USED_VOUCHERS', label: 'Danh sách voucher đã sử dụng', permission: 'canViewUsedVouchers' },
+  // sql/052: nang luc MOI, KHONG tu dong co san cho tai khoan Quan tri day du (khac 3 muc tren) -
+  // requireOwnPermission bao populateReportTypeOptions() KHONG dung "isAdmin" de bo qua kiem tra
+  // nhu 3 muc kia, phai doc DUNG 1 trong 2 quyen rieng (adminCanReconcileCore/partnerAdminCanReconcileCore).
+  { value: 'CORE_RECONCILIATION', label: 'Đối soát chéo Core', permission: ['adminCanReconcileCore', 'partnerAdminCanReconcileCore'], requireOwnPermission: true },
 ];
 const REPORT_TYPE_LABEL = Object.fromEntries(REPORT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 const FREQUENCY_LABEL = { DAILY: 'Hàng ngày', WEEKLY: 'Hàng tuần', MONTHLY: 'Hàng tháng' };
@@ -47,7 +51,13 @@ function populateReportTypeOptions() {
   const user = getUser();
   const permissions = (user && user.permissions) || {};
   const isAdmin = user && user.role === 'admin';
-  const allowed = REPORT_TYPE_OPTIONS.filter((o) => isAdmin || permissions[o.permission]);
+  const allowed = REPORT_TYPE_OPTIONS.filter((o) => {
+    if (o.requireOwnPermission) {
+      const flags = Array.isArray(o.permission) ? o.permission : [o.permission];
+      return flags.some((p) => permissions[p]);
+    }
+    return isAdmin || permissions[o.permission];
+  });
   const select = document.getElementById('f_reportType');
   select.innerHTML = allowed.map((o) => `<option value="${o.value}">${escapeHtml(o.label)}</option>`).join('');
 }

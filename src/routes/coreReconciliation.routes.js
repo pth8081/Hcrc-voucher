@@ -12,5 +12,6 @@ router.post('/', controller.start);
 router.get('/', controller.listRuns);
 router.get('/:id', controller.getRun);
 router.get('/:id/export', controller.exportExcel);
+router.post('/:id/send-email', controller.sendEmail);
 
 module.exports = router;

@@ -96,14 +96,23 @@
 
         <div class="flex items-center gap-10 mt-16 flex-wrap hidden" id="resultActions">
           <label class="flex items-center gap-8 fw-normal">
-            <input type="checkbox" class="checkbox-input" id="mismatchOnlyCheckbox" checked /> Chỉ hiện dòng CHƯA KHỚP
+            <input type="checkbox" class="checkbox-input" id="mismatchOnlyCheckbox" /> Chỉ hiện dòng CHƯA KHỚP
           </label>
           <button class="btn-secondary btn-sm" id="exportBtn">Xuất Excel</button>
+          <button class="btn-secondary btn-sm" id="emailToggleBtn">Gửi email</button>
         </div>
+
+        <div class="flex items-center gap-10 mt-10 flex-wrap hidden" id="emailSendRow">
+          <input type="text" id="emailRecipientsInput" placeholder="email1@..., email2@... (cách nhau dấu phẩy)" class="email-recipients-input" />
+          <button class="btn-primary btn-sm" id="emailSendBtn">Gửi</button>
+          <button class="btn-secondary btn-sm" id="emailCancelBtn">Hủy</button>
+        </div>
+        <p class="hint hint-tight hidden" id="emailSentHint">Đã gửi email.</p>
       </div>
 
       <div class="card hidden" id="resultsCard">
-        <div class="table-wrap table-responsive">
+        <p class="hint hidden" id="emptyFilterHint">Tất cả voucher trong lần đối soát này đều KHỚP với Core - không có dòng nào CHƯA KHỚP để hiện. Bỏ tick "Chỉ hiện dòng CHƯA KHỚP" ở trên để xem toàn bộ danh sách.</p>
+        <div class="table-wrap table-responsive" id="resultsTableWrap">
           <table>
             <thead>
               <tr><th>Mã voucher</th><th>Công ty</th><th>Điểm tiêu</th><th>Người thu hồi</th><th>Thời gian thu hồi (hệ thống)</th><th>Trạng thái trên Core</th><th>Kết quả đối soát</th></tr>
