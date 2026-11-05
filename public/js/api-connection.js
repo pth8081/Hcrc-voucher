@@ -212,6 +212,7 @@ function resetForm() {
   el('f_check_valueAmtPath').value = cm.valueAmtPath || 'valueAmt';
   el('f_check_issueDatePath').value = cm.issueDatePath || 'issueDate';
   el('f_check_expiryDatePath').value = cm.expiryDatePath || 'expiryDate';
+  el('f_check_usedAtStoreDatePath').value = cm.usedAtStoreDatePath || '';
   el('f_check_messagePath').value = cm.messagePath || 'message';
   setMapRows('checkStatusMapRows', cm.statusValueMap || {});
 
@@ -268,6 +269,7 @@ function populateForm(conn) {
   el('f_check_valueAmtPath').value = cm.valueAmtPath || '';
   el('f_check_issueDatePath').value = cm.issueDatePath || '';
   el('f_check_expiryDatePath').value = cm.expiryDatePath || '';
+  el('f_check_usedAtStoreDatePath').value = cm.usedAtStoreDatePath || '';
   el('f_check_messagePath').value = cm.messagePath || '';
   setMapRows('checkStatusMapRows', cm.statusValueMap || {});
 
@@ -411,6 +413,7 @@ function collectFormData() {
       valueAmtPath: el('f_check_valueAmtPath').value.trim() || undefined,
       issueDatePath: el('f_check_issueDatePath').value.trim() || undefined,
       expiryDatePath: el('f_check_expiryDatePath').value.trim() || undefined,
+      usedAtStoreDatePath: el('f_check_usedAtStoreDatePath').value.trim() || undefined,
       messagePath: el('f_check_messagePath').value.trim() || undefined,
       statusValueMap: getMapRows('checkStatusMapRows'),
     },
@@ -531,6 +534,7 @@ function renderTestResult(data) {
     ${n.valueAmt != null ? `<div class="info-row"><span class="k">Mệnh giá</span><span class="v">${fmtMoney(n.valueAmt)}</span></div>` : ''}
     ${n.issueDate ? `<div class="info-row"><span class="k">Ngày cấp</span><span class="v">${escapeHtml(fmtDate(n.issueDate))}</span></div>` : ''}
     ${n.expiryDate ? `<div class="info-row"><span class="k">Hạn sử dụng</span><span class="v">${escapeHtml(fmtDate(n.expiryDate))}</span></div>` : ''}
+    ${n.usedAtStoreDate ? `<div class="info-row"><span class="k">Thời gian tiêu tại cửa hàng</span><span class="v">${escapeHtml(fmtDate(n.usedAtStoreDate))}</span></div>` : ''}
     ${n.success !== undefined ? `<div class="info-row"><span class="k">success</span><span class="v">${n.success}</span></div>` : ''}
     ${n.transRef ? `<div class="info-row"><span class="k">Mã giao dịch (transRef)</span><span class="v">${escapeHtml(n.transRef)}</span></div>` : ''}
     ${n.message ? `<div class="info-row"><span class="k">Thông báo</span><span class="v">${escapeHtml(n.message)}</span></div>` : ''}

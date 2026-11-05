@@ -220,6 +220,13 @@ function normalize(mapping, body) {
     valueAmt: mapping.valueAmtPath ? numOrNull(getByPath(body, mapping.valueAmtPath)) : undefined,
     issueDate: getByPath(body, mapping.issueDatePath),
     expiryDate: getByPath(body, mapping.expiryDatePath),
+    // sql/052 (theo yeu cau nguoi dung): "Doi soat cheo Core" - truong TUY CHON, CHI co y nghia o
+    // check mapping (khong phai redeem). Theo xac nhan cua doi tac: truong nay CHI duoc DSMart POS
+    // ghi (luc khach tieu THAT tai quay sieu thi) - he thong e-voucher (app nay) KHONG ghi truong
+    // nay khi tu goi redeem. Vi vay status=USED + truong nay RONG = chac chan tieu qua e-voucher
+    // (khop voi VOUCHER_SYNC cua app); status=USED + truong nay CO GIA TRI = tieu qua kenh KHAC
+    // (quay sieu thi), dau hieu dang ngo - xem coreReconciliationService.js#determineMatch.
+    usedAtStoreDate: getByPath(body, mapping.usedAtStoreDatePath),
     transRef: getByPath(body, mapping.transRefPath),
     redeemedAt: getByPath(body, mapping.redeemedAtPath),
     message: getByPath(body, mapping.messagePath),

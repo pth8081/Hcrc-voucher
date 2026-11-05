@@ -219,6 +219,30 @@ async function finishRun(pool, runId, status, errorMessage) {
 }
 
 /**
+ * Quyet dinh KHOP/CHUA KHOP tu 1 ket qua checkVoucher() - tach rieng ham THUAN (khong goi DB/Core)
+ * de de test. Theo xac nhan cua doi tac (xem ghi chu usedAtStoreDate o dynamicCoreApiClient.js):
+ *   - status != USED -> CHUA KHOP nhu cu (UNUSED/EXPIRED/CANCELLED/NOT_FOUND...).
+ *   - status == USED VA usedAtStoreDate RONG -> tieu qua CHINH he thong e-voucher nay -> KHOP that.
+ *   - status == USED VA usedAtStoreDate CO GIA TRI -> tieu qua kenh KHAC (quay sieu thi DSMart
+ *     POS) - khac voi kenh app nay ghi nhan (VOUCHER_SYNC) -> van tinh CHUA KHOP, kem thong bao ro
+ *     ly do, de admin phat hien truong hop dung trung 2 kenh.
+ * Ket noi CHUA cau hinh usedAtStoreDatePath (phan lon cac ket noi hien tai) -> usedAtStoreDate
+ * luon rong -> tu dong lui ve hanh vi CU (chi so trang thai), khong anh huong gi.
+ */
+function determineMatch(result) {
+  if (result.status !== VOUCHER_STATUS.USED) {
+    return { matchResult: 'MISMATCH', message: result.message || null };
+  }
+  if (result.usedAtStoreDate) {
+    return {
+      matchResult: 'MISMATCH',
+      message: `Core cho thấy voucher đã được tiêu TẠI CỬA HÀNG (không qua hệ thống e-voucher này) lúc ${result.usedAtStoreDate} - có thể đã bị dùng trùng qua 2 kênh.`,
+    };
+  }
+  return { matchResult: 'MATCH', message: null };
+}
+
+/**
  * Chay NEN (khong await boi noi goi) - goi lai Core cho TUNG voucher TUAN TU (co nghi giua 2
  * lan goi, xem CALL_DELAY_MS), ghi ket qua tung dong NGAY sau khi co phan hoi (khong doi het roi
  * ghi 1 lan) de tien trinh con do du server co su co giua chung. 1 voucher loi (Core khong goi
@@ -239,8 +263,9 @@ async function runReconciliation(runId, candidates) {
         // eslint-disable-next-line no-await-in-loop
         const result = await coreVoucherService.checkVoucher(voucher.voucherCode, { connectionId: voucher.connectionId });
         coreStatus = result.status;
-        coreMessage = result.message || null;
-        matchResult = result.status === VOUCHER_STATUS.USED ? 'MATCH' : 'MISMATCH';
+        const decision = determineMatch(result);
+        matchResult = decision.matchResult;
+        coreMessage = decision.message;
       } catch (err) {
         coreStatus = 'ERROR';
         coreMessage = err.publicMessage || err.message || 'Khong goi duoc Core';
@@ -528,10 +553,16 @@ async function buildExcelBuffer(run) {
     { header: 'Thời gian thu hồi (hệ thống)', key: 'redeemedDate', width: 22 },
     { header: 'Trạng thái trên Core', key: 'coreStatusLabel', width: 22 },
     { header: 'Kết quả đối soát', key: 'matchLabel', width: 16 },
+    { header: 'Ghi chú', key: 'note', width: 50 },
   ];
   sheet.getRow(1).font = { bold: true };
 
   run.results.forEach((row) => {
+    const isMatch = row.matchResult === 'MATCH';
+    // Core bao USED nhung van CHUA KHOP: coreMessage mang giai thich (tieu qua kenh khac - xem
+    // determineMatch()) - ghi RIENG o cot "Ghi chu", khong lan vao "Trang thai tren Core" (cot do
+    // van hien dung trang thai Core THAT SU tra ve la USED).
+    const note = row.coreStatus === 'USED' && !isMatch && row.coreMessage ? row.coreMessage : (row.coreStatus !== 'USED' ? row.coreMessage || '' : '');
     sheet.addRow({
       voucherCode: sanitizeExcelText(row.voucherCode),
       transNum: sanitizeExcelText(row.transNum || '-'),
@@ -540,7 +571,8 @@ async function buildExcelBuffer(run) {
       redeemedByUserName: sanitizeExcelText(row.redeemedByUserName || '-'),
       redeemedDate: row.redeemedDate || null,
       coreStatusLabel: CORE_STATUS_LABELS[row.coreStatus] || sanitizeExcelText(row.coreMessage || row.coreStatus || '-'),
-      matchLabel: row.matchResult === 'MATCH' ? 'KHỚP' : 'CHƯA KHỚP',
+      matchLabel: isMatch ? 'KHỚP' : 'CHƯA KHỚP',
+      note: sanitizeExcelText(note),
     });
   });
 
@@ -557,4 +589,5 @@ module.exports = {
   buildExcelBuffer,
   runReconciliationForSchedule,
   sendRunEmail,
+  determineMatch,
 };
