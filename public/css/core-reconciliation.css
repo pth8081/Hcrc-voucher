@@ -1,0 +1,61 @@
+/* Man hinh "Doi soat cheo Core" (sql/052) - CSS rieng, khong dung inline style="..."
+   (CSP style-src 'self', xem src/app.js) - moi gia tri mau/khoang cach deu lay tu bien
+   chung (:root trong style.css) de tu dong dung voi ca 2 theme sang/toi. */
+
+.reconcile-system-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 6px;
+}
+
+.reconcile-system-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-700);
+  font-weight: 400;
+}
+
+.reconcile-progress {
+  width: 100%;
+  height: 10px;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+}
+
+.reconcile-progress::-webkit-progress-bar {
+  background: var(--ink-100);
+  border-radius: 999px;
+}
+
+.reconcile-progress::-webkit-progress-value {
+  background: var(--green-dark);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.reconcile-progress::-moz-progress-bar {
+  background: var(--green-dark);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.reconcile-progress.is-failed::-webkit-progress-value { background: var(--danger); }
+.reconcile-progress.is-failed::-moz-progress-bar { background: var(--danger); }
+
+.stat-tile {
+  background: var(--card);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  flex: 1 1 140px;
+}
+
+.stat-tile .num {
+  font-size: 26px;
+  font-weight: 800;
+}

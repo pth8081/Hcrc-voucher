@@ -357,6 +357,8 @@ async function updatePartnerAdmin(req, res, next) {
       // truoc) - 2 quyen nay la nang luc MOI, mac dinh TAT neu khong gui, HCRC phai CHU DONG tick.
       canManageVoucherFilter: req.body.canManageVoucherFilter === true,
       canViewVoucherFilter: req.body.canViewVoucherFilter === true,
+      // sql/052: nang luc MOI, cung mac dinh TAT neu khong gui - xem ghi chu o 2 quyen tren.
+      canReconcileCore: req.body.canReconcileCore === true,
     };
     await permissionService.setPartnerAdminTabPermissions(userId, tabPerms, req.user.username);
     if (normalized) {
@@ -415,6 +417,7 @@ async function updateAdminFeaturePermissions(req, res, next) {
       canManageEmailSettings: !!req.body.canManageEmailSettings,
       canManageVoucherFilter: !!req.body.canManageVoucherFilter,
       canViewVoucherFilter: !!req.body.canViewVoucherFilter,
+      canReconcileCore: !!req.body.canReconcileCore,
     };
     await permissionService.setAdminFeaturePermissions(userId, perms, req.user.username);
     await auditLogService.log({

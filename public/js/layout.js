@@ -21,6 +21,7 @@ const NAV_ICONS = {
   email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
   partners: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="7" height="11"/><rect x="14" y="6" width="7" height="15"/><path d="M6 14h1M6 17h1M17 10h1M17 13h1M17 16h1"/></svg>',
   voucherFilter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>',
+  reconcileCore: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4M16 3v4M4 8h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/><path d="M8.5 14.5l2 2 5-5"/></svg>',
 };
 
 const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
@@ -58,6 +59,17 @@ const NAV_ITEMS = [
     label: 'Cấu hình mã voucher',
     icon: NAV_ICONS.voucherFilter,
     permission: ['adminCanManageVoucherFilter', 'partnerAdminCanManageVoucherFilter', 'adminCanViewVoucherFilter', 'partnerAdminCanViewVoucherFilter'],
+  },
+  // sql/052 (theo yeu cau nguoi dung): "Doi soat cheo Core" - goi lai API Core de xac nhan cac
+  // voucher da thu hoi tren he thong nay co THAT SU duoc Core/DSMart ghi nhan hay khong. Cung
+  // mau voi "voucher-code-filter" o tren: dung duoc boi CA Quan tri HCRC lan Quan tri doi tac,
+  // CHI khi duoc cap RIENG 1 trong 2 quyen tuong ung - KHONG tu dong co san cho ai.
+  {
+    key: 'core-reconciliation',
+    href: '/core-reconciliation.html',
+    label: 'Đối soát chéo Core',
+    icon: NAV_ICONS.reconcileCore,
+    permission: ['adminCanReconcileCore', 'partnerAdminCanReconcileCore'],
   },
   { key: 'security', href: '/security.html', label: 'Bảo mật', icon: NAV_ICONS.security },
 ];

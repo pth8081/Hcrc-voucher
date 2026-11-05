@@ -368,8 +368,9 @@ function renderUsers(users) {
             ).join('')}
             <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canManageVoucherFilter" ${perms.partnerAdminCanManageVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (sửa)</label>
             <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canViewVoucherFilter" ${perms.partnerAdminCanViewVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (chỉ xem)</label>
+            <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input partner-admin-tab-perm" data-perm="canReconcileCore" ${perms.partnerAdminCanReconcileCore === true ? 'checked' : ''} /> Đối soát chéo Core</label>
           </div>
-          <p class="hint hint-tight">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Riêng 2 mục "Cấu hình mã voucher" mặc định TẮT (khác 4 mục trên) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
+          <p class="hint hint-tight">Chỉ áp dụng khi tài khoản này được chọn 1 hệ thống ở trên - bỏ tick tab nào thì tab đó ẩn khỏi menu "Quản trị đối tác" của họ. Các mục "Cấu hình mã voucher"/"Đối soát chéo Core" mặc định TẮT (khác 4 mục đầu) - phải chủ động tick mới cấp; tick "sửa" là đủ để vừa xem vừa sửa, tick riêng "chỉ xem" nếu không muốn cho sửa.</p>` : ''}
         </td>
         <td data-label="Quyền quản trị hệ thống">
           ${isAdmin ? (
@@ -382,6 +383,7 @@ function renderUsers(users) {
                   ).join('')}
                   <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canManageVoucherFilter" ${perms.adminCanManageVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (sửa)</label>
                   <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canViewVoucherFilter" ${perms.adminCanViewVoucherFilter === true ? 'checked' : ''} /> Cấu hình mã voucher (chỉ xem)</label>
+                  <label class="perm-item fs-13"><input type="checkbox" class="checkbox-input admin-feature-perm" data-perm="canReconcileCore" ${perms.adminCanReconcileCore === true ? 'checked' : ''} /> Đối soát chéo Core</label>
                 </div>`
           ) : '<span class="text-muted">-</span>'}
         </td>

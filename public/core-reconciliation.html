@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Đối soát chéo Core - HCRC Voucher Redemption</title>
+<link rel="stylesheet" href="/css/fonts.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/summary-report.css" />
+<link rel="stylesheet" href="/css/core-reconciliation.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ee7d1a" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="HCRC Voucher" />
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="container container-wide">
+    <div id="noAccessNotice" class="card hidden">
+      <p class="text-muted m-0">Tài khoản của bạn chưa được cấp quyền dùng màn hình này - liên hệ quản trị viên để được cấp quyền.</p>
+    </div>
+
+    <div id="mainCard">
+      <div class="card">
+        <h2>Đối soát chéo Core</h2>
+        <p class="hint">
+          Đối với từng voucher <strong>đã thu hồi trên hệ thống này</strong>, gọi lại API "Kiểm tra" của
+          Core để xác nhận Core/DSMart <strong>có thực sự ghi nhận voucher đó là ĐÃ SỬ DỤNG hay không</strong>
+          — phát hiện trường hợp hệ thống này báo thu hồi thành công nhưng Core chưa/không ghi nhận (lệch dữ
+          liệu), phục vụ đối chiếu trước khi thanh toán với đối tác.
+        </p>
+        <p class="hint">
+          <strong class="text-danger">Lưu ý:</strong> Core chỉ trả về <strong>trạng thái hiện tại</strong>
+          (đã dùng / chưa dùng), không có mốc thời gian sử dụng thực tế — nên kết quả đối soát so sánh
+          <strong>trạng thái</strong>, không so sánh được chính xác đến từng giờ phút. Mỗi voucher cần 1
+          lượt gọi API riêng tới Core nên quá trình có thể mất vài phút với số lượng lớn — giới hạn tối đa
+          <strong><span id="maxVouchersHint">1.000</span> voucher/lượt</strong>, chọn khoảng ngày hẹp hơn nếu vượt quá.
+        </p>
+
+        <div class="summary-filters">
+          <div class="field">
+            <label>Công ty</label>
+            <select id="companySelect">
+              <option value="">Tất cả công ty bạn được xem</option>
+            </select>
+          </div>
+          <div class="field hidden" id="systemField">
+            <label>Hệ thống voucher</label>
+            <div class="reconcile-system-checklist" id="systemChecklist"></div>
+          </div>
+          <div class="field">
+            <label>Từ ngày <span class="text-danger">*</span></label>
+            <input type="date" id="fromDateInput" />
+          </div>
+          <div class="field">
+            <label>Đến ngày <span class="text-danger">*</span></label>
+            <input type="date" id="toDateInput" />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-10 mt-16 flex-wrap">
+          <button class="btn-primary" id="startBtn">Bắt đầu đối soát</button>
+          <span class="text-muted fs-13" id="estimateHint"></span>
+        </div>
+        <p class="hint hint-tight text-danger hidden" id="errorHint"></p>
+      </div>
+
+      <div class="card hidden" id="progressCard">
+        <div class="flex items-center justify-between">
+          <h2 class="m-0">Kết quả đối soát</h2>
+          <span class="status-badge" id="runStatusBadge"></span>
+        </div>
+        <p class="hint mt-6" id="runScopeHint"></p>
+
+        <progress class="reconcile-progress mt-10" id="progressFill" max="100" value="0"></progress>
+        <p class="hint mt-6 m-0" id="progressText"></p>
+
+        <div class="flex gap-10 mt-16 flex-wrap">
+          <div class="stat-tile">
+            <div class="text-muted fs-13">Tổng số voucher</div>
+            <div class="num" id="statTotal">0</div>
+          </div>
+          <div class="stat-tile">
+            <div class="text-muted fs-13">Khớp với Core</div>
+            <div class="num text-success" id="statMatch">0</div>
+          </div>
+          <div class="stat-tile">
+            <div class="text-muted fs-13">Chưa khớp</div>
+            <div class="num text-danger" id="statMismatch">0</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-10 mt-16 flex-wrap hidden" id="resultActions">
+          <label class="flex items-center gap-8 fw-normal">
+            <input type="checkbox" class="checkbox-input" id="mismatchOnlyCheckbox" checked /> Chỉ hiện dòng CHƯA KHỚP
+          </label>
+          <button class="btn-secondary btn-sm" id="exportBtn">Xuất Excel</button>
+        </div>
+      </div>
+
+      <div class="card hidden" id="resultsCard">
+        <div class="table-wrap table-responsive">
+          <table>
+            <thead>
+              <tr><th>Mã voucher</th><th>Công ty</th><th>Điểm tiêu</th><th>Người thu hồi</th><th>Thời gian thu hồi (hệ thống)</th><th>Trạng thái trên Core</th><th>Kết quả đối soát</th></tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="m-0">Lịch sử các lần đối soát gần đây</h3>
+        <div class="table-wrap table-responsive mt-10">
+          <table>
+            <thead><tr><th>Thời gian chạy</th><th>Người chạy</th><th>Phạm vi</th><th>Tổng số</th><th>Khớp</th><th>Chưa khớp</th><th>Hành động</th></tr></thead>
+            <tbody id="historyBody"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/core-reconciliation.js"></script>
+</body>
+</html>
