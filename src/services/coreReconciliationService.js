@@ -3,6 +3,7 @@ const ExcelJS = require('exceljs');
 const coreVoucherService = require('./coreVoucherService');
 const companyService = require('./companyService');
 const apiConnectionService = require('./apiConnectionService');
+const emailGatewayService = require('./emailGatewayService');
 
 const { VOUCHER_STATUS } = coreVoucherService;
 
@@ -20,6 +21,27 @@ function badRequest(message) {
   err.statusCode = 400;
   err.publicMessage = message;
   return err;
+}
+
+function forbidden(message) {
+  const err = new Error(message);
+  err.statusCode = 403;
+  err.publicMessage = message;
+  return err;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Cung 1 mau voi emailScheduleService.js#parseRecipients - tach chuoi nguoi dung go (cach nhau
+ * dau phay/cham phay/khoang trang), validate tung email, khu trung. */
+function parseRecipients(raw) {
+  const list = String(raw || '')
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const invalid = list.filter((e) => !EMAIL_RE.test(e));
+  if (invalid.length) throw badRequest(`Email khong hop le: ${invalid.join(', ')}`);
+  if (!list.length) throw badRequest('Can it nhat 1 email nguoi nhan');
+  return Array.from(new Set(list));
 }
 
 function sleep(ms) {
@@ -117,7 +139,7 @@ async function estimateCount(req, { companyId, connectionIds: requestedConnectio
   return { count: Math.min(rows.length, MAX_VOUCHERS_PER_RUN), exceedsLimit: rows.length > MAX_VOUCHERS_PER_RUN };
 }
 
-async function buildScopeLabel(req, { companyId, connectionIds }) {
+async function buildScopeLabel({ companyId, connectionIds }) {
   let companyLabel = 'Tất cả công ty';
   if (companyId) {
     const companies = await companyService.list();
@@ -244,6 +266,37 @@ async function runReconciliation(runId, candidates) {
   }
 }
 
+/** Tao 1 dong Run moi (Status=RUNNING) cho 1 danh sach voucher da xac dinh san - dung chung boi
+ * startRun() (nguoi dung bam nut, chay NEN) va runReconciliationForSchedule() (lich gui email tu
+ * dong, chay DOI KET QUA LUON vi can dinh kem file Excel vao email ngay). KHONG tu goi
+ * runReconciliation() - noi goi tu quyet dinh await hay chay nen tuy tinh huong. */
+async function createRunForCandidates({ userId, username, companyId, connectionIds, fromDate, toDate, candidates }) {
+  let companyName = null;
+  if (companyId) {
+    const companies = await companyService.list();
+    const match = companies.find((c) => Number(c.Id) === Number(companyId));
+    companyName = match ? match.CompanyName : null;
+  }
+  const scopeLabel = await buildScopeLabel({ companyId, connectionIds });
+  // Cot ConnectionId tren Run CHI luu duoc 1 id (dung de loc lich su cho scope CONNECTION, luon
+  // dung DUNG 1 id) - truong hop scope ALL chon NHIEU he thong cung luc, luu NULL (khong loc lich
+  // su theo cot nay, ScopeLabel da mo ta day du cac he thong da chon de nguoi xem con biet).
+  const singleConnectionId = connectionIds && connectionIds.length === 1 ? connectionIds[0] : null;
+
+  const pool = await getPool();
+  return createRun(pool, {
+    userId,
+    username,
+    connectionId: singleConnectionId,
+    companyId: companyId || null,
+    companyName,
+    scopeLabel: `${scopeLabel} · ${fromDate} - ${toDate}`,
+    fromDate,
+    toDate,
+    totalCount: candidates.length,
+  });
+}
+
 /** Bat dau 1 lan doi soat moi - tao dong Run (Status=RUNNING) roi TRA VE NGAY runId, qua trinh
  * goi Core thuc te chay o nen (khong giu request HTTP cho den khi xong - co the mat vai phut voi
  * so luong lon). Frontend tu poll GET /:id de theo doi tien trinh. */
@@ -258,29 +311,8 @@ async function startRun(req, { companyId, connectionIds: requestedConnectionIds,
     throw badRequest('Khong co voucher nao da thu hoi trong pham vi da chon - vui long doi lai cong ty/he thong/khoang ngay.');
   }
 
-  let companyName = null;
-  if (companyId) {
-    const companies = await companyService.list();
-    const match = companies.find((c) => Number(c.Id) === Number(companyId));
-    companyName = match ? match.CompanyName : null;
-  }
-  const scopeLabel = await buildScopeLabel(req, { companyId, connectionIds });
-  // Cot ConnectionId tren Run CHI luu duoc 1 id (dung de loc lich su cho scope CONNECTION, luon
-  // dung DUNG 1 id) - truong hop scope ALL chon NHIEU he thong cung luc, luu NULL (khong loc lich
-  // su theo cot nay, ScopeLabel da mo ta day du cac he thong da chon de nguoi xem con biet).
-  const singleConnectionId = connectionIds && connectionIds.length === 1 ? connectionIds[0] : null;
-
-  const pool = await getPool();
-  const runId = await createRun(pool, {
-    userId: req.user.userId,
-    username: req.user.username,
-    connectionId: singleConnectionId,
-    companyId: companyId || null,
-    companyName,
-    scopeLabel: `${scopeLabel} · ${from} - ${to}`,
-    fromDate: from,
-    toDate: to,
-    totalCount: candidates.length,
+  const runId = await createRunForCandidates({
+    userId: req.user.userId, username: req.user.username, companyId, connectionIds, fromDate: from, toDate: to, candidates,
   });
 
   // Khong await - chay nen, tra ve runId NGAY de frontend bat dau poll tien trinh.
@@ -383,6 +415,88 @@ async function getRun(req, runId) {
   };
 }
 
+/** Giong getRun() nhung KHONG kiem tra pham vi theo req - dung cho 2 noi goi NOI BO, dang tin cay
+ * (lich gui email tu dong vua tao chinh Run nay; sendRunEmail() da tu kiem tra pham vi RIENG qua
+ * getRun() truoc khi goi ham nay) - KHONG duoc expose truc tiep ra controller/route nao. */
+async function getRunInternal(runId) {
+  const pool = await getPool();
+  const result = await pool.request().input('runId', sql.Int, runId).query(`
+    SELECT Id, CreatedByUsername, CreatedDate, ScopeLabel, FromDate, ToDate,
+           Status, TotalCount, CheckedCount, MatchCount, MismatchCount, ErrorMessage
+    FROM dbo.CoreReconciliationRuns WHERE Id = @runId
+  `);
+  const row = result.recordset[0];
+  if (!row) return null;
+  const results = await listRunResults(runId);
+  return {
+    id: row.Id, createdByUsername: row.CreatedByUsername, createdDate: row.CreatedDate, scopeLabel: row.ScopeLabel,
+    fromDate: row.FromDate, toDate: row.ToDate, status: row.Status, totalCount: row.TotalCount, checkedCount: row.CheckedCount,
+    matchCount: row.MatchCount, mismatchCount: row.MismatchCount, errorMessage: row.ErrorMessage, results,
+  };
+}
+
+/**
+ * Chay 1 lan doi soat NGAY TRONG LUC CHO (await het, KHONG chay nen nhu startRun()) - dung boi
+ * emailScheduleService.js#buildReportAttachment khi 1 lich gui email loai "Doi soat cheo Core" den
+ * han, vi can co KET QUA DAY DU de dinh kem file Excel vao email ngay, khong the tra ve truoc roi
+ * poll nhu man hinh tuong tac. Job nen gui email (emailScheduler.js) da chap nhan 1 lot gui co the
+ * mat vai phut (xem ghi chu `running` guard o do) nen cho append o day la an toan.
+ *
+ * connectionIds: lay THANG tu emailScheduleService.js#resolveScheduleScope (KHONG di qua
+ * resolveConnectionIds() - ham do danh cho man hinh tuong tac, coi mang RONG la "nguoi dung bo
+ * chon = xem tat ca"; o day mang RONG (khac null) nghia la quyen he thong cua chu lich DA BI LOC
+ * HET (vd bi thu hoi quyen sau khi tao lich) - phai hieu la "khong con gi duoc phep xem", KHONG
+ * phai "xem tat ca" - neu khong se vo tinh lo du lieu vuot qua quyen hien tai cua chu lich.
+ */
+async function runReconciliationForSchedule({ userId, username, companyId, connectionIds, fromDate, toDate }) {
+  const candidates = (Array.isArray(connectionIds) && connectionIds.length === 0)
+    ? []
+    : await listCandidateVouchers({ connectionIds, companyId, fromDate, toDate, maxRows: MAX_VOUCHERS_PER_RUN + 1 });
+
+  if (candidates.length > MAX_VOUCHERS_PER_RUN) {
+    throw badRequest(`Vuot qua gioi han ${MAX_VOUCHERS_PER_RUN} voucher/lan doi soat - vui long thu hep pham vi (cong ty/he thong/khoang ngay) cua lich gui nay.`);
+  }
+  if (!candidates.length) {
+    throw badRequest('Khong co voucher nao da thu hoi trong pham vi lich gui nay - khong co gi de doi soat/gui email.');
+  }
+
+  const runId = await createRunForCandidates({ userId, username, companyId, connectionIds, fromDate, toDate, candidates });
+  await runReconciliation(runId, candidates);
+  return getRunInternal(runId);
+}
+
+/**
+ * Gui ket qua 1 lan doi soat DA CHAY XONG qua email - thao tac THU CONG (nguoi dung tu bam nut
+ * "Gui email" sau khi xem ket qua tren man hinh, tu chon nguoi nhan NGAY LUC DO) - KHAC voi lich
+ * gui tu dong dinh ky (emailScheduleService.js, xem runReconciliationForSchedule() o tren). Dung
+ * lai getRun(req, runId) de kiem tra PHAM VI (Quan tri doi tac chi gui duoc lan chay cua he thong
+ * minh) truoc khi gui - khong tin rieng runId nguoi dung goi len.
+ */
+async function sendRunEmail(req, runId, recipientsRaw) {
+  const run = await getRun(req, runId);
+  if (!run) throw badRequest('Khong tim thay lan doi soat nay');
+  if (run.status !== 'DONE') throw badRequest('Lan doi soat nay chua chay xong, vui long doi roi gui lai');
+  const recipients = parseRecipients(recipientsRaw);
+
+  const buffer = await buildExcelBuffer(run);
+  const rangeLabel = run.fromDate === run.toDate ? run.fromDate : `${run.fromDate} đến ${run.toDate}`;
+  const subject = `[HCRC Voucher] Đối soát chéo Core - ${rangeLabel}`;
+  const html = `
+    <p>Xin chào,</p>
+    <p>Đây là kết quả đối soát chéo Core từ Hệ thống thu hồi voucher HCRC.</p>
+    <p><b>Phạm vi:</b> ${run.scopeLabel || '-'}</p>
+    <p><b>Tổng số:</b> ${run.totalCount} voucher · <b>Khớp:</b> ${run.matchCount} · <b>Chưa khớp:</b> ${run.mismatchCount}</p>
+    <p>Chi tiết xem trong file Excel đính kèm.</p>
+    <p style="color:#888;font-size:12px">Email này được gửi thủ công từ màn hình "Đối soát chéo Core" bởi ${req.user.username} - không cần phản hồi.</p>
+  `;
+  await emailGatewayService.sendMail({
+    to: recipients.join(', '),
+    subject,
+    html,
+    attachments: [{ filename: `doi-soat-core-${runId}.xlsx`, content: Buffer.from(buffer) }],
+  });
+}
+
 const FORMULA_PREFIX_REGEX = /^[=+\-@\t\r]/;
 function sanitizeExcelText(value) {
   if (value === null || value === undefined) return value;
@@ -441,4 +555,6 @@ module.exports = {
   listRuns,
   getRun,
   buildExcelBuffer,
+  runReconciliationForSchedule,
+  sendRunEmail,
 };

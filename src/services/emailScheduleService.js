@@ -8,8 +8,9 @@ const usedVoucherReportService = require('./usedVoucherReportService');
 const emailGatewayService = require('./emailGatewayService');
 const permissionService = require('./permissionService');
 const partnerAdminService = require('./partnerAdminService');
+const coreReconciliationService = require('./coreReconciliationService');
 
-const REPORT_TYPES = ['DAILY', 'SUMMARY', 'USED_VOUCHERS'];
+const REPORT_TYPES = ['DAILY', 'SUMMARY', 'USED_VOUCHERS', 'CORE_RECONCILIATION'];
 const FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY'];
 const DATE_RANGE_MODES = [
   'YESTERDAY', 'TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS', 'THIS_MONTH', 'LAST_MONTH',
@@ -437,6 +438,42 @@ async function resolveScheduleScope(schedule) {
  * khong trung lap logic truy van. */
 async function buildReportAttachment(schedule, scope) {
   const { fromDate, toDate } = resolveDateRange(schedule.DateRangeMode, schedule.CustomFromDate, schedule.CustomToDate);
+
+  // "Doi soat cheo Core" (sql/052) co hinh dang tham so HOAN TOAN KHAC 3 loai con lai (khong dung
+  // visibleLocationCodes/redemptionUnitIds) nen tach rieng, xu ly SOM truoc khi tinh `extra` o
+  // duoi (chi 3 loai kia can). Quan trong: quyen DUNG duoc chuc nang nay (AdminCanReconcileCore/
+  // PartnerAdminCanReconcileCore) la nang luc RIENG, KHONG nam trong resolveScheduleScope() -
+  // phai kiem tra lai TAI THOI DIEM GUI (khong tin luc tao lich), vi day la hanh dong goi THAT
+  // nhieu lan toi Core, khong nen de 1 lich con "song" sau khi quyen chu lich da bi thu hoi.
+  if (schedule.ReportType === 'CORE_RECONCILIATION') {
+    const owner = await authService.findUserById(schedule.CreatedByUserId);
+    if (!owner) throw badRequest('Tai khoan tao lich nay khong con ton tai');
+    let hasPermission;
+    if (Number(owner.status) === 1) {
+      const perms = await permissionService.getAdminFeaturePermissions(owner.UserID);
+      hasPermission = perms.adminCanReconcileCore;
+    } else {
+      const perms = await permissionService.getPermissions(owner.UserID);
+      hasPermission = perms.isPartnerAdmin && perms.partnerAdminCanReconcileCore;
+    }
+    if (!hasPermission) {
+      throw forbidden('Tai khoan tao lich nay khong con quyen dung "Doi soat cheo Core" - lich se khong gui duoc cho den khi duoc cap lai quyen.');
+    }
+    const run = await coreReconciliationService.runReconciliationForSchedule({
+      userId: owner.UserID,
+      username: owner.Username,
+      companyId: schedule.CompanyId,
+      connectionIds: scope.connectionIds,
+      fromDate,
+      toDate,
+    });
+    const buffer = await coreReconciliationService.buildExcelBuffer(run);
+    return {
+      fromDate, toDate, buffer, fileName: `doi-soat-core_${fromDate}_${toDate}.xlsx`, rowCount: run.results.length,
+      extraSummaryHtml: `<p><b>Khớp:</b> ${run.matchCount} · <b>Chưa khớp:</b> ${run.mismatchCount}</p>`,
+    };
+  }
+
   // v3.95 (xem sql/044): RedemptionUnitIds (nhieu id) la nguon chinh - "that lui" ve cot
   // RedemptionUnitId cu (1 id) cho cac lich tao TRUOC ban nay chua tung duoc sua lai, giong het
   // rowToDto(). mang rong = khong loc gi (gui TAT CA diem trong pham vi duoc xem).
@@ -473,7 +510,10 @@ async function buildReportAttachment(schedule, scope) {
   return { fromDate, toDate, buffer, fileName: `voucher-da-su-dung_${fromDate}_${toDate}.xlsx`, rowCount: rows.length };
 }
 
-const REPORT_TYPE_LABEL = { DAILY: 'Báo cáo đối soát', SUMMARY: 'Báo cáo tổng hợp', USED_VOUCHERS: 'Danh sách voucher đã sử dụng' };
+const REPORT_TYPE_LABEL = {
+  DAILY: 'Báo cáo đối soát', SUMMARY: 'Báo cáo tổng hợp', USED_VOUCHERS: 'Danh sách voucher đã sử dụng',
+  CORE_RECONCILIATION: 'Đối soát chéo Core',
+};
 
 /**
  * Ghi LastSentDate bang nowVn() (tinh trong JS) THAY VI GETDATE() (dong ho may chu SQL Server) -
@@ -498,13 +538,14 @@ async function markSent(id, status, message) {
  * loi ro rang neu that bai (giao dien/job tu ghi lai LastSentStatus='FAILED' o noi goi). */
 async function sendScheduleNow(schedule) {
   const scope = await resolveScheduleScope(schedule);
-  const { fromDate, toDate, buffer, fileName, rowCount } = await buildReportAttachment(schedule, scope);
+  const { fromDate, toDate, buffer, fileName, rowCount, extraSummaryHtml } = await buildReportAttachment(schedule, scope);
   const label = REPORT_TYPE_LABEL[schedule.ReportType] || schedule.ReportType;
   const subject = `[HCRC Voucher] ${schedule.Name} - ${fromDate === toDate ? fromDate : `${fromDate} đến ${toDate}`}`;
   const html = `
     <p>Xin chào,</p>
     <p>Đây là email tự động từ Hệ thống thu hồi voucher HCRC.</p>
     <p><b>${label}</b> — khoảng thời gian: ${fromDate === toDate ? fromDate : `${fromDate} đến ${toDate}`} (${rowCount} dòng dữ liệu).</p>
+    ${extraSummaryHtml || ''}
     <p>Chi tiết xem trong file Excel đính kèm.</p>
     <p style="color:#888;font-size:12px">Email này được gửi tự động theo lịch "${schedule.Name}" - không cần phản hồi.</p>
   `;
@@ -554,6 +595,7 @@ module.exports = {
   removeSchedule,
   resolveScheduleScope,
   resolveDateRange,
+  buildReportAttachment,
   sendScheduleNow,
   markSent,
   findDueSchedules,

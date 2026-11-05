@@ -2527,7 +2527,36 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.13)**: theo yeu cau nguoi dung - them tinh nang moi **"Doi soat cheo Core"**:
+Ban **moi nhat (v4.14)**: nguoi dung bao cao kem anh chup - sau khi chay thu that "Doi soat cheo
+Core" (v4.13) voi 143/143 voucher deu KHOP, bang ket qua tren web hien TRONG TRON (chi co nut Xuat
+Excel) - tuong nhu khong liet ke duoc. Nguyen nhan: checkbox "Chi hien dong CHUA KHOP" mac dinh
+TICK SAN, ket hop voi `.table-responsive` AN CA tieu de cot tren dien thoai khi KHONG CON dong nao
+de hien (0 CHUA KHOP) - bang trong tuyet doi, khong co gi de nguoi dung nhan ra day la KET QUA LOC
+chu khong phai loi. Nhan tien, nguoi dung xac nhan (qua AskUserQuestion) muon **gui duoc ket qua
+qua email, ca thu cong lan tu dong dinh ky**:
+- `core-reconciliation.js/html`: checkbox "Chi hien dong CHUA KHOP" chi TU DONG tick khi THAT SU
+  co dong chua khop (`results.some(r => r.matchResult === 'MISMATCH')`); them thong bao ro rang
+  neu nguoi dung TU tick ma khong co dong nao de hien, thay vi 1 the trong bi an het.
+- Them nut **"Gui email"** (thu cong, ngay sau khi 1 lan chay xong) - tu nhap nguoi nhan NGAY LUC
+  DO, gui dung file Excel ket qua lan chay nay, khong lap lai tu dong (dung y nguoi dung: "excel
+  chi gui cho nguoi can"). API moi `POST /core-reconciliation/:id/send-email`.
+- Them loai bao cao **"Doi soat cheo Core"** vao "Lich gui email bao cao" (gui tu dong dinh ky,
+  giong 3 loai co san) - `emailScheduleService.js#buildReportAttachment` goi lai
+  `coreReconciliationService.js` (ham moi `runReconciliationForSchedule()`, CHO (await) het thay
+  vi chay nen nhu man hinh tuong tac, vi can co ket qua day du de dinh kem email ngay). Quan trong:
+  kiem tra lai quyen `AdminCanReconcileCore`/`PartnerAdminCanReconcileCore` cua CHU LICH **TAI THOI
+  DIEM GUI** (khong chi luc tao lich) - day la hanh dong goi THAT nhieu lan toi Core, khong nen de
+  1 lich con "song" sau khi quyen chu lich da bi thu hoi. Cung van gioi han 1.000 voucher/lan (vuot
+  qua thi lan gui do FAILED voi thong bao ro rang, khong am tham cat bot du lieu).
+- `email-schedules.js`: o chon "Bao cao" KHONG con dung "Quan tri day du bo qua kiem tra quyen" (bo
+  qua duoc voi 3 loai cu vi ADMIN_PERMISSIONS luon true san) cho RIENG muc nay - phai doc dung 1
+  trong 2 quyen rieng, vi day la nang luc MOI mac dinh TAT ngay ca cho Quan tri day du.
+- Da test: 17 test logic backend (bao gom ngu nghia `connectionIds=[]` KHAC `null` khi quyen he
+  thong cua chu lich bi thu hep sau khi tao - phai hieu la "khong con gi duoc xem", khong phai "xem
+  tat ca" nhu man hinh tuong tac) + Playwright voi CSP giong production cho ca man Doi soat cheo
+  Core (nut gui email) lan Lich gui email bao cao (tuy chon loai bao cao dung theo quyen).
+
+Ban truoc do (v4.13): theo yeu cau nguoi dung - them tinh nang moi **"Doi soat cheo Core"**:
 voi tung voucher DA THU HOI tren he thong nay, goi lai API "Kiem tra" cua Core de xac nhan
 Core/DSMart co THAT SU ghi nhan da su dung hay khong - phat hien truong hop he thong nay bao thu
 hoi thanh cong nhung Core chua/khong ghi nhan (lech du lieu), phuc vu doi chieu truoc khi thanh
@@ -2558,7 +2587,7 @@ Core, khong co API "kiem tra nhieu ma 1 luc"):
   voucher loi khong lam hong ca lan chay, luu dung 2 quyen moi) deu PASS; Playwright voi CSP GIONG
   HET production (khong co loi CSP tren Console, polling tien trinh/loc bang hoat dong dung).
 
-Ban truoc do (v4.12): theo yeu cau nguoi dung (kem anh tham khao tu 1 app khac, hws.hcrc.vn)
+Ban truoc do nua (v4.12): theo yeu cau nguoi dung (kem anh tham khao tu 1 app khac, hws.hcrc.vn)
 - them hop thoai hoi xac nhan khi dang nhap luc tai khoan co the dang dang nhap o noi khac, va
 lam "Dang xuat" goi THAT xuong server. App truoc do da co san co che "1 tai khoan = 1 phien
 dang nhap" (M17, sql/036) nhung CHAY NGAM, khong hoi truoc - dang nhap thiet bi moi tu dong

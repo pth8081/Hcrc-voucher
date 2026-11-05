@@ -103,4 +103,19 @@ async function exportExcel(req, res, next) {
   }
 }
 
-module.exports = { getFilters, estimate, start, listRuns, getRun, exportExcel };
+async function sendEmail(req, res, next) {
+  try {
+    await coreReconciliationService.sendRunEmail(req, Number(req.params.id), req.body.recipients);
+    await auditLogService.log({
+      actorUsername: req.user.username,
+      action: 'SEND_CORE_RECONCILIATION_EMAIL',
+      targetUsername: String(req.params.id),
+      detail: { recipients: req.body.recipients },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getFilters, estimate, start, listRuns, getRun, exportExcel, sendEmail };
