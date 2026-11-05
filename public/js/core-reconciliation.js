@@ -229,6 +229,12 @@ function renderResults(results) {
   resultsBody.innerHTML = results.map((row) => {
     const isMatch = row.matchResult === 'MATCH';
     const coreLabel = CORE_STATUS_LABELS[row.coreStatus] || escapeHtml(row.coreMessage || row.coreStatus || '-');
+    // row.coreStatus === 'USED' nhung van CHUA KHOP: Core bao da dung nhung qua KENH KHAC (tieu
+    // tai quay sieu thi, khong phai qua e-voucher) - xem coreReconciliationService.js#determineMatch.
+    // coreMessage luc nay mang them thong tin giai thich RO, hien 1 dong phu mo ta duoi badge.
+    const channelMismatchNote = row.coreStatus === 'USED' && !isMatch && row.coreMessage
+      ? `<div class="fs-13 text-muted mt-2">${escapeHtml(row.coreMessage)}</div>`
+      : '';
     return `
       <tr class="result-row" data-match="${row.matchResult}">
         <td data-label="Mã voucher">${escapeHtml(row.voucherCode)}</td>
@@ -236,7 +242,7 @@ function renderResults(results) {
         <td data-label="Điểm tiêu">${escapeHtml(row.pointName || '-')}</td>
         <td data-label="Người thu hồi">${escapeHtml(row.redeemedByUserName || '-')}</td>
         <td data-label="Thời gian thu hồi (hệ thống)">${fmtDate(row.redeemedDate)}</td>
-        <td data-label="Trạng thái trên Core"><span class="status-badge ${isMatch ? 'status-unused' : 'status-used'}">${coreLabel}</span></td>
+        <td data-label="Trạng thái trên Core"><span class="status-badge ${isMatch ? 'status-unused' : 'status-used'}">${coreLabel}</span>${channelMismatchNote}</td>
         <td data-label="Kết quả đối soát"><span class="status-badge ${isMatch ? 'status-unused' : 'status-used'}">${isMatch ? 'KHỚP' : 'CHƯA KHỚP'}</span></td>
       </tr>`;
   }).join('');

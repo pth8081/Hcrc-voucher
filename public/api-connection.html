@@ -149,6 +149,9 @@
         <div><label>ngày cấp</label><input id="f_check_issueDatePath" placeholder="issueDate" /></div>
         <div><label>hạn sử dụng</label><input id="f_check_expiryDatePath" placeholder="expiryDate" /></div>
       </div>
+      <label>Thời gian tiêu tại cửa hàng (tùy chọn, dùng cho "Đối soát chéo Core")</label>
+      <input id="f_check_usedAtStoreDatePath" placeholder="VD: data.rcvDate" />
+      <p class="hint">Chỉ điền nếu đối tác xác nhận API trả về trường này - theo đối tác, trường này CHỈ được ghi khi khách tiêu THẬT tại quầy siêu thị (DSMart POS), hệ thống e-voucher (app này) không tự ghi khi thu hồi. Để trống nếu chưa rõ - "Đối soát chéo Core" vẫn hoạt động bình thường (chỉ so trạng thái), không bắt buộc.</p>
       <label>Thông báo lỗi (tùy chọn)</label>
       <input id="f_check_messagePath" placeholder="message" />
 

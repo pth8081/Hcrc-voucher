@@ -34,11 +34,13 @@
           liệu), phục vụ đối chiếu trước khi thanh toán với đối tác.
         </p>
         <p class="hint">
-          <strong class="text-danger">Lưu ý:</strong> Core chỉ trả về <strong>trạng thái hiện tại</strong>
-          (đã dùng / chưa dùng), không có mốc thời gian sử dụng thực tế — nên kết quả đối soát so sánh
-          <strong>trạng thái</strong>, không so sánh được chính xác đến từng giờ phút. Mỗi voucher cần 1
-          lượt gọi API riêng tới Core nên quá trình có thể mất vài phút với số lượng lớn — giới hạn tối đa
-          <strong><span id="maxVouchersHint">1.000</span> voucher/lượt</strong>, chọn khoảng ngày hẹp hơn nếu vượt quá.
+          <strong class="text-danger">Lưu ý:</strong> với hệ thống đã khai báo "Thời gian tiêu tại cửa hàng"
+          (màn "Kết nối API"), đối soát sẽ phát hiện thêm trường hợp voucher bị dùng <strong>qua kênh khác</strong>
+          (tiêu thật tại quầy siêu thị thay vì qua hệ thống e-voucher này) và tính là CHƯA KHỚP dù Core báo
+          đã dùng. Với hệ thống chưa khai báo trường này, đối soát chỉ so <strong>trạng thái</strong>. Mỗi
+          voucher cần 1 lượt gọi API riêng tới Core nên quá trình có thể mất vài phút với số lượng lớn —
+          giới hạn tối đa <strong><span id="maxVouchersHint">1.000</span> voucher/lượt</strong>, chọn khoảng
+          ngày hẹp hơn nếu vượt quá.
         </p>
 
         <div class="summary-filters">
