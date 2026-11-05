@@ -179,7 +179,7 @@ async function createRun(pool, { userId, username, connectionId, companyId, comp
   return result.recordset[0].Id;
 }
 
-async function insertResult(pool, runId, voucher, matchResult, coreStatus, coreMessage) {
+async function insertResult(pool, runId, voucher, matchResult, coreStatus, coreMessage, usedAtStoreDate) {
   await pool
     .request()
     .input('runId', sql.Int, runId)
@@ -192,10 +192,14 @@ async function insertResult(pool, runId, voucher, matchResult, coreStatus, coreM
     .input('coreStatus', sql.NVarChar(30), coreStatus || null)
     .input('coreMessage', sql.NVarChar(500), coreMessage || null)
     .input('matchResult', sql.NVarChar(10), matchResult)
+    // sql/053: gia tri THO truong "Thoi gian tieu tai cua hang" Core tra ve (NULL/rong hay khong
+    // la DUNG tin hieu quyet dinh khop/chua khop - xem determineMatch()) - luu rieng de hien
+    // TRUC TIEP tren man hinh/Excel, khong chi suy ra qua CoreMessage (chi co khi CHUA KHOP).
+    .input('usedAtStoreDate', sql.NVarChar(100), usedAtStoreDate ? String(usedAtStoreDate).slice(0, 100) : null)
     .query(`
       INSERT INTO dbo.CoreReconciliationResults
-        (RunId, VoucherCode, TransNum, CompanyName, PointName, RedeemedByUserName, RedeemedDate, CoreStatus, CoreMessage, MatchResult)
-      VALUES (@runId, @voucherCode, @transNum, @companyName, @pointName, @redeemedByUserName, @redeemedDate, @coreStatus, @coreMessage, @matchResult)
+        (RunId, VoucherCode, TransNum, CompanyName, PointName, RedeemedByUserName, RedeemedDate, CoreStatus, CoreMessage, MatchResult, UsedAtStoreDate)
+      VALUES (@runId, @voucherCode, @transNum, @companyName, @pointName, @redeemedByUserName, @redeemedDate, @coreStatus, @coreMessage, @matchResult, @usedAtStoreDate)
     `);
 }
 
@@ -259,10 +263,12 @@ async function runReconciliation(runId, candidates) {
       let coreStatus = null;
       let coreMessage = null;
       let matchResult = 'MISMATCH';
+      let usedAtStoreDate = null;
       try {
         // eslint-disable-next-line no-await-in-loop
         const result = await coreVoucherService.checkVoucher(voucher.voucherCode, { connectionId: voucher.connectionId });
         coreStatus = result.status;
+        usedAtStoreDate = result.usedAtStoreDate || null;
         const decision = determineMatch(result);
         matchResult = decision.matchResult;
         coreMessage = decision.message;
@@ -276,7 +282,7 @@ async function runReconciliation(runId, candidates) {
       else mismatchCount += 1;
 
       // eslint-disable-next-line no-await-in-loop
-      await insertResult(pool, runId, voucher, matchResult, coreStatus, coreMessage);
+      await insertResult(pool, runId, voucher, matchResult, coreStatus, coreMessage, usedAtStoreDate);
       // eslint-disable-next-line no-await-in-loop
       await bumpProgress(pool, runId, { checkedCount, matchCount, mismatchCount });
 
@@ -399,7 +405,7 @@ async function listRunResults(runId) {
     .request()
     .input('runId', sql.Int, runId)
     .query(`
-      SELECT VoucherCode, TransNum, CompanyName, PointName, RedeemedByUserName, RedeemedDate, CoreStatus, CoreMessage, MatchResult
+      SELECT VoucherCode, TransNum, CompanyName, PointName, RedeemedByUserName, RedeemedDate, CoreStatus, CoreMessage, MatchResult, UsedAtStoreDate
       FROM dbo.CoreReconciliationResults
       WHERE RunId = @runId
       ORDER BY Id ASC
@@ -414,6 +420,7 @@ async function listRunResults(runId) {
     coreStatus: row.CoreStatus,
     coreMessage: row.CoreMessage,
     matchResult: row.MatchResult,
+    usedAtStoreDate: row.UsedAtStoreDate,
   }));
 }
 
@@ -552,6 +559,7 @@ async function buildExcelBuffer(run) {
     { header: 'Người thu hồi', key: 'redeemedByUserName', width: 20 },
     { header: 'Thời gian thu hồi (hệ thống)', key: 'redeemedDate', width: 22 },
     { header: 'Trạng thái trên Core', key: 'coreStatusLabel', width: 22 },
+    { header: 'Thời gian tiêu tại cửa hàng (Core)', key: 'usedAtStoreDate', width: 26 },
     { header: 'Kết quả đối soát', key: 'matchLabel', width: 16 },
     { header: 'Ghi chú', key: 'note', width: 50 },
   ];
@@ -571,6 +579,7 @@ async function buildExcelBuffer(run) {
       redeemedByUserName: sanitizeExcelText(row.redeemedByUserName || '-'),
       redeemedDate: row.redeemedDate || null,
       coreStatusLabel: CORE_STATUS_LABELS[row.coreStatus] || sanitizeExcelText(row.coreMessage || row.coreStatus || '-'),
+      usedAtStoreDate: sanitizeExcelText(row.usedAtStoreDate || '(trống/NULL)'),
       matchLabel: isMatch ? 'KHỚP' : 'CHƯA KHỚP',
       note: sanitizeExcelText(note),
     });
