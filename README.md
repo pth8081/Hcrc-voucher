@@ -2527,7 +2527,29 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.14)**: nguoi dung bao cao kem anh chup - sau khi chay thu that "Doi soat cheo
+Ban **moi nhat (v4.15)**: theo yeu cau nguoi dung (sau khi doi chieu voi doi tac) - nang cap "Doi
+soat cheo Core" de phat hien THEM truong hop voucher bi dung TRUNG qua 2 kenh. Doi tac xac nhan:
+API "Kiem tra" cua Core co 1 truong thoi gian (vd cot RCV_DATE trong database doi tac) **CHI duoc
+ghi khi khach tieu THAT tai quay sieu thi (DSMart POS)** - he thong e-voucher (app nay) KHONG tu
+ghi truong nay khi goi API thu hoi. Dung tin hieu nay de doi soat chat hon: Core bao `USED` +
+truong nay RONG = chac chan tieu qua e-voucher (khop that); Core bao `USED` + truong nay CO GIA
+TRI = tieu qua quay sieu thi (khac kenh app nay ghi nhan) - van tinh CHUA KHOP, kem ghi chu ro ly
+do, giup phat hien dung trung 2 kenh:
+- `src/services/apiConnectionService.js`: KHONG can sua gi - `checkMapping` da luu dang JSON tu
+  do trong 1 cot san co, truong moi tu dong duoc luu/doc qua co che hien co, khong can migration.
+- `api-connection.html/js`: them o cau hinh TUY CHON "Thoi gian tieu tai cua hang"
+  (`checkMapping.usedAtStoreDatePath`) o man "Ket noi API", cung mau voi "ngay cap"/"han su dung"
+  da co; hien ca o "Test kiem tra" de admin xac minh dung field truoc khi dung that. De trong =
+  giu nguyen hanh vi cu (chi so trang thai) - khong bat buoc, khong pha vo ket noi chua cau hinh.
+- `dynamicCoreApiClient.js`: them `usedAtStoreDate` vao ket qua chuan hoa (`normalize()`).
+- `coreReconciliationService.js`: ham thuan `determineMatch()` (tach rieng de de test) quyet dinh
+  KHOP/CHUA KHOP theo logic tren - cot "Trang thai tren Core" van hien dung USED That cua Core,
+  them 1 dong phu giai thich khi CHUA KHOP do khac kenh; Excel them cot "Ghi chu" rieng.
+- Da test: 4 test logic moi (`determineMatch` 3 truong hop + 1 test end-to-end qua
+  `runReconciliation`) + Playwright voi CSP giong production cho ca 2 man "Doi soat cheo Core" va
+  "Ket noi API" (luu/doc dung truong cau hinh, Test kiem tra hien dung gia tri).
+
+Ban truoc do (v4.14): nguoi dung bao cao kem anh chup - sau khi chay thu that "Doi soat cheo
 Core" (v4.13) voi 143/143 voucher deu KHOP, bang ket qua tren web hien TRONG TRON (chi co nut Xuat
 Excel) - tuong nhu khong liet ke duoc. Nguyen nhan: checkbox "Chi hien dong CHUA KHOP" mac dinh
 TICK SAN, ket hop voi `.table-responsive` AN CA tieu de cot tren dien thoai khi KHONG CON dong nao
@@ -2556,7 +2578,7 @@ qua email, ca thu cong lan tu dong dinh ky**:
   tat ca" nhu man hinh tuong tac) + Playwright voi CSP giong production cho ca man Doi soat cheo
   Core (nut gui email) lan Lich gui email bao cao (tuy chon loai bao cao dung theo quyen).
 
-Ban truoc do (v4.13): theo yeu cau nguoi dung - them tinh nang moi **"Doi soat cheo Core"**:
+Ban truoc do nua (v4.13): theo yeu cau nguoi dung - them tinh nang moi **"Doi soat cheo Core"**:
 voi tung voucher DA THU HOI tren he thong nay, goi lai API "Kiem tra" cua Core de xac nhan
 Core/DSMart co THAT SU ghi nhan da su dung hay khong - phat hien truong hop he thong nay bao thu
 hoi thanh cong nhung Core chua/khong ghi nhan (lech du lieu), phuc vu doi chieu truoc khi thanh
