@@ -2527,7 +2527,38 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.12)**: theo yeu cau nguoi dung (kem anh tham khao tu 1 app khac, hws.hcrc.vn)
+Ban **moi nhat (v4.13)**: theo yeu cau nguoi dung - them tinh nang moi **"Doi soat cheo Core"**:
+voi tung voucher DA THU HOI tren he thong nay, goi lai API "Kiem tra" cua Core de xac nhan
+Core/DSMart co THAT SU ghi nhan da su dung hay khong - phat hien truong hop he thong nay bao thu
+hoi thanh cong nhung Core chua/khong ghi nhan (lech du lieu), phuc vu doi chieu truoc khi thanh
+toan voi doi tac. Da xac nhan voi nguoi dung: Core CHI tra ve trang thai hien tai (khong co moc
+thoi gian su dung thuc te), nen ket qua doi soat so sanh TRANG THAI (USED = khop, con lai = chua
+khop), khong so sanh duoc chinh xac den tung gio phut - demo man hinh da gui truoc, nguoi dung xac
+nhan roi moi lam that. Chi Quan tri (ca HCRC lan doi tac) duoc cap RIENG 1 quyen moi (mac dinh TAT
+ca 2) moi dung duoc, gioi han toi da 1.000 voucher/lan (moi voucher can 1 lan goi API rieng toi
+Core, khong co API "kiem tra nhieu ma 1 luc"):
+- `sql/052`: 2 quyen moi `AdminCanReconcileCore`/`PartnerAdminCanReconcileCore` (mac dinh TAT) +
+  2 bang moi `CoreReconciliationRuns`/`CoreReconciliationResults` luu lai lich su cac lan chay.
+- `coreReconciliationService.js`: chay NEN (khong giu request HTTP cho toi khi xong) - goi Core
+  TUAN TU cho tung voucher (co nghi giua 2 lan goi, tranh bi Core hieu nham la tan cong do), ghi
+  ket qua tung dong NGAY sau khi co phan hoi (tien trinh khong mat neu server co su co giua
+  chung). 1 voucher loi (Core khong goi duoc/he thong da bi xoa...) CHI tinh la "CHUA KHOP" cho
+  rieng voucher do, KHONG lam hong ca lan doi soat.
+- `requireReconcileCoreAccess.js`: middleware phan quyen rieng, cung mau voi
+  `requireVoucherFilterAccess.js` - Quan tri HCRC (pham vi TAT CA) va Quan tri doi tac (pham vi EP
+  VE DUNG 1 he thong da gan cho ho, bo qua moi gia tri client gui len) deu dung chung 1 man hinh.
+- Man hinh moi `core-reconciliation.html` trong menu (an/hien theo quyen): chon Cong ty/He thong
+  voucher/khoang ngay, uoc tinh so voucher TRUOC khi chay, thanh tien trinh (dung the `<progress>`
+  co san thay vi `.style.width` - DUNG quy uoc CSP rut kinh nghiem tu v4.11), bang ket qua loc
+  "chi hien CHUA KHOP", xuat Excel, lich su cac lan doi soat gan day.
+- Them 2 o tick quyen moi vao man "Tai khoan" (khung quyen Quan tri HCRC va khung tab Quan tri
+  doi tac), mac dinh TAT, phai duoc cap rieng.
+- Da test: test logic backend rieng (ep dung pham vi 1 he thong cho Quan tri doi tac du client co
+  gui he thong khac, rap dung cau loc SQL theo Cong ty/nhieu He thong, logic khop/chua khop, 1
+  voucher loi khong lam hong ca lan chay, luu dung 2 quyen moi) deu PASS; Playwright voi CSP GIONG
+  HET production (khong co loi CSP tren Console, polling tien trinh/loc bang hoat dong dung).
+
+Ban truoc do (v4.12): theo yeu cau nguoi dung (kem anh tham khao tu 1 app khac, hws.hcrc.vn)
 - them hop thoai hoi xac nhan khi dang nhap luc tai khoan co the dang dang nhap o noi khac, va
 lam "Dang xuat" goi THAT xuong server. App truoc do da co san co che "1 tai khoan = 1 phien
 dang nhap" (M17, sql/036) nhung CHAY NGAM, khong hoi truoc - dang nhap thiet bi moi tu dong
@@ -2549,7 +2580,7 @@ dang xuat thiet bi cu ngay, khong canh bao:
   `twofa-verify.js`, `twofa-setup.js`, `change-password.js`. `layout.js`: nut "Dang xuat" goi
   `POST /auth/logout` truoc khi xoa token.
 
-Ban truoc do (v4.11): sua loi THAT nguoi dung bao cao kem nhieu anh chup/dieu tra sau (man
+Ban truoc do nua (v4.11): sua loi THAT nguoi dung bao cao kem nhieu anh chup/dieu tra sau (man
 "Cau hinh ma voucher" - chon "Loai tru" hay "Chi chap nhan" van hien CA 2 o cung luc). Sau nhieu
 vong loai tru gia thuyet (cache trinh duyet, chua deploy dung ban, CDN...) - nguyen nhan THAT
 SU la **CSP (Content Security Policy) chan style noi tuyen**: app nay co cau hinh bao mat

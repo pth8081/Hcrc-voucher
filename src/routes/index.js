@@ -20,5 +20,6 @@ router.use('/admin', require('./adminLog.routes'));
 router.use('/guides', require('./guide.routes'));
 router.use('/email-gateway', require('./emailGateway.routes'));
 router.use('/email-schedules', require('./emailSchedule.routes'));
+router.use('/core-reconciliation', require('./coreReconciliation.routes'));
 
 module.exports = router;
