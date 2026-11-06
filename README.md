@@ -417,6 +417,12 @@ giong het nhau (xem phan "Chay nhieu worker" ngay ben duoi).
 
 #### Cach 1: Chay bang PM2 (don gian, quen thuoc voi nguoi hay dung Node.js)
 
+Du an co san file `ecosystem.config.js` o thu muc goc - dung file nay thay vi go tay tham so moi
+lan, tranh quen `--cwd` (khien cot "Version" trong `pm2 list` hien "N/A" vinh vien) va dam bao MOI
+lan khoi dong (ke ca sau khi reboot server, qua `pm2 resurrect`) deu dung CHINH XAC cung 1 cau
+hinh - xem chu thich day du trong chinh file do (user Node tu quan ly cluster rieng qua
+`CLUSTER_WORKERS`, gioi han restart-loop, timeout khi dung...).
+
 ```bash
 # 1) Cai PM2 (chi 1 lan, cai global cho toan he thong)
 sudo npm install -g pm2
@@ -424,7 +430,8 @@ sudo npm install -g pm2
 # 2) Khoi dong app BANG DUNG USER hcrcapp (khong dung tai khoan ca nhan cua admin) - luu y PM2
 #    quan ly danh sach tien trinh RIENG cho tung user, nen tu day ve sau moi lenh pm2 lien quan
 #    toi app nay deu phai chay kem "sudo -u hcrcapp" nhu duoi day.
-sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher --cwd /duong-dan/toi/hcrc-voucher
+cd /duong-dan/toi/hcrc-voucher
+sudo -u hcrcapp pm2 start ecosystem.config.js
 
 # 3) Luu lai danh sach tien trinh hien tai cua user hcrcapp
 sudo -u hcrcapp pm2 save
@@ -434,6 +441,12 @@ sudo -u hcrcapp pm2 save
 #    dung dong do (khong tu doan, moi may in ra duong dan khac nhau)
 sudo -u hcrcapp pm2 startup
 ```
+
+> **Da tung chay bang cach go tay tham so (`pm2 start src/server.js --name ... --cwd ...`) tu
+> truoc khi co file `ecosystem.config.js` nay?** Chuyen sang dung file nay de tranh cau hinh bi
+> "ke" mai theo cach cu: `sudo -u hcrcapp pm2 delete hcrc-voucher` roi chay lai buoc 2 o tren, sau
+> do `pm2 save` lai (buoc 3) de ghi de danh sach da luu - KHONG can chay lai `pm2 startup` (buoc 4,
+> van con hieu luc tu lan dang ky truoc).
 
 **Cac lenh thuong dung sau khi da chay** (luon nho kem `sudo -u hcrcapp` vi app chay duoi user do):
 
