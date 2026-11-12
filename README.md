@@ -417,6 +417,12 @@ giong het nhau (xem phan "Chay nhieu worker" ngay ben duoi).
 
 #### Cach 1: Chay bang PM2 (don gian, quen thuoc voi nguoi hay dung Node.js)
 
+Du an co san file `ecosystem.config.js` o thu muc goc - dung file nay thay vi go tay tham so moi
+lan, tranh quen `--cwd` (khien cot "Version" trong `pm2 list` hien "N/A" vinh vien) va dam bao MOI
+lan khoi dong (ke ca sau khi reboot server, qua `pm2 resurrect`) deu dung CHINH XAC cung 1 cau
+hinh - xem chu thich day du trong chinh file do (user Node tu quan ly cluster rieng qua
+`CLUSTER_WORKERS`, gioi han restart-loop, timeout khi dung...).
+
 ```bash
 # 1) Cai PM2 (chi 1 lan, cai global cho toan he thong)
 sudo npm install -g pm2
@@ -424,7 +430,8 @@ sudo npm install -g pm2
 # 2) Khoi dong app BANG DUNG USER hcrcapp (khong dung tai khoan ca nhan cua admin) - luu y PM2
 #    quan ly danh sach tien trinh RIENG cho tung user, nen tu day ve sau moi lenh pm2 lien quan
 #    toi app nay deu phai chay kem "sudo -u hcrcapp" nhu duoi day.
-sudo -u hcrcapp pm2 start src/server.js --name hcrc-voucher --cwd /duong-dan/toi/hcrc-voucher
+cd /duong-dan/toi/hcrc-voucher
+sudo -u hcrcapp pm2 start ecosystem.config.js
 
 # 3) Luu lai danh sach tien trinh hien tai cua user hcrcapp
 sudo -u hcrcapp pm2 save
@@ -434,6 +441,12 @@ sudo -u hcrcapp pm2 save
 #    dung dong do (khong tu doan, moi may in ra duong dan khac nhau)
 sudo -u hcrcapp pm2 startup
 ```
+
+> **Da tung chay bang cach go tay tham so (`pm2 start src/server.js --name ... --cwd ...`) tu
+> truoc khi co file `ecosystem.config.js` nay?** Chuyen sang dung file nay de tranh cau hinh bi
+> "ke" mai theo cach cu: `sudo -u hcrcapp pm2 delete hcrc-voucher` roi chay lai buoc 2 o tren, sau
+> do `pm2 save` lai (buoc 3) de ghi de danh sach da luu - KHONG can chay lai `pm2 startup` (buoc 4,
+> van con hieu luc tu lan dang ky truoc).
 
 **Cac lenh thuong dung sau khi da chay** (luon nho kem `sudo -u hcrcapp` vi app chay duoi user do):
 
@@ -2527,7 +2540,23 @@ trong giai doan dau da sua lai dung thanh `v4.0`/`v4.1` trong danh sach duoi day
 commit/PR cu tren GitHub van con ghi so cu, chi sua lai o day va `package.json` cho dung quy
 uoc ve sau).
 
-Ban **moi nhat (v4.16)**: theo yeu cau nguoi dung - "Doi soat cheo Core" hien THEM 1 cot rieng
+Ban **moi nhat (v4.17)**: theo yeu cau nguoi dung - them file `ecosystem.config.js` (cau hinh
+PM2) o thu muc goc de app **tu khoi dong lai khi crash/khi may chu reboot**, khong con phai go tay
+tham so moi lan (tranh quen `--cwd` khien cot "Version" trong `pm2 list` hien "N/A" vinh vien):
+- `instances: 1` / `exec_mode: 'fork'` - KHONG bat nhan cluster mode cua PM2, vi app da tu quan
+  ly nhieu worker rieng qua `CLUSTER_WORKERS` trong `.env` (bat ca 2 cung luc se nhan so tien
+  trinh len gap boi, xem canh bao chi tiet trong chinh file cau hinh va README muc 3e).
+- `autorestart: true` + `min_uptime`/`max_restarts` - tu khoi dong lai khi crash, nhung dung lai
+  sau 10 lan/10 giay neu loi nghiem trong lap lai lien tuc (vd sai cau hinh DB), tranh vong lap
+  restart-crash am tham khong ai biet.
+- `max_memory_restart: '500M'` - tu restart neu ro ri bo nho vuot nguong (dieu chinh theo RAM
+  server that).
+- README muc 3e cap nhat huong dan dung `pm2 start ecosystem.config.js` thay vi go tay tham so,
+  kem huong dan chuyen doi cho ai da chay theo cach cu.
+- Da test thuc te voi PM2 (sandbox): xac nhan app nhan dung version qua `cwd`, tu restart dung
+  khi crash.
+
+Ban truoc do (v4.16): theo yeu cau nguoi dung - "Doi soat cheo Core" hien THEM 1 cot rieng
 **"Thoi gian tieu tai cua hang (Core)"** trong bang ket qua tren web VA file Excel, hien NGUYEN VAN
 gia tri Core tra ve (hoac "(NULL)" neu rong) cho TUNG dong - truoc day (v4.15) chi suy ra qua 1
 dong ghi chu phu khi CHUA KHOP, truong hop KHOP (gia tri rong - dung mong doi) khong thay duoc gia
@@ -2543,7 +2572,7 @@ ket luan khop/chua khop:
 - Da test: 2 test logic moi (luu dung gia tri THO ca 2 truong hop KHOP/CHUA KHOP) + Playwright voi
   CSP giong production xac nhan cot moi hien dung tren ca 2 dong.
 
-Ban truoc do (v4.15): theo yeu cau nguoi dung (sau khi doi chieu voi doi tac) - nang cap "Doi
+Ban truoc do nua (v4.15): theo yeu cau nguoi dung (sau khi doi chieu voi doi tac) - nang cap "Doi
 soat cheo Core" de phat hien THEM truong hop voucher bi dung TRUNG qua 2 kenh. Doi tac xac nhan:
 API "Kiem tra" cua Core co 1 truong thoi gian (vd cot RCV_DATE trong database doi tac) **CHI duoc
 ghi khi khach tieu THAT tai quay sieu thi (DSMart POS)** - he thong e-voucher (app nay) KHONG tu
